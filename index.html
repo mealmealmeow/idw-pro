@@ -4994,19 +4994,6 @@ function escapeHtml(text) {
 </div>
 
 <!-- ★★★★★ Supabase 登入 + 雲端同步核心 ★★★★★ -->
-<script>
-  async function login() {
-    const email = document.getElementById('loginEmail').value.trim();
-    if (!email) return alert('請輸入電郵');
-    const { error } = await supabase.auth.signInWithOtp({ email });
-    if (error) alert('錯誤：' + error.message);
-    else alert('已寄魔法連結去你電郵，點擊即登入！');
-  }
-
-  async function logout() {
-    await supabase.auth.signOut();
-    location.reload();
-  }
 
  
   // ==========================================
