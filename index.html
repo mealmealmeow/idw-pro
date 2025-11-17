@@ -41,11 +41,6 @@
     --missing-text: #c86a5a;     /* 未填寫學生文字顏色 */
     --danger-bg-soft: #fef2f2;
     --danger-border-soft: #fecaca;
-    --progress-tracker-bg: #fdfae5;
-    --progress-tracker-border: #f0e6c5;
-    --progress-kpi-color: #4CAF50;
-    --progress-pending-color: #f44336;
-
 
     --radius-lg: 14px;
     --radius-md: 10px;
@@ -79,7 +74,7 @@
     background-color: var(--secondary-bg); 
     box-shadow: 0 18px 45px var(--shadow-color); 
     border-radius: 20px; 
-    /* overflow: hidden; */
+    overflow: hidden;
     border: 1px solid rgba(255,255,255,0.7);
     backdrop-filter: blur(10px);
   }
@@ -95,7 +90,7 @@
     gap: 1rem;
     box-shadow: 0 10px 26px rgba(0,0,0,0.16);
     position: relative;
-    z-index: 10;
+    z-index: 2;
   }
 
   header::after {
@@ -239,56 +234,6 @@
   .page-content.active { 
     display: block; 
   }
-
-  /* ===== Page 1 Sticky Sub-Navigation ===== */
-  .page1-subnav {
-      position: sticky;
-      /* Height of the main nav bar */
-      top: 58px; 
-      z-index: 4;
-      display: flex;
-      justify-content: space-around;
-      align-items: center;
-      background: linear-gradient(135deg, #f1ece4, #e8f0ea);
-      box-shadow: 0 5px 15px rgba(0,0,0,0.08);
-      border-bottom: 1px solid var(--border-color);
-      padding: 0.2rem 0;
-  }
-
-  .page1-subnav a {
-      flex: 1;
-      text-align: center;
-      padding: 0.5rem 0;
-      color: var(--title-color);
-      font-size: 1rem;
-      font-weight: 500;
-      text-decoration: none;
-      transition: background-color var(--transition-fast), color var(--transition-fast);
-      position: relative;
-  }
-
-  .page1-subnav a:hover {
-      background-color: rgba(90, 143, 123, 0.15);
-      color: var(--accent-color);
-  }
-
-  .page1-subnav a:not(:last-child)::after {
-      content: '';
-      position: absolute;
-      top: 25%;
-      bottom: 25%;
-      right: 0;
-      width: 1px;
-      background-color: rgba(90, 143, 123, 0.2);
-  }
-
-  @media (max-width: 600px) {
-      .page1-subnav {
-          /* Adjust for smaller screens if nav height changes */
-          top: 54px; 
-      }
-  }
-
 
   /* ===== section 區塊 ===== */
 
@@ -489,16 +434,6 @@
   }
 
   /* ===== 評語 checkbox 卡片 ===== */
-  #checklist-container {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 1rem;
-  }
-  @media (max-width: 768px) {
-      #checklist-container {
-          grid-template-columns: 1fr;
-      }
-  }
 
   .check-item { 
     border: 1px solid rgba(225,216,200,0.9); 
@@ -536,7 +471,7 @@
 
   .check-item-header label { 
     flex: 1; 
-    font-size: 0.98rem;
+    font-size: 1.05rem; 
     font-weight: 500; 
   }
 
@@ -1073,25 +1008,9 @@
     margin: 0;
   }
 
-  #progress-tracker {
-      background-color: var(--progress-tracker-bg);
-      border: 1px solid var(--progress-tracker-border);
-      border-radius: var(--radius-md);
-      padding: 0.8rem 1.2rem;
-      margin-bottom: 1.25rem;
-      text-align: center;
-      font-size: 1.1rem;
-      font-weight: bold;
-      display: flex;
-      justify-content: center;
-      gap: 2rem;
-      flex-wrap: wrap;
-  }
-  #progress-tracker .kpi { color: var(--progress-kpi-color); }
-  #progress-tracker .pending { color: var(--progress-pending-color); }
-
   #student-overview-table-wrapper {
     overflow-x: auto;
+    margin-top: 1.25rem;
     background-color: #fdfbf8;
     border-radius: 12px;
     border: 1px solid rgba(225,216,200,0.9);
@@ -1111,7 +1030,6 @@
     padding: 0.55rem 0.75rem;
     text-align: center;
     vertical-align: top;
-    white-space: nowrap;
   }
 
   #student-overview-table th {
@@ -1119,40 +1037,8 @@
     color: var(--title-color);
     position: sticky;
     top: 0;
-    z-index: 3;
+    z-index: 1;
   }
-
-  #student-overview-table th:nth-child(1),
-  #student-overview-table td:nth-child(1) {
-      position: sticky;
-      left: 0;
-      z-index: 2;
-      width: 60px;
-      min-width: 60px;
-  }
-  #student-overview-table th:nth-child(2),
-  #student-overview-table td:nth-child(2) {
-      position: sticky;
-      left: 60px; /* Width of the first column */
-      z-index: 2;
-      width: 120px;
-      min-width: 120px;
-  }
-  /* Ensure sticky header cells are on top of sticky column cells */
-  #student-overview-table th:nth-child(1),
-  #student-overview-table th:nth-child(2) {
-      z-index: 4;
-  }
-  /* Add background to sticky cells to hide content scrolling underneath */
-  #student-overview-table td:nth-child(1),
-  #student-overview-table td:nth-child(2) {
-      background-color: #fdfbf8;
-  }
-  .row-missing td:nth-child(1),
-  .row-missing td:nth-child(2) {
-      background-color: var(--danger-bg-soft);
-  }
-
 
   #student-overview-table td input[type="number"] {
     width: 60px;
@@ -1193,7 +1079,6 @@
     text-align: left;
     min-width: 300px;
     max-width: 450px;
-    white-space: normal;
   }
 
   #student-overview-table textarea {
@@ -1221,10 +1106,6 @@
 
   .row-missing {
     background-color: var(--danger-bg-soft);
-  }
-  .row-missing .unfilled-cell {
-      color: var(--problem-color);
-      font-style: italic;
   }
 
   .row-missing .total-score-cell {
@@ -1380,7 +1261,6 @@
     font-size: 0.9rem;
     color: #888;
   }
-
 </style>
 </head>
 <body>
@@ -1408,14 +1288,7 @@
       <!-- ==================== 第一頁：評語生成器 ==================== -->
       <div id="page1" class="page-content active">
         
-        <nav class="page1-subnav">
-            <a href="#step-2-section" title="跳轉到選擇學生">生</a>
-            <a href="#step-3-section" title="跳轉到作文評分">分</a>
-            <a href="#step-3-1-section" title="跳轉到錯別字">字</a>
-            <a href="#step-4-section" title="跳轉到評語項目">評</a>
-        </nav>
-        
-        <div class="section-box" id="step-1-section">
+        <div class="section-box">
           <h2>步驟一：基本資料</h2>
           <div class="two-column-grid">
             <div>
@@ -1442,7 +1315,7 @@
           </div>
         </div>
 
-        <div class="section-box" id="step-2-section">
+        <div class="section-box" id="student-selection-section">
           <h2>步驟二：選擇學生與特別留言</h2>
           <div class="two-column-grid">
             <div>
@@ -1463,7 +1336,7 @@
           </div>
         </div>
 
-        <div class="section-box" id="step-3-section">
+        <div class="section-box">
           <h2>步驟三：作文評分（1-10分）</h2>
           <p style="font-size:0.9em; color:#888; margin-top:-0.7rem;">總分公式 =（內容×4）+（表達×3）+（結構×2）+（標點×1）+ 錯別字分。若需扣分，請在「錯別字」欄輸入負數。</p>
           <div class="score-layout-grid">
@@ -1482,10 +1355,10 @@
           </div>
         </div>
 
-        <div class="section-box" id="step-3-1-section">
+        <div class="section-box">
           <details>
-            <summary><h2>步驟 3.1：錯別字紀錄與常見庫</h2></summary>
-            <div style="padding: 1.25rem;">
+            <summary><h2>步驟 3.5：錯別字紀錄與常見庫</h2></summary>
+            <div style="padding-top: 1.25rem;">
               <div id="typo-module" style="display:flex; flex-wrap:wrap; gap:0.75rem; align-items:flex-end;">
                 <div class="input-group" style="flex:1; min-width:160px; margin-bottom:0;">
                   <label for="typo-wrong">錯字（可留空）</label>
@@ -1526,7 +1399,7 @@
           </details>
         </div>
 
-        <div class="section-box" id="step-4-section">
+        <div class="section-box">
           <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
             <h2>步驟四：評語項目選擇與編修</h2>
             <div class="btn-group">
@@ -1674,7 +1547,6 @@
             </div>
           </div>
           <h3 id="overview-class-display"></h3>
-          <div id="progress-tracker"></div>
           <div id="student-overview-table-wrapper">
               <table id="student-overview-table">
                   <thead>
@@ -1895,7 +1767,7 @@
   <div id="modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-hidden="true">
     <div class="modal-card" role="document">
       <div class="modal-title" id="modal-title">請確認</div>
-      <div id="modal-text" style="white-space: pre-wrap;">資料尚未匯出，關閉頁面將會遺失所有進度，確定要離開嗎？</div>
+      <div id="modal-text" style="white-space: pre-wrap;">確認執行？</div>
       <div class="modal-actions">
         <button class="btn btn-secondary" id="modal-cancel">取消</button>
         <button class="btn btn-danger" id="modal-ok">確定</button>
@@ -1926,7 +1798,6 @@
 let allStudentRecords = [];
 
 document.addEventListener('DOMContentLoaded', () => {
-  showWelcomeMessage(); 
   loadFontSize();
   loadCommonTypos();
   buildChecklist();
@@ -1936,46 +1807,21 @@ document.addEventListener('DOMContentLoaded', () => {
   updateAllOutputs();
 });
 
-// Welcome message
-function showWelcomeMessage() {
-    alertUI('又有小可愛在等您翻牌了！', '溫馨提示');
-}
-
-// Before-leave confirmation
-window.addEventListener('beforeunload', (event) => {
-    const hasData = allStudentRecords.some(r => r.data);
-    if (hasData) {
-        const confirmationMessage = '資料尚未匯出，關閉頁面將會遺失所有進度，確定要離開嗎？';
-        event.preventDefault();
-        event.returnValue = confirmationMessage;
-        return confirmationMessage;
-    }
-});
-
-
-/* ====== Modal UI (Alert & Confirm) ====== */
+/* ====== 小型 Confirm UI ====== */
 const modal = {
-  el: null, okBtn: null, cancelBtn: null, textEl: null, titleEl: null, resolve: null,
+  el: null, okBtn: null, cancelBtn: null, textEl: null, resolve: null,
   init() {
     this.el = document.getElementById('modal');
     this.okBtn = document.getElementById('modal-ok');
     this.cancelBtn = document.getElementById('modal-cancel');
     this.textEl = document.getElementById('modal-text');
-    this.titleEl = document.getElementById('modal-title');
     this.okBtn.addEventListener('click', ()=>{ this.hide(); if (this.resolve) this.resolve(true); });
     this.cancelBtn.addEventListener('click', ()=>{ this.hide(); if (this.resolve) this.resolve(false); });
-    this.el.addEventListener('click', (e)=>{ 
-        if (e.target === this.el) { 
-            this.hide(); 
-            if (this.resolve) this.resolve(false); // Backdrop click is like cancel
-        }
-    });
+    this.el.addEventListener('click', (e)=>{ if (e.target===this.el) { this.hide(); if (this.resolve) this.resolve(false); }});
   },
-  show(message, title = '請確認', showCancel = true) {
+  show(message) {
     if (!this.el) this.init();
     this.textEl.textContent = message || '請確認';
-    this.titleEl.textContent = title;
-    this.cancelBtn.style.display = showCancel ? 'flex' : 'none'; // Control cancel button visibility
     this.el.classList.add('active');
     this.el.setAttribute('aria-hidden', 'false');
     return new Promise(res => { this.resolve = res; });
@@ -1985,17 +1831,8 @@ const modal = {
     this.el.setAttribute('aria-hidden', 'true');
   }
 };
-
-// **MODIFIED**: New function for alert-style (one button) modal
-function alertUI(message, title) {
-    modal.show(message, title, false); // `false` hides the cancel button
-}
-
-// **MODIFIED**: confirmUI now uses the generalized `show` method
-function confirmUI(message, onOk, title) {
-  modal.show(message, title, true).then(ok => { // `true` shows the cancel button
-      if (ok && typeof onOk === 'function') onOk(); 
-  });
+function confirmUI(message, onOk) {
+  modal.show(message).then(ok => { if (ok && typeof onOk === 'function') onOk(); });
 }
 
 /* ====== 字體大小調整功能 ====== */
@@ -2053,7 +1890,7 @@ function showPage(pageId) {
   document.getElementById(pageId).classList.add('active');
   document.querySelectorAll('.nav-btn').forEach(n => n.classList.remove('active'));
   document.getElementById('nav-' + pageId).classList.add('active');
-
+  
   if (pageId === 'page2') {
     buildOverviewPage();
   } else if (pageId === 'page3') {
@@ -2070,7 +1907,7 @@ function showPage(pageId) {
   }
 }
 
-// 全部展開/收合功能
+// 新增：全部展開/收合功能
 function toggleAllDetails(containerId, openState) {
   const container = document.getElementById(containerId);
   if (container) {
@@ -2097,26 +1934,26 @@ function buildChecklist() {
   });
 
   checklistContainer.innerHTML = '';
-  const tempCategories = {};
+  Object.keys(CATEGORIES).forEach(key => { CATEGORIES[key] = []; });
 
   dataContainer.querySelectorAll('div[data-id]').forEach(el => {
-    const category = el.dataset.category || "未分類";
-    if (!tempCategories[category]) {
-      tempCategories[category] = []; 
+    const category = el.dataset.category;
+    if (!CATEGORIES[category]) {
+      CATEGORIES[category] = []; 
     }
-    tempCategories[category].push(el);
+    CATEGORIES[category].push(el);
   });
 
   let hasContent = false;
-  for (const categoryName in tempCategories) {
-    if (tempCategories[categoryName].length === 0) continue;
+  for (const categoryName in CATEGORIES) {
+    if (CATEGORIES[categoryName].length === 0) continue;
     hasContent = true;
     const details = document.createElement('details');
     details.innerHTML = `<summary>${categoryName}</summary>`;
     const itemsContainer = document.createElement('div');
     itemsContainer.className = 'critique-items-container';
 
-    tempCategories[categoryName].forEach(critiqueEl => {
+    CATEGORIES[categoryName].forEach(critiqueEl => {
       const id = critiqueEl.dataset.id;
       const type = critiqueEl.dataset.type;
       const title = getCritiqueData(id, 'title');
@@ -2153,7 +1990,7 @@ function buildChecklist() {
   }
 
   if (!hasContent) {
-    checklistContainer.innerHTML = `<div class="empty-state-message" style="grid-column: 1 / -1;">評語庫目前為空。<br>請前往「評語總覽與修訂」分頁新增或導入評語項目。</div>`;
+    checklistContainer.innerHTML = `<div class="empty-state-message">評語庫目前為空。<br>請前往「評語總覽與修訂」分頁新增或導入評語項目。</div>`;
   }
 }
 
@@ -2323,6 +2160,7 @@ function attachGlobalListeners() {
     ta?.addEventListener('blur', ()=> { delete ta.dataset.userEditing; updateAllOutputs(); });
   });
 
+  // **NEW**: Add auto-jump for score inputs
   const scoreInputOrder = ['score-content', 'score-expression', 'score-structure', 'score-punctuation', 'score-typos'];
   scoreInputOrder.forEach(id => {
       const input = document.getElementById(id);
@@ -2512,7 +2350,7 @@ function generatePureFullVersion(excellents, problems) {
       const seg = [];
       seg.push(`（${i+1}）${title}`);
       let strengthSummary = concise.strengthSummary || '';
-      if (v) strengthSummary = strengthSummary.replace(/[選項]/g, `「${v}」`);
+      if (v) strengthSummary = strengthSummary.replace(/\[選項\]/g, `「${v}」`);
       if (strengthSummary) seg.push(`${strengthSummary}`);
       if (examples.length) seg.push(`例如：${examples.join(' ')}`);
       parts.push(seg.join('\n'));
@@ -2530,10 +2368,10 @@ function generatePureFullVersion(excellents, problems) {
       const seg = [];
       seg.push(`（${i+1}）`);
       let problemText = concise.problemCore || '';
-      if (v) problemText = problemText.replace(/[選項]/g, `「${v}」`);
+      if (v) problemText = problemText.replace(/\[選項\]/g, `「${v}」`);
       if (problemText) seg.push(`問題：${problemText}`);
       let suggestion = concise.suggestion || '';
-      if (v) suggestion = suggestion.replace(/[選項]/g, `「${v}」`);
+      if (v) suggestion = suggestion.replace(/\[選項\]/g, `「${v}」`);
       if (suggestion) seg.push(`宜：${suggestion}`);
       if (examples.length) seg.push(`例如，${examples.join(' ')}`);
       parts.push(seg.join(' '));
@@ -2616,16 +2454,16 @@ function composeStudentFromConcise(id) {
 
   if (isExcellent) {
     let strengthSummary = c.strengthSummary || '';
-    if (v) strengthSummary = strengthSummary.replace(/[選項]/g, `「${v}」`);
+    if (v) strengthSummary = strengthSummary.replace(/\[選項\]/g, `「${v}」`);
     if (strengthSummary) parts.push(`- 優點：${strengthSummary}`);
     if (exampleLines.length > 0) exampleLines.forEach(line => parts.push(`- ${line}`));
   } else {
     let problemText = c.problemCore || '';
-    if (v) problemText = problemText.replace(/[選項]/g, `「${v}」`);
+    if (v) problemText = problemText.replace(/\[選項\]/g, `「${v}」`);
     if (problemText) parts.push(`- 問題：${problemText}`);
 
     let suggestion = c.suggestion || '';
-    if (v) suggestion = suggestion.replace(/[選項]/g, `「${v}」`);
+    if (v) suggestion = suggestion.replace(/\[選項\]/g, `「${v}」`);
     if (suggestion) parts.push(`- 宜：${suggestion}`);
     
     if (exampleLines.length > 0) exampleLines.forEach(line => parts.push(`- 例：${line}`));
@@ -2924,7 +2762,7 @@ function saveCurrentStudentData() {
     `已成功儲存 ${studentOriginalName} 的評語資料！\n\n是否要清空當前內容，以準備輸入下一位學生？`,
     () => {
       clearAllCore();
-      const targetSection = document.getElementById('step-2-section');
+      const targetSection = document.getElementById('student-selection-section');
       if (targetSection) {
         targetSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
@@ -3030,32 +2868,19 @@ function handleOverviewScoreChange(input) {
 function renderStudentOverviewTable() {
   const tbody = document.querySelector("#student-overview-table tbody");
   const classDisplay = document.getElementById("overview-class-display");
-  const progressTracker = document.getElementById("progress-tracker");
-  if (!tbody || !classDisplay || !progressTracker) return;
+  if (!tbody || !classDisplay) return;
 
   tbody.innerHTML = '';
   const parsedNames = allStudentRecords;
 
   if (parsedNames.length === 0) {
     classDisplay.textContent = '';
-    progressTracker.innerHTML = '';
     tbody.innerHTML = `<tr><td colspan="10" class="empty-state-message">尚未儲存任何學生記錄。</td></tr>`;
     return;
   }
 
-  const completedRecords = parsedNames.filter(r => r.data && (r.data.scores.total !== '' && r.data.scores.total != null));
-  const pendingRecords = parsedNames.filter(r => !completedRecords.includes(r));
-
-  const completedCount = completedRecords.length;
-  const pendingCount = pendingRecords.length;
-  if (pendingCount === 0 && completedCount > 0) {
-      progressTracker.innerHTML = `<span class="kpi">🎉 功德圓滿！準時收工！🎉</span>`;
-  } else {
-      progressTracker.innerHTML = `
-          <span class="kpi">今日功德 = ${completedCount} 本</span>
-          <span class="pending">離下班還有... ${pendingCount} 本</span>
-      `;
-  }
+  const withData = parsedNames.filter(r => r.data);
+  const withoutData = parsedNames.filter(r => !r.data);
 
   const sorter = (a, b) => {
     if (a.number !== null && b.number !== null) return a.number - b.number;
@@ -3063,68 +2888,50 @@ function renderStudentOverviewTable() {
     if (b.number !== null) return 1;
     return a.name.localeCompare(b.name, 'zh-Hant');
   };
-  completedRecords.sort(sorter);
-  pendingRecords.sort(sorter);
+  withData.sort(sorter);
+  withoutData.sort(sorter);
 
-  const firstWithData = completedRecords[0] || pendingRecords[0];
-  const className = (firstWithData && firstWithData.data && firstWithData.data.class) ? (firstWithData.data.class || '未指定班別') : '未指定班別';
+  const firstWithData = withData[0];
+  const className = firstWithData && firstWithData.data ? (firstWithData.data.class || '未指定班別') : '未指定班別';
   classDisplay.textContent = `班別：${className}`;
 
   const renderRow = (record, hasData) => {
-    const d = (hasData && record.data) ? record.data : {};
-    const s = d.scores || {};
+    const s = hasData ? record.data.scores : { content:'',expression:'',structure:'',punctuation:'',typos:'',total:'' };
     const tr = document.createElement('tr');
-    const safeOriginalName = escapeHtmlAttr(record.originalName);
-
     if (!hasData) {
       tr.classList.add('row-missing');
-      tr.innerHTML = `
-        <td>${record.number || ''}</td>
-        <td>
-          <a href="javascript:void(0)" onclick="jumpToStudentFromOverview('${safeOriginalName}')" style="color:#2563eb; text-decoration:underline;">
-             ${escapeHtmlAttr(record.name) || ''}
-          </a>
-        </td>
-        <td class="unfilled-cell">未填</td>
-        <td class="unfilled-cell">未填</td>
-        <td class="unfilled-cell">未填</td>
-        <td class="unfilled-cell">未填</td>
-        <td class="unfilled-cell">未填</td>
-        <td class="total-score-cell">未填</td>
-        <td></td>
-        <td></td>
-      `;
-    } else {
-      tr.innerHTML = `
-        <td>${record.number || ''}</td>
-        <td>
-          <a href="javascript:void(0)" 
-             onclick="jumpToStudentFromOverview('${safeOriginalName}')"
-             style="color:#2563eb; text-decoration:underline;">
-             ${escapeHtmlAttr(record.name) || ''}
-          </a>
-        </td>
-        <td><input type="number" value="${escapeHtmlAttr(s.content)}" data-student-name="${safeOriginalName}" data-score-type="content" oninput="handleOverviewScoreChange(this)"></td>
-        <td><input type="number" value="${escapeHtmlAttr(s.expression)}" data-student-name="${safeOriginalName}" data-score-type="expression" oninput="handleOverviewScoreChange(this)"></td>
-        <td><input type="number" value="${escapeHtmlAttr(s.structure)}" data-student-name="${safeOriginalName}" data-score-type="structure" oninput="handleOverviewScoreChange(this)"></td>
-        <td><input type="number" value="${escapeHtmlAttr(s.punctuation)}" data-student-name="${safeOriginalName}" data-score-type="punctuation" oninput="handleOverviewScoreChange(this)"></td>
-        <td><input type="number" value="${escapeHtmlAttr(s.typos)}" data-student-name="${safeOriginalName}" data-score-type="typos" oninput="handleOverviewScoreChange(this)"></td>
-        <td class="total-score-cell" id="total-score-${safeOriginalName}">${escapeHtmlAttr(s.total) || ''}</td>
-        <td><textarea data-student-name="${safeOriginalName}" data-field="pureFullComment" oninput="handleTableEdit(this); autoResizeTextarea(this);">${escapeHtmlAttr(d.pureFullComment)}</textarea></td>
-        <td><textarea data-student-name="${safeOriginalName}" data-field="pureStudentComment" oninput="handleTableEdit(this); autoResizeTextarea(this);">${escapeHtmlAttr(d.pureStudentComment)}</textarea></td>
-      `;
     }
+    const totalText = hasData ? (escapeHtmlAttr(s.total) || '') : '未填';
+    const safeOriginalName = escapeHtmlAttr(record.originalName);
+
+    tr.innerHTML = `
+      <td>${record.number || ''}</td>
+      <td>
+        <a href="javascript:void(0)" 
+           onclick="jumpToStudentFromOverview('${safeOriginalName}')"
+           style="color:#2563eb; text-decoration:underline;">
+           ${escapeHtmlAttr(record.name) || ''}
+        </a>
+      </td>
+      <td><input type="number" value="${escapeHtmlAttr(s.content)}" data-student-name="${safeOriginalName}" data-score-type="content" oninput="handleOverviewScoreChange(this)"></td>
+      <td><input type="number" value="${escapeHtmlAttr(s.expression)}" data-student-name="${safeOriginalName}" data-score-type="expression" oninput="handleOverviewScoreChange(this)"></td>
+      <td><input type="number" value="${escapeHtmlAttr(s.structure)}" data-student-name="${safeOriginalName}" data-score-type="structure" oninput="handleOverviewScoreChange(this)"></td>
+      <td><input type="number" value="${escapeHtmlAttr(s.punctuation)}" data-student-name="${safeOriginalName}" data-score-type="punctuation" oninput="handleOverviewScoreChange(this)"></td>
+      <td><input type="number" value="${escapeHtmlAttr(s.typos)}" data-student-name="${safeOriginalName}" data-score-type="typos" oninput="handleOverviewScoreChange(this)"></td>
+      <td class="total-score-cell" id="total-score-${safeOriginalName}">${totalText}</td>
+      <td><textarea data-student-name="${safeOriginalName}" data-field="pureFullComment" oninput="handleTableEdit(this); autoResizeTextarea(this);">${hasData ? escapeHtmlAttr(record.data.pureFullComment) : ''}</textarea></td>
+      <td><textarea data-student-name="${safeOriginalName}" data-field="pureStudentComment" oninput="handleTableEdit(this); autoResizeTextarea(this);">${hasData ? escapeHtmlAttr(record.data.pureStudentComment) : ''}</textarea></td>
+    `;
     tbody.appendChild(tr);
   };
 
-  completedRecords.forEach(r => renderRow(r, true));
-  pendingRecords.forEach(r => renderRow(r, false));
+  withData.forEach(r => renderRow(r, true));
+  withoutData.forEach(r => renderRow(r, false));
 
   setTimeout(() => {
     tbody.querySelectorAll('textarea').forEach(autoResizeTextarea);
   }, 0);
 }
-
 
 function jumpToStudentFromOverview(originalName) {
   showPage('page1');
@@ -3135,7 +2942,7 @@ function jumpToStudentFromOverview(originalName) {
   sel.value = originalName;
   sel.dispatchEvent(new Event('change'));
 
-  const target = document.getElementById('step-2-section');
+  const target = document.getElementById('student-selection-section');
   if (target) {
     target.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
@@ -4229,7 +4036,9 @@ function handleFileImport(file, onDataReady) {
     reader.readAsText(file, 'UTF-8');
 }
 
+// 新增：通用下載函數，使用 data:URI 提升手機兼容性
 function downloadFile(filename, content, mimeType) {
+    // btoa() can't handle unicode, so we need to escape it first
     const base64 = btoa(unescape(encodeURIComponent(content)));
     const dataUri = `data:${mimeType};charset=utf-8;base64,${base64}`;
 
@@ -4349,6 +4158,7 @@ function exportOverviewToWord() {
     const pureStudent = record.data.pureStudentComment || '';
     const num = record.number !== null ? String(record.number) : '';
 
+    // This is the key fix: Insert a hard page break before every student except the first one.
     if (idx > 0) {
       content += `<br style="page-break-before:always" />`;
     }
