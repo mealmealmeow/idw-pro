@@ -4971,102 +4971,79 @@ function escapeHtml(text) {
     .replace(/"/g, "&quot;");
 }
 // ==========================================
-  // 強力補丁：全域打字監聽 (強制觸發儲存)
+  // Supabase 雲端同步模組 (終極乾淨版)
   // ==========================================
-  document.addEventListener('input', function(e) {
-      // 只要使用者在網頁上打字或改動，就嘗試儲存
-      // console.log("偵測到輸入，準備儲存..."); // 測試用，如果你想睇有無反應可以開
-      if (typeof saveToCloud === 'function') {
-          saveToCloud();
+
+  // 全域變數：用來存放儲存的計時器
+  let saveTimeout;
+
+  // 1. 定義儲存函數 (最優先定義，確保全域可見)
+  async function saveToCloud() {
+    // 取得當前用戶
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    // 如果沒登入，就不執行儲存
+    if (!user) return; 
+
+    // 防抖動：清除之前的排程
+    clearTimeout(saveTimeout);
+
+    // 設定 1 秒後執行儲存
+    saveTimeout = setTimeout(async () => {
+      const updates = {
+        id: user.id,
+        critiques: critiques,       // 確保這些全域變數在你的原代碼中有定義
+        common_typos: commonTypos,
+        updated_at: new Date(),
+      };
+
+      const { error } = await supabase.from('users_data').upsert(updates);
+      
+      // 更新 UI 狀態
+      const emailSpan = document.getElementById('user-email');
+      if (error) {
+        console.error('儲存失敗:', error);
+        if(emailSpan) emailSpan.textContent = "❌ 儲存失敗";
+      } else {
+        console.log('雲端儲存成功');
+        if(emailSpan) {
+            const originalText = user.email;
+            emailSpan.textContent = "✅ 已儲存";
+            // 2秒後變回 Email
+            setTimeout(() => { 
+                if(document.getElementById('user-email').textContent === "✅ 已儲存") {
+                    emailSpan.textContent = originalText; 
+                }
+            }, 2000);
+        }
       }
-  });
-</script>
-<!-- ★★★★★ 右上角文青風登入框 ★★★★★ -->
-<div id="authBox" style="position:fixed;top:16px;right:16px;z-index:9999;background:rgba(90,143,123,0.94);color:white;padding:16px 26px;border-radius:20px;font-family:'LXGW WenKai TC';box-shadow:0 15px 35px rgba(0,0,0,0.25);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.18);">
-  <div id="loginForm">
-    <input id="loginEmail" placeholder="電郵快速登入" style="padding:11px 15px;width:250px;border-radius:12px;border:none;font-family:inherit;margin-bottom:8px;font-size:1rem;">
-    <button onclick="login()" style="padding:11px 24px;border:none;border-radius:12px;background:rgba(255,255,255,0.25);color:white;cursor:pointer;font-weight:600;font-family:inherit;">魔法登入</button>
-  </div>
-  <div id="userPanel" style="display:none;">
-    <small>歡迎 👋</small> <span id="userEmail" style="font-weight:600;"></span>
-    <button onclick="logout()" style="margin-top:8px;padding:7px 14px;border:none;border-radius:10px;background:#c86a5a;color:white;cursor:pointer;font-size:0.9em;">登出</button>
-  </div>
-</div>
+    }, 1000);
+  }
 
-
- 
-  // ==========================================
-  // Supabase 雲端同步模組 (修正版)
-  // ==========================================
-
-  // 1. 處理登入 (使用 Email Magic Link)
+  // 2. 處理登入
   async function login() {
     const email = prompt("請輸入你的 Email 以接收登入連結 (Magic Link):");
     if (!email) return;
     
-    const { data, error } = await supabase.auth.signInWithOtp({
+    const { error } = await supabase.auth.signInWithOtp({
       email: email,
-      options: {
-        emailRedirectTo: window.location.href,
-      },
+      options: { emailRedirectTo: window.location.href }
     });
 
-    if (error) {
-      alert("登入錯誤: " + error.message);
-    } else {
-      alert("登入連結已寄出！請檢查你的 Email 信箱。");
-    }
+    if (error) alert("登入錯誤: " + error.message);
+    else alert("登入連結已寄出！請檢查 Email。");
   }
 
+  // 3. 處理登出
   async function logout() {
-    const { error } = await supabase.auth.signOut();
-    if (error) alert(error.message);
-    else window.location.reload();
+    await supabase.auth.signOut();
+    window.location.reload();
   }
 
-  // 綁定按鈕事件
-  const btnLogin = document.getElementById('btn-login');
-  const btnLogout = document.getElementById('btn-logout');
-  if(btnLogin) btnLogin.addEventListener('click', login);
-  if(btnLogout) btnLogout.addEventListener('click', logout);
-
-  // 2. 監聽登入狀態改變
-  supabase.auth.onAuthStateChange(async (event, session) => {
-    const user = session?.user;
-    const emailSpan = document.getElementById('user-email');
-
-    if (user) {
-      // 已登入狀態
-      console.log("User logged in:", user.email);
-      if(btnLogin) btnLogin.style.display = 'none';
-      if(btnLogout) btnLogout.style.display = 'block';
-      if(emailSpan) {
-        emailSpan.style.display = 'block';
-        emailSpan.textContent = user.email;
-      }
-
-      // 登入後，馬上從雲端載入資料 (傳入 user.id)
-      await loadCloudData(user.id);
-    } else {
-      // 未登入狀態
-      if(btnLogin) btnLogin.style.display = 'block';
-      if(btnLogout) btnLogout.style.display = 'none';
-      if(emailSpan) emailSpan.style.display = 'none';
-    }
-  });
-
-  // 3. 從雲端載入資料 (Load) - 修正版
+  // 4. 從雲端載入資料
   async function loadCloudData(userId) {
-    // 如果沒有傳入 userId，嘗試自己抓取
-    if (!userId) {
-        const { data: { user } } = await supabase.auth.getUser();
-        userId = user?.id;
-    }
-    if (!userId) return; // 沒登入就不載入
-
-    // 顯示載入中...
+    if (!userId) return;
     const emailSpan = document.getElementById('user-email');
-    const originalText = emailSpan ? emailSpan.textContent : '';
     if(emailSpan) emailSpan.textContent = "資料同步中...";
 
     const { data, error } = await supabase
@@ -5075,111 +5052,75 @@ function escapeHtml(text) {
       .eq('id', userId)
       .single();
 
-    if (error) {
-       // 如果是查無資料 (PGRST116)，代表是新用戶，不做動作，等待第一次存檔
-       if (error.code !== 'PGRST116') {
-           console.error('Error loading cloud data:', error);
-       }
-    } else if (data) {
-      // 修正：Supabase 回傳的 jsonb 已經是物件，不需要 JSON.parse
-      if (data.critiques) {
-        critiques = data.critiques;
-        if (typeof renderCritiqueList === 'function') renderCritiqueList();
-      }
-      if (data.common_typos) {
-        commonTypos = data.common_typos;
-        if (typeof renderCommonTypoList === 'function') renderCommonTypoList();
-      }
-      console.log("雲端資料載入成功");
+    if (data) {
+      // 更新全域變數
+      if (data.critiques) critiques = data.critiques;
+      if (data.common_typos) commonTypos = data.common_typos;
+      
+      // 重新渲染畫面 (呼叫你原本的函數)
+      if (typeof renderCritiqueList === 'function') renderCritiqueList();
+      if (typeof renderCommonTypoList === 'function') renderCommonTypoList();
+      console.log("雲端資料載入完成");
     }
     
-    if(emailSpan) emailSpan.textContent = originalText;
+    // 恢復 Email 顯示
+    if(emailSpan) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if(user) emailSpan.textContent = user.email;
+    }
   }
 
-  // 4. 儲存到雲端 (Save) - 防抖動設計
-  let saveTimeout;
-  async function saveToCloud() {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return; // 沒登入就不存雲端
+  // 5. 初始化 & 監聽器設定
+  
+  // 綁定按鈕
+  const btnLogin = document.getElementById('btn-login');
+  const btnLogout = document.getElementById('btn-logout');
+  if(btnLogin) btnLogin.addEventListener('click', login);
+  if(btnLogout) btnLogout.addEventListener('click', logout);
 
-    clearTimeout(saveTimeout);
-    saveTimeout = setTimeout(async () => {
-      
-      const updates = {
-        id: user.id,
-        critiques: critiques,       // 你的全域變數
-        common_typos: commonTypos,  // 你的全域變數
-        updated_at: new Date(),
-      };
+  // 監聽登入狀態
+  supabase.auth.onAuthStateChange(async (event, session) => {
+    const user = session?.user;
+    const emailSpan = document.getElementById('user-email');
 
-      const { error } = await supabase
-        .from('users_data')
-        .upsert(updates);
-
-      const emailSpan = document.getElementById('user-email');
-      if (error) {
-        console.error('Error saving to cloud:', error);
-        if(emailSpan) emailSpan.textContent = "❌ 儲存失敗";
-      } else {
-        console.log('Saved to cloud successfully');
-        if(emailSpan) {
-            const originalText = user.email;
-            emailSpan.textContent = "✅ 已儲存";
-            setTimeout(() => {
-               emailSpan.textContent = originalText;
-            }, 2000);
-        }
+    if (user) {
+      // 已登入
+      if(btnLogin) btnLogin.style.display = 'none';
+      if(btnLogout) btnLogout.style.display = 'block';
+      if(emailSpan) {
+        emailSpan.style.display = 'block';
+        emailSpan.textContent = user.email;
       }
-    }, 1000); // 延遲 1 秒執行
-  }
-
-  // 5. 攔截 (Hook) 原本的儲存函數
-  // 確保 saveToCloud 能夠存取到原本的函數
-  if (typeof originalPersistCritiques === 'undefined') {
-      var originalPersistCritiques = persistCritiques;
-  }
-  if (typeof originalPersistCommonTypos === 'undefined') {
-      var originalPersistCommonTypos = persistCommonTypos;
-  }
-
-  persistCritiques = function() {
-    if(originalPersistCritiques) originalPersistCritiques.apply(this, arguments);
-    saveToCloud();
-  };
-
-  persistCommonTypos = function() {
-    if(originalPersistCommonTypos) originalPersistCommonTypos.apply(this, arguments);
-    saveToCloud();
-  };
-
-// ==========================================
-  // 補回遺失的結尾功能
-  // ==========================================
-
-  // 5. 強力補丁：全域監聽打字 (解決 Save 唔到嘅問題)
-  document.addEventListener('input', function(e) {
-     if (typeof saveToCloud === 'function') {
-        saveToCloud(); 
-     }
+      await loadCloudData(user.id);
+    } else {
+      // 未登入
+      if(btnLogin) btnLogin.style.display = 'block';
+      if(btnLogout) btnLogout.style.display = 'none';
+      if(emailSpan) emailSpan.style.display = 'none';
+    }
   });
 
-  // 6. 攔截 (Hook) 原本的儲存函數
-  if (typeof originalPersistCritiques === 'undefined') {
-      var originalPersistCritiques = (typeof persistCritiques !== 'undefined') ? persistCritiques : function(){};
-  }
-  if (typeof originalPersistCommonTypos === 'undefined') {
-      var originalPersistCommonTypos = (typeof persistCommonTypos !== 'undefined') ? persistCommonTypos : function(){};
-  }
+  // 6. 強力補丁：全域打字監聽 (最關鍵的一步！)
+  document.addEventListener('input', function(e) {
+     // 任何輸入都觸發儲存
+     saveToCloud();
+  });
 
-  persistCritiques = function() {
-    if(originalPersistCritiques) originalPersistCritiques.apply(this, arguments);
-    if (typeof saveToCloud === 'function') saveToCloud();
-  };
+  // 7. 攔截舊有的 localStorage 儲存 (作為備用)
+  // 使用 IIFE (立即執行函數) 來避免變數污染
+  (function() {
+      const originalPersistCritiques = window.persistCritiques;
+      const originalPersistCommonTypos = window.persistCommonTypos;
 
-  persistCommonTypos = function() {
-    if(originalPersistCommonTypos) originalPersistCommonTypos.apply(this, arguments);
-    if (typeof saveToCloud === 'function') saveToCloud();
-  };
+      window.persistCritiques = function() {
+        if(typeof originalPersistCritiques === 'function') originalPersistCritiques.apply(this, arguments);
+        saveToCloud();
+      };
 
+      window.persistCommonTypos = function() {
+        if(typeof originalPersistCommonTypos === 'function') originalPersistCommonTypos.apply(this, arguments);
+        saveToCloud();
+      };
+  })();
 </script> </body>   </html>   ```
 
