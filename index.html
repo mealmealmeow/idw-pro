@@ -4970,6 +4970,16 @@ function escapeHtml(text) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
 }
+// ==========================================
+  // 強力補丁：全域打字監聽 (強制觸發儲存)
+  // ==========================================
+  document.addEventListener('input', function(e) {
+      // 只要使用者在網頁上打字或改動，就嘗試儲存
+      // console.log("偵測到輸入，準備儲存..."); // 測試用，如果你想睇有無反應可以開
+      if (typeof saveToCloud === 'function') {
+          saveToCloud();
+      }
+  });
 </script>
 <!-- ★★★★★ 右上角文青風登入框 ★★★★★ -->
 <div id="authBox" style="position:fixed;top:16px;right:16px;z-index:9999;background:rgba(90,143,123,0.94);color:white;padding:16px 26px;border-radius:20px;font-family:'LXGW WenKai TC';box-shadow:0 15px 35px rgba(0,0,0,0.25);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.18);">
