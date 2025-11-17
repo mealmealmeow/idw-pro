@@ -32,8 +32,12 @@
 </script>
 <div id="auth-container" style="display: flex; align-items: center; gap: 10px; margin-left: auto; margin-right: 1rem;">
   <span id="user-email" style="font-size: 0.9rem; display: none;"></span>
-  <button id="btn-login" class="action-btn" style="font-size: 0.9rem; padding: 0.4rem 1rem; background: #4CAF50;">登入雲端</button>
-  <button id="btn-logout" class="action-btn" style="font-size: 0.9rem; padding: 0.4rem 1rem; background: #795548; display: none;">登出</button>
+  <div id="auth-container" style="display: flex; align-items: center; gap: 10px; margin: 10px;">
+  <span id="user-email" style="font-size: 0.9rem; color: #555; display: none;"></span>
+  
+  <button id="btn-login" onclick="window.login()" class="action-btn" style="background-color: #4CAF50; color: white; padding: 5px 10px; border: none; border-radius: 4px; cursor: pointer;">登入雲端</button>
+  
+  <button id="btn-logout" onclick="window.logout()" class="action-btn" style="background-color: #f44336; color: white; padding: 5px 10px; border: none; border-radius: 4px; cursor: pointer; display: none;">登出</button>
 </div>
 
 <div class="font-controls">
