@@ -5165,5 +5165,35 @@ function escapeHtml(text) {
     if(originalPersistCommonTypos) originalPersistCommonTypos.apply(this, arguments);
     saveToCloud();
   };
-</body>
-</html>
+
+// ==========================================
+  // 補回遺失的結尾功能
+  // ==========================================
+
+  // 5. 強力補丁：全域監聽打字 (解決 Save 唔到嘅問題)
+  document.addEventListener('input', function(e) {
+     if (typeof saveToCloud === 'function') {
+        saveToCloud(); 
+     }
+  });
+
+  // 6. 攔截 (Hook) 原本的儲存函數
+  if (typeof originalPersistCritiques === 'undefined') {
+      var originalPersistCritiques = (typeof persistCritiques !== 'undefined') ? persistCritiques : function(){};
+  }
+  if (typeof originalPersistCommonTypos === 'undefined') {
+      var originalPersistCommonTypos = (typeof persistCommonTypos !== 'undefined') ? persistCommonTypos : function(){};
+  }
+
+  persistCritiques = function() {
+    if(originalPersistCritiques) originalPersistCritiques.apply(this, arguments);
+    if (typeof saveToCloud === 'function') saveToCloud();
+  };
+
+  persistCommonTypos = function() {
+    if(originalPersistCommonTypos) originalPersistCommonTypos.apply(this, arguments);
+    if (typeof saveToCloud === 'function') saveToCloud();
+  };
+
+</script> </body>   </html>   ```
+
