@@ -8,8 +8,6 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <!-- 引入 Supabase.js 函式庫 -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <!-- 引入 docx.js 函式庫，用於生成 Word 檔案 -->
-  <script src="https://unpkg.com/docx@8.5.0/build/index.js"></script>
   
   <!-- 引入 Google Fonts 的 LXGW WenKai TC (霞鶩文楷 TC) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -2521,11 +2519,10 @@ function handleManualEdit(which) { const ta = which === 'full' ? document.getEle
 function clearAllCore(doUpdate = true) { document.getElementById('unique-comment').value = ''; ['score-content','score-expression','score-structure','score-punctuation','score-typos','score-total'].forEach(id=>{ const el = document.getElementById(id); if (el) el.value='';}); currentTypos = []; renderTypoList(); document.querySelectorAll('#checklist-container input[type="checkbox"]').forEach(cb => { cb.checked = false; handleCheckboxChange(cb, false); }); document.querySelectorAll('.editable-comment textarea').forEach(t => t.value = ''); document.querySelectorAll('#typo-saved-list input[type="checkbox"]').forEach(cb => cb.checked = false); if (doUpdate) { renderCommonTyposCheckedState(); updateAllOutputs(); } }
 
 // --- 導入導出 (Excel & JSON & Word) ---
-// [新增] 以下是所有新增的匯出/匯入功能程式碼
+// [修改] 以下是所有 Word 相關的匯出功能，已改為 HTML 偽裝法
 function getSanitizedTopicFilename() { const topic = document.getElementById('topic').value.trim(); if (!topic) return '未命名文章'; return topic.replace(/[\\/:*?"<>|]/g, '').substring(0, 20); }
 function getDateTimeString() { const d = new Date(); const pad = n => n.toString().padStart(2,'0'); return d.getFullYear().toString() + pad(d.getMonth()+1) + pad(d.getDate()) + '_' + pad(d.getHours()) + pad(d.getMinutes()) + pad(d.getSeconds()); }
 function checkXlsxLibrary() { if (typeof window.XLSX === 'undefined') { alert('Excel 處理函式庫尚未載入完成，請稍後再試或檢查您的網路連線。'); return false; } return true; }
-function checkDocxLibrary() { if (typeof window.docx === 'undefined') { alert('Word 文件處理函式庫尚未載入完成，請稍後再試或檢查您的網路連線。'); return false; } return true; }
 
 function handleFileImport(file, onDataReady, readAsArrayBuffer = false) {
     if (!file) return;
@@ -2534,6 +2531,249 @@ function handleFileImport(file, onDataReady, readAsArrayBuffer = false) {
     reader.onerror = (error) => { console.error('讀取檔案時出錯:', error); alert('讀取檔案失敗！'); };
     if (readAsArrayBuffer) reader.readAsArrayBuffer(file);
     else reader.readAsText(file, 'UTF-8');
+}
+
+function downloadHtmlAsDoc(html, filename) {
+    const blob = new Blob(['\ufeff', html], {
+        type: 'application/msword'
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    alert(`Word 文件已成功匯出：${filename}`);
+}
+
+function exportOverviewToWord() {
+    const records = allStudentRecords.filter(r => r.data);
+    if (records.length === 0) {
+        alert('沒有任何已儲存的學生記錄可供匯出。');
+        return;
+    }
+    records.sort((a, b) => (a.number || 999) - (b.number || 999));
+
+    const topic = document.getElementById('topic').value.trim() || '未命名文章';
+    const className = records[0].data.class || document.getElementById('student-class').value || '未指定班別';
+    
+    let studentPagesHtml = '';
+    records.forEach(record => {
+        const s = record.data.scores || {};
+        const typoLines = buildTypoSectionRaw(record.data.typos || []);
+        const pureStudent = (record.data.pureStudentComment || '—').replace(/\n/g, '<br>');
+        const num = record.number != null ? String(record.number) : '';
+
+        studentPagesHtml += `
+            <div class="page">
+                <p><b>題目：</b>${escapeHtml(topic)}</p>
+                <p><b>班別：</b>${escapeHtml(record.data.class || className)}&nbsp;&nbsp;&nbsp;&nbsp;<b>學號：</b>${escapeHtml(num)}&nbsp;&nbsp;&nbsp;&nbsp;<b>姓名：</b>${escapeHtml(record.name)}</p>
+                
+                <h3>一、分數概覽</h3>
+                <table class="score-table">
+                    <thead>
+                        <tr>
+                            <th>內容</th><th>表達</th><th>結構</th><th>標點</th><th>錯別字</th><th>總分</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>${escapeHtml(s.content)}</td>
+                            <td>${escapeHtml(s.expression)}</td>
+                            <td>${escapeHtml(s.structure)}</td>
+                            <td>${escapeHtml(s.punctuation)}</td>
+                            <td>${escapeHtml(s.typos)}</td>
+                            <td><b>${escapeHtml(s.total)}</b></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>二、錯別字記錄</h3>
+                ${typoLines.length > 0 ? `<ul>${typoLines.map(line => `<li>${escapeHtml(line)}</li>`).join('')}</ul>` : '<p>本次沒有記錄錯別字。</p>'}
+                
+                <h3>三、回饋</h3>
+                <div>${pureStudent}</div>
+            </div>
+        `;
+    });
+
+    const fullHtml = `
+        <!DOCTYPE html>
+        <html lang="zh-Hant">
+        <head>
+            <meta charset="UTF-8">
+            <style>
+                body { font-family: 'LXGW WenKai TC', 'KaiTi', '標楷體', serif; font-size: 12pt; line-height: 1.6; }
+                .page { page-break-after: always; }
+                .page:last-child { page-break-after: avoid; }
+                h3 { font-size: 14pt; color: #333; border-bottom: 1px solid #ccc; padding-bottom: 5px; margin-top: 20px; }
+                p { margin: 5px 0; }
+                ul { padding-left: 20px; }
+                .score-table { border-collapse: collapse; width: 100%; margin-top: 10px; }
+                .score-table th, .score-table td { border: 1px solid #999; padding: 6px; text-align: center; }
+                .score-table th { background-color: #f2f2f2; }
+            </style>
+        </head>
+        <body>
+            ${studentPagesHtml}
+        </body>
+        </html>
+    `;
+
+    downloadHtmlAsDoc(fullHtml, `學生評語_學生版_${getDateTimeString()}.docx`);
+}
+
+function exportAnalysisToWord() {
+    const data = getAnalysisData();
+    if (!data) {
+        alert('目前尚未有已儲存的學生評語，無法匯出分析。');
+        return;
+    }
+  
+    const topic = document.getElementById('topic').value.trim() || '未命名文章';
+    const className = (allStudentRecords.find(r=>r.data)?.data.class) || document.getElementById('student-class').value || '未指定班別';
+    const hint = buildTeachingHintFromAnalysis(data).replace(/\n/g, '<br>');
+    const today = new Date();
+    const dateStr = `${today.getFullYear()}-${(today.getMonth()+1).toString().padStart(2,'0')}-${today.getDate().toString().padStart(2,'0')}`;
+
+    let scoreTable = '<table><thead><tr><th>指標</th><th>平均分</th></tr></thead><tbody>';
+    data.scoreSummary.forEach(row => {
+        scoreTable += `<tr><td>${escapeHtml(row.指標)}</td><td>${row.平均分 != null ? row.平均分.toFixed(2) : '-'}</td></tr>`;
+    });
+    scoreTable += '</tbody></table>';
+
+    let topCritiqueTable = '';
+    if (data.topEntries.length > 0) {
+        topCritiqueTable = '<table><thead><tr><th>排名</th><th>評語標題</th><th>被選次數</th></tr></thead><tbody>';
+        data.topEntries.forEach(row => {
+            topCritiqueTable += `<tr><td>${row.排名}</td><td>${escapeHtml(row.評語標題)}</td><td>${row.被選次數}</td></tr>`;
+        });
+        topCritiqueTable += '</tbody></table>';
+    } else {
+        topCritiqueTable = '<p>（暫無數據）</p>';
+    }
+
+    const fullHtml = `
+        <!DOCTYPE html>
+        <html lang="zh-Hant">
+        <head>
+            <meta charset="UTF-8">
+            <style>
+                body { font-family: 'LXGW WenKai TC', 'KaiTi', '標楷體', serif; font-size: 12pt; line-height: 1.6; }
+                h1, h2 { color: #333; }
+                h1 { text-align: center; }
+                h2 { border-bottom: 1px solid #ccc; padding-bottom: 5px; }
+                table { border-collapse: collapse; width: 100%; margin: 15px 0; }
+                th, td { border: 1px solid #999; padding: 8px; text-align: left; }
+                th { background-color: #f2f2f2; }
+            </style>
+        </head>
+        <body>
+            <h1>評語分析備忘</h1>
+            <p><b>班別：</b>${escapeHtml(className)}</p>
+            <p><b>題目：</b>${escapeHtml(topic)}</p>
+            <p><b>日期：</b>${dateStr}</p>
+            <p><b>已批改作品數：</b>${data.studentCount}</p>
+            
+            <h2>一、數據分析 (全班概況)</h2>
+            <h3>分數概覽（平均值）</h3>
+            ${scoreTable}
+            <h3>最常見評語項目 TOP 10</h3>
+            ${topCritiqueTable}
+
+            <h2>二、教學提示（草稿）</h2>
+            <p>${hint}</p>
+        </body>
+        </html>
+    `;
+    downloadHtmlAsDoc(fullHtml, `評語分析_${getDateTimeString()}.docx`);
+}
+
+function generateTeacherWord() {
+    const aiData = _getAIFeedbackData(); if (!aiData) return;
+    const topic = document.getElementById('topic').value.trim() || '未命名文章';
+    const className = (allStudentRecords.find(r => r.data)?.data.class) || '未指定班別';
+    const analysisData = getAnalysisData();
+
+    let content = `<h1>作文練習綜合回饋 (老師版)</h1><p style="text-align:center;">題目：${escapeHtml(topic)} | 班別：${escapeHtml(className)}</p>`;
+    if (analysisData) {
+        content += `<h2>一、數據分析摘要</h2><p>${buildTeachingHintFromAnalysis(analysisData).replace(/\n/g, '<br>')}</p>`;
+    }
+    if (aiData.classOverview && aiData.classOverview.teacherSummary) {
+        content += `<h2>二、全班概況總結 (AI 分析)</h2><div>${aiData.classOverview.teacherSummary.replace(/\n/g, '<br>')}</div>`;
+    }
+    if (aiData.topicAnalysis && aiData.topicAnalysis.analysisTeacher) {
+        content += `<h2>三、審題與立意深度分析 (AI 分析)</h2><div>${aiData.topicAnalysis.analysisTeacher.replace(/\n/g, '<br>')}</div>`;
+    }
+    if (aiData.teachingPlan) {
+        content += `<h2>四、教學計劃建議 (AI 生成)</h2>`;
+        if(aiData.teachingPlan.objectives) {
+            content += `<h3>學習目標</h3><ul>${aiData.teachingPlan.objectives.map(o => `<li>${escapeHtml(o)}</li>`).join('')}</ul>`;
+        }
+        if(aiData.teachingPlan.activities) {
+            content += `<h3>教學活動</h3>`;
+            aiData.teachingPlan.activities.forEach(act => {
+                content += `<h4>${escapeHtml(act.name)} (${escapeHtml(act.duration)})</h4><p>${escapeHtml(act.description).replace(/\n/g, '<br>')}</p>`;
+            });
+        }
+    }
+    
+    const fullHtml = `<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><style>body{font-family:'LXGW WenKai TC', 'KaiTi', '標楷體', serif;font-size:12pt;line-height:1.6;}h1,h2,h3,h4{color:#333;}h1{text-align:center;}h2{border-bottom:1px solid #ccc;padding-bottom:5px;}h3{border-bottom:1px dotted #ddd;}</style></head><body>${content}</body></html>`;
+    downloadHtmlAsDoc(fullHtml, `作文回饋_老師版_${getSanitizedTopicFilename()}_${getDateTimeString()}.docx`);
+}
+
+function generateStudentWord() {
+    const aiData = _getAIFeedbackData(); if (!aiData) return;
+    const topic = document.getElementById('topic').value.trim() || '未命名文章';
+    const className = (allStudentRecords.find(r => r.data)?.data.class) || '未指定班別';
+    const today = new Date();
+    const dateStr = `${today.getFullYear()}年${(today.getMonth() + 1)}月${today.getDate()}日`;
+
+    let content = `<h1 style="text-align:center;">📝 作文練習回饋單張 📝</h1><p style="text-align:center;">題目：${escapeHtml(topic)}<br>班別：${escapeHtml(className)}<br>日期：${dateStr}</p>`;
+    
+    if (aiData.classOverview && aiData.classOverview.studentSummary) {
+        content += `<h2>一、老師的話</h2><div>${aiData.classOverview.studentSummary.replace(/\n/g, '<br>')}</div>`;
+    }
+
+    if (aiData.topicAnalysis && aiData.topicAnalysis.highlightsAndProblems) {
+        const hp = aiData.topicAnalysis.highlightsAndProblems;
+        content += `<h2>二、寫作重點圖解</h2>`;
+        if (aiData.topicAnalysis.keywords && aiData.topicAnalysis.keywords.length > 0) {
+            content += `<p style="text-align:center;"><b>題目關鍵字：</b> ${aiData.topicAnalysis.keywords.map(k => escapeHtml(k)).join(' &nbsp; ')}</p>`;
+        }
+        content += `<table class="info-table">`;
+        if (hp.highlights && hp.highlights.length > 0) {
+            content += `<tr><td class="header">全班亮點</td><td><ul>${hp.highlights.map(h => `<li>${escapeHtml(h)}</li>`).join('')}</ul></td></tr>`;
+        }
+        if (hp.problems && hp.problems.length > 0) {
+            const problemHtml = hp.problems.map(p => `<b>問題：</b>${escapeHtml(p.problem)}<br><b>貼士：</b>${escapeHtml(p.tip)}`).join('<hr style="border:0;border-top:1px dotted #ccc;">');
+            content += `<tr><td class="header">常見問題與建議</td><td>${problemHtml}</td></tr>`;
+        }
+        content += `</table>`;
+    }
+
+    if (aiData.excellentStudents && aiData.excellentStudents.length > 0) {
+        content += `<h3>👍 優秀同學特點</h3><table class="info-table"><thead><tr><th>同學</th><th>優點</th></tr></thead><tbody>`;
+        aiData.excellentStudents.forEach(s => {
+            content += `<tr><td>${escapeHtml(s.name)}</td><td>${escapeHtml(s.strength)}</td></tr>`;
+        });
+        content += `</tbody></table>`;
+    }
+
+    if (aiData.writingPractices && aiData.writingPractices.length > 0) {
+        content += `<h2>三、✍️ 動筆試一試</h2>`;
+        aiData.writingPractices.forEach((p, i) => {
+            content += `<h3>練習 ${i + 1}</h3>`;
+            if (p.prompt) content += `<div class="prompt-box"><b>練習題目：</b><br>${p.prompt.replace(/\n/g, '<br>')}</div>`;
+            if (p.guidelines) content += `<b>寫作指引：</b><ul>${p.guidelines.map(g => `<li>${escapeHtml(g)}</li>`).join('')}</ul>`;
+            if (p.modelAnswer) content += `<div class="prompt-box" style="background-color: #f0f9f0;"><b>參考示例：</b><br>${p.modelAnswer.replace(/\n/g, '<br>')}</div>`;
+        });
+    }
+
+    const fullHtml = `<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><style>body{font-family:'LXGW WenKai TC','KaiTi','標楷體',serif;font-size:12pt;line-height:1.6;}h1,h2,h3{color:#333;}h2{border-bottom:2px solid #5A8F7B;color:#5A8F7B;padding-bottom:5px;}h3{color:#3d5c4f;}.info-table{width:100%;border-collapse:collapse;margin:15px 0;}.info-table th,.info-table td{border:1px solid #ccc;padding:8px;vertical-align:top;}.info-table th,.info-table .header{background-color:#f1ece4;font-weight:bold;}.prompt-box{background-color:#f7f3eb;border-left:4px solid #5A8F7B;padding:10px;margin:10px 0;}</style></head><body>${content}</body></html>`;
+    downloadHtmlAsDoc(fullHtml, `作文回饋_學生版_${getSanitizedTopicFilename()}_${getDateTimeString()}.docx`);
 }
 
 function downloadFile(filename, content, mimeType) {
@@ -2553,190 +2793,6 @@ function downloadFile(filename, content, mimeType) {
     }
 }
 
-function downloadDocx(doc, filename) {
-    if (!checkDocxLibrary()) return;
-    const { Packer } = window.docx;
-    try {
-        Packer.toBlob(doc).then(blob => {
-            downloadFile(filename, blob, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-            alert(`Word 文件已成功匯出：${filename}`);
-        }).catch(err => {
-            console.error("生成 Word Blob 時出錯:", err);
-            alert(`生成 Word 文件失敗: ${err.message}`);
-        });
-    } catch (err) {
-        console.error("Packer 執行出錯:", err);
-        alert(`打包 Word 文件時發生錯誤: ${err.message}`);
-    }
-}
-
-function convertTextToDocxParagraphs(text) {
-    if (!checkDocxLibrary()) return [];
-    if (!text) return [new docx.Paragraph("")];
-    
-    const { Paragraph, TextRun } = window.docx;
-    const paragraphs = [];
-    const lines = text.split('\n');
-
-    lines.forEach(line => {
-        const trimmedLine = line.trim();
-        if (trimmedLine === '') {
-            paragraphs.push(new Paragraph(""));
-            return;
-        }
-
-        const children = [];
-        const parts = trimmedLine.split(/(\*\*.*?\*\*)/g).filter(Boolean); // 按 **粗體** 分割
-        parts.forEach(part => {
-            if (part.startsWith('**') && part.endsWith('**')) {
-                children.push(new TextRun({ text: part.slice(2, -2), bold: true }));
-            } else {
-                children.push(new TextRun(part));
-            }
-        });
-
-        let paragraphOptions = { children };
-        if (/^[-*•]\s/.test(trimmedLine) || /^\(.\)\s/.test(trimmedLine) || /^\d\.\s/.test(trimmedLine)) {
-            paragraphOptions.bullet = { level: 0 };
-        }
-        
-        paragraphs.push(new Paragraph(paragraphOptions));
-    });
-    return paragraphs;
-}
-
-function exportOverviewToExcel() {
-    if (!checkXlsxLibrary()) return;
-    const savedRecords = allStudentRecords.filter(r => r.data); if (savedRecords.length === 0) { alert('沒有任何已儲存的學生記錄可供匯出。'); return; }
-    savedRecords.sort((a, b) => (a.number || 999) - (b.number || 999));
-    const firstRecord = savedRecords[0]; const className = firstRecord.data.class || document.getElementById('student-class').value || '未指定班別';
-    const dataToExport = savedRecords.map(record => { const s = record.data.scores; return { '學號': record.number, '姓名': record.name, '內容評分': s.content, '表達評分': s.expression, '結構評分': s.structure, '標點字體評分': s.punctuation, '錯別字加減分': s.typos, '總分': s.total, '已選評語標題': record.data.selectedTitles || '', '完整版評語': record.data.pureFullComment, '學生版評語': record.data.pureStudentComment, }; });
-    const wsMain = XLSX.utils.json_to_sheet(dataToExport); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, wsMain, '學生評語總覽');
-    const analysisData = getAnalysisData();
-    if (analysisData) {
-        const { scoreSummary, topEntries } = analysisData;
-        const scoreRows = scoreSummary.map(r => ({ 指標: r.指標, 平均分: r.平均分 == null ? '' : Number(r.平均分.toFixed(2)) }));
-        const wsScore = XLSX.utils.json_to_sheet(scoreRows); XLSX.utils.book_append_sheet(wb, wsScore, '分數平均');
-        const wsTop = XLSX.utils.json_to_sheet(topEntries); XLSX.utils.book_append_sheet(wb, wsTop, '評語TOP10');
-    }
-    const filename = `學生評語總覽-${className}-${getSanitizedTopicFilename()}.xlsx`; XLSX.writeFile(wb, filename); alert(`學生評語總覽已成功導出為 ${filename}！`);
-}
-
-function exportOverviewToWord() {
-    if (!checkDocxLibrary()) return;
-    const { Document, Paragraph, HeadingLevel, TextRun, Table, TableCell, TableRow, PageBreak, WidthType } = window.docx;
-    const records = allStudentRecords.filter(r => r.data); if (records.length === 0) { alert('沒有任何已儲存的學生記錄可供匯出。'); return; }
-    records.sort((a, b) => (a.number || 999) - (b.number || 999));
-
-    const topic = document.getElementById('topic').value.trim() || '未命名文章';
-    const className = records[0].data.class || document.getElementById('student-class').value || '未指定班別';
-    const docChildren = [];
-
-    records.forEach((record, idx) => {
-        const s = record.data.scores || {};
-        const typoLines = buildTypoSectionRaw(record.data.typos || []);
-        const pureStudent = record.data.pureStudentComment || '—';
-        const num = record.number != null ? String(record.number) : '';
-        
-        if (idx > 0) docChildren.push(new Paragraph({ children: [new PageBreak()] }));
-
-        docChildren.push(new Paragraph({ text: `題目：${topic}` }));
-        docChildren.push(new Paragraph({ text: `班別：${record.data.class || className}　　學號：${num}　　姓名：${record.name}` }));
-        docChildren.push(new Paragraph({ text: "一、分數概覽", style: "Heading2" }));
-        docChildren.push(new Table({
-            rows: [
-                new TableRow({ children: ['內容', '表達', '結構', '標點', '錯別字', '總分'].map(text => new TableCell({ children: [new Paragraph({ children: [new TextRun({ text, bold: true })], alignment: 'center' })] })) }),
-                new TableRow({ children: [s.content, s.expression, s.structure, s.punctuation, s.typos, s.total].map(text => new TableCell({ children: [new Paragraph({ text: String(text || ''), alignment: 'center' })] })) })
-            ],
-            width: { size: 100, type: WidthType.PERCENT }
-        }));
-        docChildren.push(new Paragraph({ text: "二、錯別字記錄", style: "Heading2" }));
-        if (!typoLines.length) {
-            docChildren.push(new Paragraph("本次沒有記錄錯別字。"));
-        } else {
-            typoLines.forEach(line => docChildren.push(new Paragraph({ text: line, bullet: { level: 0 } })));
-        }
-        docChildren.push(new Paragraph({ text: "三、回饋", style: "Heading2" }));
-        docChildren.push(...convertTextToDocxParagraphs(pureStudent));
-    });
-
-    const doc = new Document({
-        creator: "我不想努力了生成器",
-        styles: { default: { document: { run: { font: "LXGW WenKai TC" } } }, paragraphStyles: [ { id: "Heading2", name: "Heading 2", basedOn: "Normal", next: "Normal", quickFormat: true, run: { size: 28, bold: true } } ] },
-        sections: [{ children: docChildren }]
-    });
-    downloadDocx(doc, `學生評語_學生版_${getDateTimeString()}.docx`);
-}
-
-function exportAnalysisToExcel() {
-  if (!checkXlsxLibrary()) return;
-  const data = getAnalysisData(); if (!data) { alert('目前尚未有已儲存的學生評語，無法匯出分析。'); return; }
-  const wb = XLSX.utils.book_new();
-  const scoreRows = data.scoreSummary.map(r=>({ 指標: r.指標, 平均分: r.平均分 == null ? '' : Number(r.平均分.toFixed(2)) }));
-  const wsScore = XLSX.utils.json_to_sheet(scoreRows); XLSX.utils.book_append_sheet(wb, wsScore, '分數平均');
-  const wsTop = XLSX.utils.json_to_sheet(data.topEntries); XLSX.utils.book_append_sheet(wb, wsTop, '評語TOP10');
-  const className = (allStudentRecords.find(r=>r.data)?.data.class) || document.getElementById('student-class').value || '未指定班別';
-  const filename = `評語分析-${className}-${getSanitizedTopicFilename()}.xlsx`; XLSX.writeFile(wb, filename); alert(`評語分析已成功匯出為 ${filename}！`);
-}
-
-function buildTeachingHintFromAnalysis(data) {
-  if (!data) return '目前樣本較少，建議待更多作品批改後再進一步分析。';
-  let lines = [];
-  const avgTotal = data.scoreSummary.find(r=>r.指標==='總分')?.平均分;
-  if (avgTotal != null) lines.push(`本班已批改作品 ${data.studentCount} 份，平均總分約為 ${avgTotal.toFixed(1)} 分。`);
-  const lowOnes = data.scoreSummary.filter(r=>r.平均分 != null && r.指標!=='總分').sort((a,b)=>a.平均分 - b.平均分).slice(0,2);
-  if (lowOnes.length) lines.push(`在各評分項目中，以「${lowOnes.map(r=>r.指標).join('、')}」的平均分數相對較低，可作為下階段補救教學重點。`);
-  if (data.topEntries.length) lines.push(`最常被勾選的評語為「${data.topEntries[0].評語標題}」（共 ${data.topEntries[0].被選次數} 次），反映此為普遍問題或優點，值得課堂上跟進。`);
-  return lines.join('\n');
-}
-
-function exportAnalysisToWord() {
-  if (!checkDocxLibrary()) return;
-  const { Document, Paragraph, HeadingLevel, Table, TableCell, TableRow, WidthType } = window.docx;
-  const data = getAnalysisData(); if (!data) { alert('目前尚未有已儲存的學生評語，無法匯出分析。'); return; }
-  
-  const topic = document.getElementById('topic').value.trim() || '未命名文章';
-  const className = (allStudentRecords.find(r=>r.data)?.data.class) || document.getElementById('student-class').value || '未指定班別';
-  const hint = buildTeachingHintFromAnalysis(data);
-  const today = new Date();
-  const dateStr = `${today.getFullYear()}-${(today.getMonth()+1).toString().padStart(2,'0')}-${today.getDate().toString().padStart(2,'0')}`;
-  
-  const docChildren = [
-      new Paragraph({ text: "評語分析備忘", heading: HeadingLevel.TITLE, alignment: 'center' }),
-      new Paragraph(`班別：${className}`), new Paragraph(`題目：${topic}`), new Paragraph(`日期：${dateStr}`), new Paragraph(`已批改作品數：${data.studentCount}`),
-      new Paragraph({ text: "一、數據分析 (全班概況)", heading: HeadingLevel.HEADING_1 }),
-      new Paragraph({ text: "分數概覽（平均值）", heading: HeadingLevel.HEADING_2 }),
-  ];
-  const scoreRows = data.scoreSummary.map(row => new TableRow({ children: [ new TableCell({ children: [new Paragraph(row.指標)] }), new TableCell({ children: [new Paragraph(row.平均分 != null ? row.平均分.toFixed(2) : '-')] }) ] }));
-  docChildren.push(new Table({ rows: [new TableRow({ children: [new TableCell({ children: [new Paragraph({ text: "指標", bold: true })] }), new TableCell({ children: [new Paragraph({ text: "平均分", bold: true })] })] }), ...scoreRows], width: { size: 100, type: WidthType.PERCENT } }));
-  docChildren.push(new Paragraph({ text: "最常見評語項目 TOP 10", heading: HeadingLevel.HEADING_2 }));
-  if (data.topEntries.length > 0) {
-      const topCritiqueRows = data.topEntries.map(row => new TableRow({ children: [ new TableCell({ children: [new Paragraph(String(row.排名))] }), new TableCell({ children: [new Paragraph(row.評語標題)] }), new TableCell({ children: [new Paragraph(String(row.被選次數))] }) ] }));
-      docChildren.push(new Table({ rows: [new TableRow({ children: [new TableCell({ children: [new Paragraph({ text: "排名", bold: true })] }), new TableCell({ children: [new Paragraph({ text: "評語標題", bold: true })] }), new TableCell({ children: [new Paragraph({ text: "被選次數", bold: true })] })] }), ...topCritiqueRows], width: { size: 100, type: WidthType.PERCENT } }));
-  } else {
-      docChildren.push(new Paragraph("（暫無數據）"));
-  }
-  docChildren.push(new Paragraph({ text: "二、教學提示（草稿）", heading: HeadingLevel.HEADING_1 }));
-  docChildren.push(...convertTextToDocxParagraphs(hint));
-
-  const doc = new Document({ creator: "我不想努力了生成器", sections: [{ children: docChildren }] });
-  downloadDocx(doc, `評語分析_${getDateTimeString()}.docx`);
-}
-
-function downloadStudentListTemplate() { if (!checkXlsxLibrary()) return; const templateData = [{'學號 (可選)': '1', '姓名': '陳大文'},{'學號 (可選)': '2', '姓名': '張小美'},{'學號 (可選)': '', '姓名': '李偉明'}]; const ws = XLSX.utils.json_to_sheet(templateData); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, '學生名單範本'); XLSX.writeFile(wb, '學生名單範本.xlsx'); }
-function handleStudentListImport(event) {
-    if (!checkXlsxLibrary()) return; const file = event.target.files[0]; if (!file) return;
-    handleFileImport(file, (result) => {
-        try {
-            const data = new Uint8Array(result); const workbook = XLSX.read(data, { type: 'array' }); const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
-            if (jsonData.length === 0) { alert('Excel 檔案為空或格式不正確。'); return; }
-            const studentList = jsonData.map(row => { const numKey = Object.keys(row).find(k => /學號|number|no/i.test(k)); const nameKey = Object.keys(row).find(k => /姓名|name/i.test(k)); if (!nameKey) return null; const num = numKey ? (row[numKey] || '').toString().trim() : ''; const name = (row[nameKey] || '').toString().trim(); if (!name) return null; return num ? `${num}-${name}` : name; }).filter(Boolean).join('\n');
-            const textarea = document.getElementById('student-names'); textarea.value = studentList; textarea.dispatchEvent(new Event('input', { bubbles: true })); alert(`成功匯入 ${jsonData.length} 位學生！`);
-        } catch (error) { alert(`匯入學生名單失敗: ${error.message}`); } finally { event.target.value = ''; }
-    }, true);
-}
-
-function downloadCritiqueTemplate() { if (!checkXlsxLibrary()) return; const templateData = [ { id: "c1", category: "扣題與立意", type: "excellent", title: "扣題準確，立意明確", strengthSummary: "能緊扣題目要求，立意明確，中心思想清晰。", problemCore: "", suggestion: "", example: "文章題為「一次難忘的經歷」，內文確實圍繞該次經歷的始末與感受描寫，沒有離題。", options: "", optionsLabel: "" }, { id: "c2", category: "扣題與立意", type: "problem", title: "立意膚淺", strengthSummary: "", problemCore: "立意不夠深刻，未能從事件中提煉出更深層的意義。", suggestion: "可思考事件背後帶來的反思或啟發，深化主題。", example: "只停留在「記一次愉快的旅行」，未昇華至「旅行的意義」或「個人成長」等層面。", options: "", optionsLabel: "" }, { id: "c10", category: "結構與鋪排", type: "problem", title: "篇章轉折略感突兀", strengthSummary: "", problemCore: "文章在由送別現場過渡至「回憶片段」的段落時，情感轉折過快，缺乏鋪墊。", suggestion: "可加上一兩句內心過渡句，讓情感連接更順暢。", example: "寫完道別場面後，可加一句「那天之後，我常想起我們一起放學的午後」，自然引出回憶。", options: "送別現場\n回憶片段", optionsLabel: "轉折部分" } ]; const ws = XLSX.utils.json_to_sheet(templateData); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, '評語庫範本'); XLSX.writeFile(wb, '評語庫-範本.xlsx'); }
 function exportCritiquesToExcel() { if (!checkXlsxLibrary()) return; const dataToExport = localCritiques; if (dataToExport.length === 0) { alert('評語庫目前為空，沒有內容可以導出。'); return; } const ws = XLSX.utils.json_to_sheet(dataToExport); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, '評語庫'); const filename = `評語庫-${getSanitizedTopicFilename()}.xlsx`; XLSX.writeFile(wb, filename); alert(`評語庫已成功導出為 ${filename}！`); }
 function handleCritiqueImportExcel(event) {
     if (!checkXlsxLibrary()) return; const file = event.target.files[0]; if (!file) return;
@@ -2789,132 +2845,35 @@ function handleProgressImportExcel(event) {
 
 function safeParseJSON(str) { if (!str) return []; try { return JSON.parse(str); } catch { return []; } }
 function escapeHtml(text) { if (!text && text !== 0) return ""; return String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
-
-function generateTeacherWord() {
-    if (!checkDocxLibrary()) return;
-    const aiData = _getAIFeedbackData(); if (!aiData) return;
-
-    const { Document, Paragraph, HeadingLevel } = window.docx;
+function downloadStudentListTemplate() { if (!checkXlsxLibrary()) return; const templateData = [{'學號 (可選)': '1', '姓名': '陳大文'},{'學號 (可選)': '2', '姓名': '張小美'},{'學號 (可選)': '', '姓名': '李偉明'}]; const ws = XLSX.utils.json_to_sheet(templateData); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, '學生名單範本'); XLSX.writeFile(wb, '學生名單範本.xlsx'); }
+function handleStudentListImport(event) {
+    if (!checkXlsxLibrary()) return; const file = event.target.files[0]; if (!file) return;
+    handleFileImport(file, (result) => {
+        try {
+            const data = new Uint8Array(result); const workbook = XLSX.read(data, { type: 'array' }); const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+            if (jsonData.length === 0) { alert('Excel 檔案為空或格式不正確。'); return; }
+            const studentList = jsonData.map(row => { const numKey = Object.keys(row).find(k => /學號|number|no/i.test(k)); const nameKey = Object.keys(row).find(k => /姓名|name/i.test(k)); if (!nameKey) return null; const num = numKey ? (row[numKey] || '').toString().trim() : ''; const name = (row[nameKey] || '').toString().trim(); if (!name) return null; return num ? `${num}-${name}` : name; }).filter(Boolean).join('\n');
+            const textarea = document.getElementById('student-names'); textarea.value = studentList; textarea.dispatchEvent(new Event('input', { bubbles: true })); alert(`成功匯入 ${jsonData.length} 位學生！`);
+        } catch (error) { alert(`匯入學生名單失敗: ${error.message}`); } finally { event.target.value = ''; }
+    }, true);
+}
+function exportOverviewToExcel() {
+    if (!checkXlsxLibrary()) return;
+    const savedRecords = allStudentRecords.filter(r => r.data); if (savedRecords.length === 0) { alert('沒有任何已儲存的學生記錄可供匯出。'); return; }
+    savedRecords.sort((a, b) => (a.number || 999) - (b.number || 999));
+    const firstRecord = savedRecords[0]; const className = firstRecord.data.class || document.getElementById('student-class').value || '未指定班別';
+    const dataToExport = savedRecords.map(record => { const s = record.data.scores; return { '學號': record.number, '姓名': record.name, '內容評分': s.content, '表達評分': s.expression, '結構評分': s.structure, '標點字體評分': s.punctuation, '錯別字加減分': s.typos, '總分': s.total, '已選評語標題': record.data.selectedTitles || '', '完整版評語': record.data.pureFullComment, '學生版評語': record.data.pureStudentComment, }; });
+    const wsMain = XLSX.utils.json_to_sheet(dataToExport); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, wsMain, '學生評語總覽');
     const analysisData = getAnalysisData();
-    const topic = document.getElementById('topic').value.trim() || '未命名文章';
-    const className = (allStudentRecords.find(r => r.data)?.data.class) || '未指定班別';
-    const today = new Date();
-    const dateStr = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
-
-    const docChildren = [];
-    docChildren.push(new Paragraph({ text: "作文練習綜合回饋 (老師版)", heading: HeadingLevel.TITLE, alignment: 'center' }));
-    docChildren.push(new Paragraph({ text: `題目：${topic} | 班別：${className} | 日期：${dateStr}`, alignment: 'center', style: 'IntenseQuote' }));
-
     if (analysisData) {
-        docChildren.push(new Paragraph({ text: "一、數據分析摘要", heading: HeadingLevel.HEADING_1 }));
-        docChildren.push(...convertTextToDocxParagraphs(buildTeachingHintFromAnalysis(analysisData)));
+        const { scoreSummary, topEntries } = analysisData;
+        const scoreRows = scoreSummary.map(r => ({ 指標: r.指標, 平均分: r.平均分 == null ? '' : Number(r.平均分.toFixed(2)) }));
+        const wsScore = XLSX.utils.json_to_sheet(scoreRows); XLSX.utils.book_append_sheet(wb, wsScore, '分數平均');
+        const wsTop = XLSX.utils.json_to_sheet(topEntries); XLSX.utils.book_append_sheet(wb, wsTop, '評語TOP10');
     }
-    if (aiData.classOverview && aiData.classOverview.teacherSummary) {
-        docChildren.push(new Paragraph({ text: "二、全班概況總結 (AI 分析)", heading: HeadingLevel.HEADING_1 }));
-        docChildren.push(...convertTextToDocxParagraphs(aiData.classOverview.teacherSummary));
-    }
-    if (aiData.topicAnalysis && aiData.topicAnalysis.analysisTeacher) {
-        docChildren.push(new Paragraph({ text: "三、審題與立意深度分析 (AI 分析)", heading: HeadingLevel.HEADING_1 }));
-        docChildren.push(...convertTextToDocxParagraphs(aiData.topicAnalysis.analysisTeacher));
-    }
-    if (aiData.teachingPlan) {
-        docChildren.push(new Paragraph({ text: "四、教學計劃建議 (AI 生成)", heading: HeadingLevel.HEADING_1 }));
-        if(aiData.teachingPlan.objectives) {
-            docChildren.push(new Paragraph({ text: "學習目標", heading: HeadingLevel.HEADING_2 }));
-            aiData.teachingPlan.objectives.forEach(obj => docChildren.push(new Paragraph({ text: obj, bullet: { level: 0 } })));
-        }
-        if(aiData.teachingPlan.activities) {
-            docChildren.push(new Paragraph({ text: "教學活動", heading: HeadingLevel.HEADING_2 }));
-            aiData.teachingPlan.activities.forEach(act => {
-                docChildren.push(new Paragraph({ text: `${act.name} (${act.duration})`, style: "Heading3" }));
-                docChildren.push(...convertTextToDocxParagraphs(act.description));
-            });
-        }
-    }
-
-    const doc = new Document({
-        creator: "我不想努力了生成器",
-        styles: { default: { document: { run: { font: "LXGW WenKai TC" } } }, paragraphStyles: [ { id: "Heading1", name: "Heading 1", basedOn: "Normal", next: "Normal", quickFormat: true, run: { size: 32, bold: true, color: "2F5496" } }, { id: "Heading2", name: "Heading 2", basedOn: "Normal", next: "Normal", quickFormat: true, run: { size: 28, bold: true, color: "365F91" } }, { id: "Heading3", name: "Heading 3", basedOn: "Normal", next: "Normal", quickFormat: true, run: { size: 24, bold: true, color: "4F81BD" } }, { id: "IntenseQuote", name: "Intense Quote", basedOn: "Normal", next: "Normal", run: { color: "7F7F7F", italics: true } } ] },
-        sections: [{ children: docChildren }],
-    });
-    downloadDocx(doc, `作文回饋_老師版_${getSanitizedTopicFilename()}_${getDateTimeString()}.docx`);
+    const filename = `學生評語總覽-${className}-${getSanitizedTopicFilename()}.xlsx`; XLSX.writeFile(wb, filename); alert(`學生評語總覽已成功導出為 ${filename}！`);
 }
 
-function generateStudentWord() {
-    if (!checkDocxLibrary()) return;
-    const aiData = _getAIFeedbackData(); if (!aiData) return;
-
-    const { Document, Packer, Paragraph, HeadingLevel, TextRun, Table, TableCell, TableRow, WidthType, ShadingType } = window.docx;
-    const topic = document.getElementById('topic').value.trim() || '未命名文章';
-    const className = (allStudentRecords.find(r => r.data)?.data.class) || '未指定班別';
-    const today = new Date();
-    const dateStr = `${today.getFullYear()}年${(today.getMonth() + 1)}月${today.getDate()}日`;
-
-    const docChildren = [];
-    docChildren.push(new Paragraph({ text: "📝 作文練習回饋單張 📝", heading: HeadingLevel.TITLE, alignment: 'center' }));
-    docChildren.push(new Paragraph({ alignment: 'center', children: [ new TextRun({ text: `題目：${topic}` }), new TextRun({ text: `班別：${className}`, break: 1 }), new TextRun({ text: `日期：${dateStr}`, break: 1 }) ], style: 'IntenseQuote' }));
-
-    if (aiData.classOverview && aiData.classOverview.studentSummary) {
-        docChildren.push(new Paragraph({ text: "一、老師的話", style: "Heading1" }));
-        const paragraphs = convertTextToDocxParagraphs(aiData.classOverview.studentSummary);
-        docChildren.push(...paragraphs);
-    }
-
-    if (aiData.topicAnalysis && aiData.topicAnalysis.highlightsAndProblems) {
-        const hp = aiData.topicAnalysis.highlightsAndProblems;
-        docChildren.push(new Paragraph({ text: "二、寫作重點圖解", style: "Heading1" }));
-        if (aiData.topicAnalysis.keywords && aiData.topicAnalysis.keywords.length > 0) {
-            docChildren.push(new Paragraph({ alignment: 'center', children: [new TextRun("題目關鍵字："), ...aiData.topicAnalysis.keywords.flatMap(k => [new TextRun("  "), new TextRun({ text: k, bold: true, color: "287D28" })])] }));
-        }
-        const tableRows = [];
-        if (hp.highlights && hp.highlights.length > 0) tableRows.push(new TableRow({ children: [new TableCell({ children: [new Paragraph({ text: "全班亮點", bold: true })] }), new TableCell({ children: convertTextToDocxParagraphs(hp.highlights.map(h => `- ${h}`).join('\n')) })] }));
-        if (hp.problems && hp.problems.length > 0) tableRows.push(new TableRow({ children: [new TableCell({ children: [new Paragraph({ text: "常見問題與建議", bold: true })] }), new TableCell({ children: hp.problems.flatMap(p => [new Paragraph({ children: [new TextRun({ text: "問題：", bold: true }), new TextRun(p.problem)] }), new Paragraph({ children: [new TextRun({ text: "貼士：", bold: true }), new TextRun(p.tip)] })]) })] }));
-        if (tableRows.length > 0) docChildren.push(new Table({ rows: tableRows, width: { size: 100, type: WidthType.PERCENT } }));
-    }
-
-    if (aiData.excellentStudents && aiData.excellentStudents.length > 0) {
-        docChildren.push(new Paragraph({ text: "👍 優秀同學特點", style: "Heading2" }));
-        const rows = aiData.excellentStudents.map(s => new TableRow({ children: [new TableCell({ children: [new Paragraph(s.name)] }), new TableCell({ children: [new Paragraph(s.strength)] })] }));
-        docChildren.push(new Table({ rows: [new TableRow({ children: [new TableCell({ children: [new Paragraph({ text: "同學", bold: true })] }), new TableCell({ children: [new Paragraph({ text: "優點", bold: true })] })] }), ...rows], width: { size: 100, type: WidthType.PERCENT } }));
-    }
-
-    if (aiData.workTiers) {
-        docChildren.push(new Paragraph({ text: "三、作品齊齊睇", style: "Heading1" }));
-        const tiers = { high: '上品 (情景交融，立意深刻)', mid: '中品 (敘事完整，情感尚可)', low: '下品 (流水作業，形象模糊)' };
-        const tierRows = [];
-        for (const key in tiers) {
-            if (aiData.workTiers[key]) {
-                const tierData = aiData.workTiers[key];
-                const cell1 = new TableCell({ children: [new Paragraph({ text: tiers[key], bold: true })] });
-                const cell2Children = [];
-                if (tierData.characteristics) cell2Children.push(...convertTextToDocxParagraphs(tierData.characteristics.map(c => `- ${c}`).join('\n')));
-                if (tierData.sample) { cell2Children.push(new Paragraph({ text: "示例：", bold: true, spacing: { before: 100 } })); const sampleParas = convertTextToDocxParagraphs(tierData.sample); sampleParas.forEach(p => p.properties.shading = { type: ShadingType.CLEAR, fill: "F8F9FA", color: "auto" }); cell2Children.push(...sampleParas); }
-                const cell2 = new TableCell({ children: cell2Children });
-                const cell3 = new TableCell({ children: tierData.selfChecklist ? convertTextToDocxParagraphs(tierData.selfChecklist.map(c => `- ${c}`).join('\n')) : [new Paragraph("")] });
-                tierRows.push(new TableRow({ children: [cell1, cell2, cell3] }));
-            }
-        }
-        if (tierRows.length > 0) docChildren.push(new Table({ rows: [new TableRow({ children: [new TableCell({ children: [new Paragraph({ text: "層級", bold: true })] }), new TableCell({ children: [new Paragraph({ text: "特點及示例", bold: true })] }), new TableCell({ children: [new Paragraph({ text: "自我檢查清單", bold: true })] })] }), ...tierRows], width: { size: 100, type: WidthType.PERCENT } }));
-    }
-
-    if (aiData.writingPractices && aiData.writingPractices.length > 0) {
-        docChildren.push(new Paragraph({ text: "四、✍️ 動筆試一試", style: "Heading1" }));
-        aiData.writingPractices.forEach((practice, index) => {
-            docChildren.push(new Paragraph({ text: `練習 ${index + 1}`, style: "Heading2" }));
-            if (practice.prompt) { docChildren.push(new Paragraph({ text: "練習題目：", bold: true })); const promptParas = convertTextToDocxParagraphs(practice.prompt); promptParas.forEach(p => p.properties.shading = { type: ShadingType.CLEAR, fill: "F8F9FA", color: "auto" }); docChildren.push(...promptParas); }
-            if (practice.guidelines) { docChildren.push(new Paragraph({ text: "寫作指引：", bold: true, spacing: { before: 100 } })); docChildren.push(...convertTextToDocxParagraphs(practice.guidelines.map(g => `- ${g}`).join('\n'))); }
-            if (practice.modelAnswer) { docChildren.push(new Paragraph({ text: "參考示例：", bold: true, spacing: { before: 100 } })); const answerParas = convertTextToDocxParagraphs(practice.modelAnswer); answerParas.forEach(p => p.properties.shading = { type: ShadingType.CLEAR, fill: "F8F9FA", color: "auto" }); docChildren.push(...answerParas); }
-        });
-    }
-
-    const doc = new Document({
-        creator: "我不想努力了生成器",
-        styles: { default: { document: { run: { font: "LXGW WenKai TC" } } }, paragraphStyles: [ { id: "Heading1", name: "Heading 1", basedOn: "Normal", next: "Normal", quickFormat: true, run: { size: 32, bold: true, color: "005A9E" }, spacing: { before: 300, after: 150 } }, { id: "Heading2", name: "Heading 2", basedOn: "Normal", next: "Normal", quickFormat: true, run: { size: 28, bold: true, color: "333333" }, spacing: { before: 240, after: 120 } }, { id: "IntenseQuote", name: "Intense Quote", basedOn: "Normal", next: "Normal", run: { color: "7F7F7F", italics: true } } ] },
-        numbering: { config: [{ reference: "default-numbering", levels: [{ level: 0, format: "decimal", text: "%1." }] }] },
-        sections: [{ children: docChildren }],
-    });
-    downloadDocx(doc, `作文回饋_學生版_${getSanitizedTopicFilename()}_${getDateTimeString()}.docx`);
-}
 </script>
 
 </body>
