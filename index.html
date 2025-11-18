@@ -1202,7 +1202,7 @@
     margin-bottom: 0;
   }
 
-  /* ===== 第四、六頁：分析 ===== */
+  /* ===== 第四頁：分析 ===== */
 
   .analysis-grid {
     display: grid;
@@ -1863,13 +1863,10 @@
 const SUPABASE_URL = 'https://wtcegbkfuklnkurrouka.supabase.co'; 
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind0Y2VnYmtmdWtsbmt1cnJvdWthIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM0MTU5MjgsImV4cCI6MjA3ODk5MTkyOH0.mQT2TXLR6m41D1WzmqH35mKdoGDGqHaHhZm-sTpPmpQ';
 
-// ✅ 【根本性修正】
-// 1. 從全域的 `supabase` 物件中，解構出 `createClient` 這個函式。
-//    這個全域的 `supabase` 物件是由 head 中的 <script> 標籤所建立的。
+// 從全域的 `supabase` 物件中，解構出 `createClient` 這個函式。
 const { createClient } = supabase;
-// 2. 執行 `createClient` 函式，並將回傳的「客戶端實例」儲存在一個新的、不會衝突的變數 `supabaseClient` 中。
+// 執行 `createClient` 函式，並將回傳的「客戶端實例」儲存在一個新的變數 `supabaseClient` 中。
 const supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY);
-// 接下來，所有對 Supabase 的操作（例如 supabase.auth, supabase.from）都必須改用 `supabaseClient`。
 
 
 // 全域變數
@@ -1925,7 +1922,6 @@ function confirmUI(message, onOk) {
  * 檢查當前用戶登入狀態，並更新 UI
  */
 async function checkUser() {
-  // ✅ 【修正】使用 supabaseClient
   const { data: { session } } = await supabaseClient.auth.getSession();
   currentUser = session ? session.user : null;
   updateUIBasedOnAuthState();
@@ -1938,7 +1934,6 @@ async function checkUser() {
     buildChecklist();
   }
 
-  // ✅ 【修正】使用 supabaseClient
   supabaseClient.auth.onAuthStateChange((event, session) => {
     currentUser = session ? session.user : null;
     updateUIBasedOnAuthState();
@@ -1966,7 +1961,6 @@ async function handleLogin() {
   const email = prompt("請輸入你的電郵地址：");
   if (!email) return;
   try {
-    // ✅ 【修正】使用 supabaseClient
     const { error } = await supabaseClient.auth.signInWithOtp({ email });
     if (error) throw error;
     alert("一封登入連結已經發送到你的郵箱，請點擊連結登入。\n（如果收不到，請檢查垃圾郵件箱）");
@@ -1977,19 +1971,18 @@ async function handleLogin() {
 
 /**
  * 處理用戶登出
+ * ✅ 【修正】將 async/await 邏輯移入 confirmUI 的回呼函式中，以正確處理非同步流程。
  */
-async function handleLogout() {
-  const willLogout = await confirmUI("確定要登出嗎？所有未同步的變更將會遺失。");
-  if (!willLogout) return;
-  
-  try {
-    // ✅ 【修正】使用 supabaseClient
-    const { error } = await supabaseClient.auth.signOut();
-    if (error) throw error;
-    // onAuthStateChange 會處理後續 UI 更新
-  } catch (error) {
-    alert(`登出失敗: ${error.message}`);
-  }
+function handleLogout() {
+  confirmUI("確定要登出嗎？所有未同步的變更將會遺失。", async () => {
+    try {
+      const { error } = await supabaseClient.auth.signOut();
+      if (error) throw error;
+      // onAuthStateChange 會自動處理後續 UI 更新和資料清理
+    } catch (error) {
+      alert(`登出失敗: ${error.message}`);
+    }
+  });
 }
 
 /**
@@ -2003,7 +1996,6 @@ async function loadDataFromCloud() {
 
   try {
     // 1. 載入評語庫
-    // ✅ 【修正】使用 supabaseClient
     const { data: critiquesData, error: critiquesError } = await supabaseClient
       .from('critiques')
       .select('*');
@@ -2033,7 +2025,6 @@ async function loadDataFromCloud() {
     buildOverviewPage();
 
     // 2. 載入常見錯別字
-    // ✅ 【修正】使用 supabaseClient
     const { data: typosData, error: typosError } = await supabaseClient
       .from('common_typos')
       .select('*');
@@ -2042,7 +2033,6 @@ async function loadDataFromCloud() {
     renderCommonTypoList();
 
     // 3. 載入學生專案進度
-    // ✅ 【修正】使用 supabaseClient
     const { data: projectsData, error: projectsError } = await supabaseClient
       .from('student_projects')
       .select('id, class_name, topic, updated_at');
@@ -2059,7 +2049,6 @@ async function loadDataFromCloud() {
 
         if (!isNaN(choiceIndex) && choiceIndex >= 0 && choiceIndex < projectsData.length) {
             const projectId = projectsData[choiceIndex].id;
-            // ✅ 【修正】使用 supabaseClient
             const { data: fullProject, error: fullProjectError } = await supabaseClient
                 .from('student_projects')
                 .select('project_data, class_name, topic')
@@ -2115,7 +2104,6 @@ async function syncDataToCloud() {
       updated_at: new Date().toISOString()
     }));
     // 先刪除所有舊的，再插入新的，以處理刪除操作
-    // ✅ 【修正】使用 supabaseClient
     await supabaseClient.from('critiques').delete().eq('user_id', currentUser.id);
     const { error: critiquesError } = await supabaseClient.from('critiques').upsert(critiquesToUpsert);
     if (critiquesError) throw critiquesError;
@@ -2127,7 +2115,6 @@ async function syncDataToCloud() {
       wrong: t.wrong,
       correct: t.correct
     }));
-    // ✅ 【修正】使用 supabaseClient
     await supabaseClient.from('common_typos').delete().eq('user_id', currentUser.id);
     const { error: typosError } = await supabaseClient.from('common_typos').upsert(typosToUpsert);
     if (typosError) throw typosError;
@@ -2136,7 +2123,6 @@ async function syncDataToCloud() {
     const className = document.getElementById('student-class').value.trim();
     const topic = document.getElementById('topic').value.trim();
     if (allStudentRecords.length > 0 && (className || topic)) {
-        // ✅ 【修正】使用 supabaseClient
         const { data: existingProject, error: findError } = await supabaseClient
             .from('student_projects')
             .select('id')
@@ -2155,7 +2141,6 @@ async function syncDataToCloud() {
             updated_at: new Date().toISOString()
         };
         
-        // ✅ 【修正】使用 supabaseClient
         const { error: projectError } = await supabaseClient.from('student_projects').upsert(projectToUpsert);
         if (projectError) throw projectError;
     }
