@@ -1862,7 +1862,8 @@
 // **請將此處的 URL 和 KEY 換成你自己的！** (在您的 Supabase 專案設定 > API 頁面找到)
 const SUPABASE_URL = 'https://wtcegbkfuklnkurrouka.supabase.co'; 
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind0Y2VnYmtmdWtsbmt1cnJvdWthIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM0MTU5MjgsImV4cCI6MjA3ODk5MTkyOH0.mQT2TXLR6m41D1WzmqH35mKdoGDGqHaHhZm-sTpPmpQ';
-const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const { createClient } = supabase; // 從全域的 supabase 物件中，先把 createClient 函式拿出來
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY); // 使用拿出來的函式建立新的 supabase 客戶端實例
 
 // 全域變數
 let currentUser = null;
