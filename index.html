@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>我不想努力了 (最終修正版)</title>
+  <title>我不想努力了 (重構排版版)</title>
   <!-- 引入 xlsx.js 函式庫，用於處理 Excel 檔案 -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <!-- 引入 Supabase.js 函式庫 -->
@@ -17,30 +17,30 @@
 <style>
   /* --- 文青風色彩與字體定義 --- */
   :root {
-    --primary-bg: #f7f3eb;       /* 主背景色 - 溫潤米白偏灰 */
-    --secondary-bg: #fcfaf6;     /* 卡片背景 - 柔和奶油白 */
-    --text-color: #5b5044;       /* 主要文字 - 深啡灰 */
-    --border-color: #e1d8c8;     /* 邊框色 - 淺亞麻色 */
-    --accent-color: #5A8F7B;     /* 主題色/強調色 - 沉靜灰綠 */
+    --primary-bg: #f7f3eb;
+    --secondary-bg: #fcfaf6;
+    --text-color: #5b5044;
+    --border-color: #e1d8c8;
+    --accent-color: #5A8F7B;
     --accent-color-soft: #cfe3d9;
-    --title-color: #3d5c4f;      /* 標題色 - 深灰綠 */
-    --header-bg: linear-gradient(120deg, #5A8F7B, #93b8a5); /* 頁首背景漸層 */
-    --nav-bg: #f1ece4;           /* 導航背景 - 亞麻色 */
-    --nav-active-bg: #5A8F7B;    /* 導航啟用背景 - 主題色 */
-    --nav-active-color: #fff;    /* 導航啟用文字 - 白色 */
-    --problem-color: #c86a5a;    /* 問題/待改進 - 柔和磚紅 */
-    --excellent-color: #7a9e78;  /* 優點/佳作 - 沉穩橄欖綠 */
-    --copy-success-bg: #5f9f80;  /* 複製成功 - 稍亮綠色 */
+    --title-color: #3d5c4f;
+    --header-bg: linear-gradient(120deg, #5A8F7B, #93b8a5);
+    --nav-bg: #f1ece4;
+    --nav-active-bg: #5A8F7B;
+    --nav-active-color: #fff;
+    --problem-color: #c86a5a;
+    --excellent-color: #7a9e78;
+    --copy-success-bg: #5f9f80;
     --modal-bg: rgba(0,0,0,0.28);
     --modal-card-bg: #fffdf8;
-    --shadow-color: rgba(52, 43, 32, 0.10); /* 陰影顏色 */
-    --btn-brown-bg: #a18b73;     /* 啡色按鈕背景 */
+    --shadow-color: rgba(52, 43, 32, 0.10);
+    --btn-brown-bg: #a18b73;
     --btn-brown-hover: #8f7a63;
-    --dashed-box-bg: #f9fbff;    /* 虛線框背景色 */
-    --empty-state-bg: #f7f2ea;   /* 空狀態背景色 */
-    --empty-state-text: #93897a; /* 空狀態文字顏色 */
-    --missing-bg: #fff0f0;       /* 未填寫學生背景色 - 淡粉紅 */
-    --missing-text: #c86a5a;     /* 未填寫學生文字顏色 */
+    --dashed-box-bg: #f9fbff;
+    --empty-state-bg: #f7f2ea;
+    --empty-state-text: #93897a;
+    --missing-bg: #fff0f0;
+    --missing-text: #c86a5a;
     --danger-bg-soft: #fef2f2;
     --danger-border-soft: #fecaca;
 
@@ -68,10 +68,8 @@
     font-size: 1rem;
   }
 
-  /* ===== 容器 & Header ===== */
-
   .main-container { 
-    max-width: 1200px; /* Increased max-width for wider layout */
+    max-width: 1200px;
     margin: 2rem auto 2.5rem; 
     background-color: var(--secondary-bg); 
     box-shadow: 0 18px 45px var(--shadow-color); 
@@ -113,8 +111,7 @@
     font-weight: 500; 
     letter-spacing: 0.16em;
   }
-  
-  /* --- 用戶認證與同步區塊樣式 (新增) --- */
+
   .auth-container {
     display: flex;
     align-items: center;
@@ -157,8 +154,6 @@
     70% { box-shadow: 0 4px 12px rgba(41,81,64,0.4), 0 0 0 10px rgba(255, 255, 255, 0); }
     100% { box-shadow: 0 4px 8px rgba(41,81,64,0.3), 0 0 0 0 rgba(255, 255, 255, 0); }
   }
-
-  /* ===== 字體控制 ===== */
 
   .font-controls {
     display: flex;
@@ -212,8 +207,6 @@
     font-weight: 500; 
     font-size: 1.45rem; 
   }
-
-  /* ===== 上方導航 tabs ===== */
 
   .page-nav { 
     display: flex; 
@@ -281,8 +274,6 @@
     display: block; 
   }
 
-  /* ===== section 區塊 ===== */
-
   .section-box { 
     padding: 2rem; 
     border-bottom: 1px solid rgba(225,216,200,0.6); 
@@ -347,48 +338,25 @@
     align-items: start;
   }
 
-  .two-column-grid .input-group {
-    margin-bottom: 0; 
-  }
-
-  .two-column-grid .input-group textarea {
-    min-height: 150px; 
-  }
-
   @media (max-width: 768px) {
     .two-column-grid {
       grid-template-columns: 1fr;
       gap: 1.25rem;
     }
-    .two-column-grid .input-group textarea {
-      min-height: 120px;
-    }
   }
 
-  /* ===== 評分 layout ===== */
-
-  .score-layout-grid {
-    display: grid;
-    grid-template-columns: 2fr 1.1fr;
-    gap: 2rem;
-    align-items: start;
-  }
+  /* ===== 評分 layout（改為單欄） ===== */
 
   .score-main-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(4, minmax(0,1fr));
     gap: 1.25rem;
   }
 
-  .score-side-column {
-    display: flex;
-    flex-direction: column;
-    gap: 1.25rem;
-  }
-
-  .score-main-grid .input-group,
-  .score-side-column .input-group {
-    margin-bottom: 0;
+  @media (max-width: 900px) {
+    .score-main-grid {
+      grid-template-columns: repeat(2, minmax(0,1fr));
+    }
   }
 
   .typo-score-input-group {
@@ -406,17 +374,6 @@
     text-align: center;
     padding: 0.9rem 1rem;
     letter-spacing: 0.12em;
-  }
-
-  @media (max-width: 900px) {
-    .score-layout-grid {
-      grid-template-columns: 1fr;
-    }
-  }
-  @media (max-width: 768px) {
-    .score-main-grid {
-      grid-template-columns: 1fr 1fr;
-    }
   }
 
   /* ===== details / summary ===== */
@@ -513,7 +470,7 @@
     flex-shrink: 0; 
     accent-color: var(--accent-color); 
     border-radius: 4px;
-    pointer-events: none; /* Checkbox is controlled by parent click */
+    pointer-events: none;
   }
 
   .check-item-header label { 
@@ -613,7 +570,6 @@
 
   .panel details[open] > summary { 
     border-bottom: 1px solid var(--border-color); 
-    box-shadow: none; 
   }
 
   .panel .panel-content-wrapper { 
@@ -677,8 +633,6 @@
     h1 { font-size: 1.9rem; }
     header { padding: 1rem 1.25rem; }
   }
-
-  /* ===== 按鈕通用樣式 ===== */
 
   .action-btn, .secondary-btn, .danger-btn, .light-btn, .btn { 
     border-radius: 999px; 
@@ -778,8 +732,6 @@
     color:#fff;
   }
 
-  /* ===== Overview / 空狀態 ===== */
-
   .overview-container { 
     padding: 2rem; 
   }
@@ -834,10 +786,6 @@
     display:grid; 
     gap:0.5rem; 
     margin-bottom:0.75rem; 
-  }
-
-  .overview-row label { 
-    font-weight:normal; 
   }
 
   .overview-row input[type="text"], 
@@ -974,8 +922,6 @@
       gap: 0.75rem;
   }
 
-  /* ===== Modal ===== */
-
   .modal-backdrop {
     position: fixed; 
     inset: 0; 
@@ -1031,8 +977,6 @@
     font-size: 0.92rem;
   }
   
-  /* ===== 學生總覽 ===== */
-
   .page-header {
     display: flex;
     justify-content: space-between;
@@ -1154,8 +1098,6 @@
     font-weight: bold;
   }
 
-  /* ===== 分類摺疊 ===== */
-
   .category-group {
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
@@ -1189,8 +1131,6 @@
   .category-content .overview-item:last-child {
     margin-bottom: 0;
   }
-
-  /* ===== 分析 ===== */
 
   .analysis-grid {
     display: grid;
@@ -1252,8 +1192,7 @@
     cursor: pointer;
     font-size: 1rem;
   }
-  
-  /* ===== AI 頁面 ===== */
+
   .ai-page-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -1301,21 +1240,17 @@
     color: #888;
   }
 
-  /* ===== 新增：批改頁佈局與樣式調整 ===== */
-  /* 已移除兩欄式佈局，恢復單欄 */
-  #page2.page-content {
-      padding: 0; /* 移除 page-content 的 padding，讓 section-box 控制 */
+  /* 批改頁：改為單欄 layout */
+  .grading-page-single {
+    padding: 1.5rem 2rem 2rem;
   }
 
-  /* 評語項目選擇的兩欄佈局 (內部) */
-  #checklist-container {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1.25rem;
-    margin-top: 1rem;
+  @media (max-width: 768px) {
+    .grading-page-single {
+      padding: 1.25rem 1rem 2rem;
+    }
   }
 
-  /* 錯別字與評分區塊的卡片化樣式 */
   .sub-section-card {
     background: #fdfaf5;
     border: 1px solid var(--border-color);
@@ -1324,22 +1259,18 @@
     box-shadow: 0 6px 15px rgba(0,0,0,0.04);
     overflow: hidden;
   }
+
   .sub-section-card > summary {
     background: linear-gradient(135deg, #f7f2ea, #f3f7f5);
     border-bottom: 1px solid transparent;
   }
+
   details[open].sub-section-card > summary {
     border-bottom: 1px solid var(--border-color);
   }
+
   .sub-section-card-content {
     padding: 1.25rem;
-  }
-
-  /* 響應式調整 */
-  @media (max-width: 900px) {
-    #checklist-container {
-        grid-template-columns: 1fr;
-    }
   }
 
 </style>
@@ -1350,7 +1281,6 @@
     <header>
       <div style="display: flex; flex-direction: column; gap: 0.5rem;">
         <h1>我不想努力了</h1>
-        <!-- 用戶認證區塊 -->
         <div class="auth-container">
           <span id="auth-status">未連接</span>
           <div id="auth-buttons">
@@ -1368,7 +1298,7 @@
     </header>
     
     <nav class="page-nav">
-      <button id="nav-page1" class="nav-btn active" onclick="showPage('page1')">基本設定</button>
+      <button id="nav-page1" class="nav-btn active" onclick="showPage('page1')">基本資料</button>
       <button id="nav-page2" class="nav-btn" onclick="showPage('page2')">批改頁</button>
       <button id="nav-page3" class="nav-btn" onclick="showPage('page3')">評語總覽與修訂</button>
       <button id="nav-page4" class="nav-btn" onclick="showPage('page4')">學生總覽</button>
@@ -1378,172 +1308,247 @@
     </nav>
 
     <main>
-      <!-- ==================== 第一頁：基本設定 (新) ==================== -->
+      <!-- ======== 第一頁：基本資料 ======== -->
       <div id="page1" class="page-content active">
         <div class="section-box">
-            <h2>步驟一：基本設定</h2>
-            <div class="two-column-grid">
-                <div class="input-group">
-                    <label for="topic">作文題目</label>
-                    <input type="text" id="topic" placeholder="例如：記一次難忘的經歷">
-                </div>
-                <div class="input-group">
-                    <label for="student-class">班別 / 組別 (可選)</label>
-                    <input type="text" id="student-class" placeholder="例如：6A, S.3A">
-                </div>
+          <h2>步驟一：填寫基本資料</h2>
+          <div class="two-column-grid">
+            <div class="input-group">
+              <label for="topic">作文題目</label>
+              <input type="text" id="topic" placeholder="例如：記一次難忘的經歷">
             </div>
+            <div class="input-group">
+              <label for="student-class">班別 / 組別 (可選)</label>
+              <input type="text" id="student-class" placeholder="例如：6A, S.3A">
+            </div>
+          </div>
         </div>
-        <div class="section-box">
-            <h2>步驟二：選擇評語庫</h2>
-            <p style="font-size:0.9rem;color:#777; margin-top:-0.7rem;">請選擇一種方式來建立本次批改的評語庫。評語庫建立後，將自動跳轉至「批改頁」。</p>
-            
-            <details class="io-details" open>
-                <summary><h3>選項 A：使用預設罐頭評語</h3></summary>
-                <div class="io-details-content">
-                    <p>請選擇文章主要類型（可多選），系統將為您載入相關的通用評語。</p>
-                    <div id="genre-selection" class="checkbox-group">
-                        <label><input type="checkbox" name="genre" value="narrative"> 記敘</label>
-                        <label><input type="checkbox" name="genre" value="lyrical"> 抒情</label>
-                        <label><input type="checkbox" name="genre" value="descriptive"> 描寫</label>
-                        <label><input type="checkbox" name="genre" value="argumentative"> 議論</label>
-                    </div>
-                    <div class="btn-group" style="margin-top: 1rem;">
-                        <button class="action-btn" onclick="loadCannedCritiques()">確定並載入預設評語</button>
-                    </div>
-                </div>
-            </details>
 
-            <details class="io-details">
-                <summary><h3>選項 B：從雲端讀取或手動建立</h3></summary>
-                <div class="io-details-content">
-                    <p>您可以從雲端讀取之前儲存的整個專案（包含學生名單及進度），或跳至其他頁面手動建立/導入評語庫。</p>
-                    <div class="btn-group">
-                        <button id="select-project-btn" class="secondary-btn" style="display: none;">從雲端選取專案</button>
-                        <button class="light-btn brown" onclick="showPage('page6')">前往 AI 評語庫生成</button>
-                        <button class="light-btn" onclick="showPage('page3')">前往手動修訂評語庫</button>
-                    </div>
-                </div>
-            </details>
+        <div class="section-box">
+          <h2>步驟二：設定學生名單</h2>
+          <div class="input-group">
+            <label for="student-names">學生名單（每行一位，可包含學號）</label>
+            <textarea id="student-names" rows="5" placeholder="01-陳大文&#10;02 張小美&#10;李偉明"></textarea>
+          </div>
+          <div class="btn-group">
+            <button class="light-btn" onclick="downloadStudentListTemplate()">下載名單範本</button>
+            <label class="light-btn brown" for="import-student-list" style="cursor: pointer;">匯入名單 (Excel)</label>
+            <input type="file" id="import-student-list" accept=".xlsx, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" style="display:none;">
+          </div>
+          <p style="font-size:0.85rem;color:#777;margin-top:0.75rem;">
+            提示：這份名單會用於「批改頁」與「學生總覽」，可隨時在這裏修改。
+          </p>
+        </div>
+
+        <div class="section-box">
+          <h2>步驟三：建立評語庫</h2>
+          <p style="font-size:0.9rem;color:#777; margin-top:-0.7rem;">
+            系統已內置基礎罐頭評語（記敘、抒情、描寫、議論及通用），只要勾選文類，就可以立即開始改文。<br>
+            您亦可選擇使用 AI 生成個人評語庫或從雲端載入既有專案。
+          </p>
+
+          <details class="io-details" open>
+            <summary><h3>選項 A：勾選文類，載入內置罐頭評語</h3></summary>
+            <div class="io-details-content">
+              <p>請選擇本次作文主要文類（可多選）：</p>
+              <div id="genre-selection" class="checkbox-group">
+                <label><input type="checkbox" name="genre" value="narrative"> 記敘</label>
+                <label><input type="checkbox" name="genre" value="lyrical"> 抒情</label>
+                <label><input type="checkbox" name="genre" value="descriptive"> 描寫</label>
+                <label><input type="checkbox" name="genre" value="argumentative"> 議論</label>
+              </div>
+              <p style="font-size:0.85rem;color:#777;margin-top:0.5rem;">
+                系統會根據所選文類，載入相應的預設評語，並自動加入「通用」評語（語言、錯別字等）。
+              </p>
+              <div class="btn-group" style="margin-top: 1rem;">
+                <button class="action-btn" onclick="loadCannedCritiques()">確定並載入預設評語</button>
+              </div>
+            </div>
+          </details>
+
+          <details class="io-details">
+            <summary><h3>選項 B：從雲端讀取既有專案</h3></summary>
+            <div class="io-details-content">
+              <p>如果你曾經在本系統儲存過專案，可以從雲端載入整套資料（學生名單、評語庫、學生進度）。</p>
+              <div class="btn-group">
+                <button id="select-project-btn" class="secondary-btn" style="display: none;">從雲端選取專案</button>
+              </div>
+              <p style="font-size:0.85rem;color:#777;">
+                提示：登入後，每次同步都會自動把評語庫及學生評語保存成「專案」，方便下次直接載入。
+              </p>
+            </div>
+          </details>
+
+          <details class="io-details">
+            <summary><h3>選項 C：用 AI 生成個人評語庫</h3></summary>
+            <div class="io-details-content">
+              <p>如希望建立更貼近個人風格的評語庫，可使用 AI 生成及導入：</p>
+              <ol style="margin-top:0.2rem;padding-left:1.2rem;">
+                <li>前往「AI 評語庫生成」頁（第六頁）。</li>
+                <li>按指示生成 Prompt，並在 AI 工具中得到 JSON 評語庫。</li>
+                <li>把 JSON 貼回第六頁，再按「應用 JSON 更新評語庫」。</li>
+              </ol>
+              <div class="btn-group" style="margin-top: 1rem;">
+                <button class="light-btn brown" onclick="showPage('page6')">前往 AI 評語庫生成</button>
+                <button class="light-btn" onclick="showPage('page3')">前往評語總覽（手動修訂評語）</button>
+              </div>
+            </div>
+          </details>
+
+          <div class="io-box" style="margin-top:1.5rem;">
+            <p class="io-box-title">下一步</p>
+            <p style="font-size:0.9rem;color:#555;margin:0 0 0.5rem 0;">
+              完成以上步驟後，你可以直接前往「批改頁」開始為個別學生選擇評語、輸入分數及生成文字回饋。
+            </p>
+            <div class="btn-group">
+              <button class="secondary-btn" onclick="showPage('page2')">前往批改頁</button>
+            </div>
+          </div>
         </div>
       </div>
 
-      <!-- ==================== 第二頁：批改頁 (新) ==================== -->
+      <!-- ======== 第二頁：批改頁（單欄） ======== -->
       <div id="page2" class="page-content">
-        
-        <div class="section-box">
+        <div class="grading-page-single">
+
+          <!-- 一、選擇學生與基本資料 (放最上) -->
+          <div class="section-box">
             <h2>一、選擇學生</h2>
             <div class="input-group">
-                <label for="student-names">學生名單（每行一位，可包含學號）</label>
-                <textarea id="student-names" rows="5" placeholder="01-陳大文&#10;02 張小美&#10;李偉明"></textarea>
+              <label for="student-select">選擇學生</label>
+              <select id="student-select"><option value="">請先在「基本資料」頁輸入學生名單</option></select>
             </div>
             <div class="btn-group" style="margin-bottom: 1rem;">
-                <button class="light-btn" onclick="downloadStudentListTemplate()">下載範本</button>
-                <label class="light-btn brown" for="import-student-list" style="cursor: pointer;">匯入名單 (Excel)</label>
-                <input type="file" id="import-student-list" accept=".xlsx, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" style="display:none;">
+              <button class="secondary-btn" onclick="navigateToStudent('prev')">上一位</button>
+              <button class="secondary-btn" onclick="navigateToStudent('next')">下一位</button>
             </div>
-            <div class="input-group">
-                <label for="student-select">選擇學生</label>
-                <select id="student-select"><option value="">請先在上方輸入學生名單</option></select>
-            </div>
-            <div class="btn-group">
-                <button class="secondary-btn" onclick="navigateToStudent('prev')">上一位</button>
-                <button class="secondary-btn" onclick="navigateToStudent('next')">下一位</button>
-            </div>
-        </div>
+            <p style="font-size:0.85rem;color:#777;margin:0;">
+              如要修改學生名單或作文題目，請返回「基本資料」頁。已儲存的評語不會被刪除。
+            </p>
+          </div>
 
-        <div class="section-box">
+          <!-- 二、評語項目選擇（即原來的 checklist） -->
+          <div class="section-box">
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
-                <h2>二、評語項目選擇</h2>
-                <div class="btn-group">
+              <h2>二、評語項目選擇</h2>
+              <div class="btn-group">
                 <button class="light-btn" onclick="toggleAllDetails('checklist-container', true)">全展</button>
                 <button class="light-btn brown" onclick="toggleAllDetails('checklist-container', false)">全收</button>
-                </div>
+              </div>
             </div>
             <div id="checklist-container">
-                <div class="empty-state-message">請先在「基本設定」頁選擇或建立評語庫。</div>
+              <div class="empty-state-message">請先在「基本資料」頁選擇或建立評語庫。</div>
             </div>
-        </div>
+          </div>
 
-        <div class="section-box">
-            <h2>三、錯別字及評分</h2>
+          <!-- 三、錯別字與評分 -->
+          <div class="section-box">
+            <h2>三、錯別字與評分</h2>
+
             <details class="sub-section-card">
-                <summary><h3>錯別字記錄與常見庫</h3></summary>
-                <div class="sub-section-card-content">
-                    <div id="typo-module" style="display:flex; flex-wrap:wrap; gap:0.75rem; align-items:flex-end;">
-                        <div class="input-group" style="flex:1; min-width:140px; margin-bottom:0;">
-                        <label for="typo-wrong">錯字</label>
-                        <input type="text" id="typo-wrong">
-                        </div>
-                        <div class="input-group" style="flex:1; min-width:140px; margin-bottom:0;">
-                        <label for="typo-correct">正字</label>
-                        <input type="text" id="typo-correct">
-                        </div>
-                        <button class="action-btn" onclick="addTypo()">新增</button>
-                        <button class="secondary-btn" onclick="saveTypoToCommon()">存常見</button>
-                    </div>
-                    <ul id="typo-list" style="list-style:none; padding:0; margin-top:0.75rem;"></ul>
-                    <div class="typo-saved-box">
-                        <h3 class="io-box-title">常見錯別字庫</h3>
-                        <ul id="typo-saved-list" class="typo-saved-list"></ul>
-                    </div>
+              <summary><h3>錯別字記錄與常見庫</h3></summary>
+              <div class="sub-section-card-content">
+                <div id="typo-module" style="display:flex; flex-wrap:wrap; gap:0.75rem; align-items:flex-end;">
+                  <div class="input-group" style="flex:1; min-width:140px; margin-bottom:0;">
+                    <label for="typo-wrong">錯字</label>
+                    <input type="text" id="typo-wrong">
+                  </div>
+                  <div class="input-group" style="flex:1; min-width:140px; margin-bottom:0;">
+                    <label for="typo-correct">正字</label>
+                    <input type="text" id="typo-correct">
+                  </div>
+                  <button class="action-btn" onclick="addTypo()">新增</button>
+                  <button class="secondary-btn" onclick="saveTypoToCommon()">存常見</button>
                 </div>
+                <ul id="typo-list" style="list-style:none; padding:0; margin-top:0.75rem;"></ul>
+                <div class="typo-saved-box">
+                  <h3 class="io-box-title">常見錯別字庫</h3>
+                  <ul id="typo-saved-list" class="typo-saved-list"></ul>
+                </div>
+              </div>
             </details>
 
             <details open class="sub-section-card">
-                <summary><h3>作文評分 (1-10分)</h3></summary>
-                <div class="sub-section-card-content">
-                    <p style="font-size:0.9em; color:#888; margin-top:-0.7rem;">總分 = (內容×4)+(表達×3)+(結構×2)+(標點×1)+錯別字分</p>
-                    <div class="score-main-grid">
-                        <div class="input-group"><label for="score-content">內容</label><input type="number" id="score-content"></div>
-                        <div class="input-group"><label for="score-expression">表達</label><input type="number" id="score-expression"></div>
-                        <div class="input-group"><label for="score-structure">結構</label><input type="number" id="score-structure"></div>
-                        <div class="input-group"><label for="score-punctuation">標點</label><input type="number" id="score-punctuation"></div>
-                    </div>
-                    <div class="typo-score-input-group"><label for="score-typos">錯別字 (加/減)</label><input type="number" id="score-typos"></div>
-                    <div class="score-total-box" style="margin-top: 1rem;">
-                        <div class="input-group"><label for="score-total">總分</label><input type="number" id="score-total" readonly></div>
-                    </div>
+              <summary><h3>作文評分 (1-10分)</h3></summary>
+              <div class="sub-section-card-content">
+                <p style="font-size:0.9em; color:#888; margin-top:-0.7rem;">
+                  總分 = (內容×4) + (表達×3) + (結構×2) + (標點×1) + 錯別字分
+                </p>
+                <div class="score-main-grid">
+                  <div class="input-group">
+                    <label for="score-content">內容</label>
+                    <input type="number" id="score-content">
+                  </div>
+                  <div class="input-group">
+                    <label for="score-expression">表達</label>
+                    <input type="number" id="score-expression">
+                  </div>
+                  <div class="input-group">
+                    <label for="score-structure">結構</label>
+                    <input type="number" id="score-structure">
+                  </div>
+                  <div class="input-group">
+                    <label for="score-punctuation">標點</label>
+                    <input type="number" id="score-punctuation">
+                  </div>
                 </div>
+                <div class="typo-score-input-group" style="margin-top:1rem;">
+                  <label for="score-typos">錯別字 (加/減)</label>
+                  <input type="number" id="score-typos">
+                </div>
+                <div class="score-total-box" style="margin-top: 1rem;">
+                  <div class="input-group">
+                    <label for="score-total">總分</label>
+                    <input type="number" id="score-total" readonly>
+                  </div>
+                </div>
+              </div>
             </details>
-        </div>
+          </div>
 
-        <div class="section-box">
+          <!-- 四、學生評語 -->
+          <div class="section-box">
             <h2>四、學生評語</h2>
             <div class="input-group">
-                <label for="unique-comment">特別留言（只給此學生）</label>
-                <textarea id="unique-comment" rows="4" placeholder="例如：本次作文立意深刻，能真誠表達個人感受。"></textarea>
+              <label for="unique-comment">特別留言（只給此學生）</label>
+              <textarea id="unique-comment" rows="4" placeholder="例如：本次作文立意深刻，能真誠表達個人感受。"></textarea>
             </div>
-            <div class="panel" style="margin-top: 1rem;">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <h3>學生版本（點列式）</h3>
-                    <div class="panel-actions">
-                        <button class="action-btn" onclick="copyOutput('student-report-output', this)">複製</button>
-                    </div>
-                </div>
-                <textarea id="student-report-output" placeholder="此處自動生成學生版本..." oninput="handleManualEdit('student')"></textarea>
-            </div>
-            <div class="panel" style="margin-top: 1rem;">
-                <details>
-                    <summary><h3>完整版本（段落式，預設隱藏）</h3></summary>
-                    <div class="panel-content-wrapper">
-                    <div class="panel-actions" style="justify-content: flex-end;">
-                        <button class="action-btn" onclick="copyOutput('full-output', this)">複製</button>
-                    </div>
-                    <textarea id="full-output" placeholder="此處自動生成完整版本..." oninput="handleManualEdit('full')"></textarea>
-                    </div>
-                </details>
-            </div>
-        </div>
 
-        <div class="section-box" style="background: transparent; border-top: none; text-align: center; padding-top: 1rem; padding-bottom: 2rem;">
-            <div class="btn-group" style="justify-content: center;">
-                <button class="action-btn" onclick="saveCurrentStudentData()">💾 儲存當前學生</button>
-                <button class="action-btn clear-all" onclick="confirmUI('確定清空當前所有輸入？', () => clearAllCore())">清空當前</button>
+            <div class="panel" style="margin-top: 1rem;">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h3>學生版本（點列式）</h3>
+                <div class="panel-actions">
+                  <button class="action-btn" onclick="copyOutput('student-report-output', this)">複製</button>
+                </div>
+              </div>
+              <textarea id="student-report-output" placeholder="此處自動生成學生版本..." oninput="handleManualEdit('student')"></textarea>
             </div>
+
+            <div class="panel" style="margin-top: 1rem;">
+              <details>
+                <summary><h3>完整版本（段落式，預設隱藏）</h3></summary>
+                <div class="panel-content-wrapper">
+                  <div class="panel-actions" style="justify-content: flex-end;">
+                    <button class="action-btn" onclick="copyOutput('full-output', this)">複製</button>
+                  </div>
+                  <textarea id="full-output" placeholder="此處自動生成完整版本..." oninput="handleManualEdit('full')"></textarea>
+                </div>
+              </details>
+            </div>
+          </div>
+
+          <!-- 底部按鈕 -->
+          <div class="section-box" style="background: transparent; border-top: none; text-align: center; padding-top: 1rem; padding-bottom: 2rem;">
+            <div class="btn-group" style="justify-content: center;">
+              <button class="action-btn" onclick="saveCurrentStudentData()">💾 儲存當前學生</button>
+              <button class="action-btn clear-all" onclick="confirmUI('確定清空當前所有輸入？', () => clearAllCore())">清空當前</button>
+            </div>
+          </div>
+
         </div>
       </div>
 
-      <!-- ==================== 第三頁：評語總覽與修訂 (原 page 2) ==================== -->
+      <!-- ======== 第三頁：評語總覽與修訂 ======== -->
       <div id="page3" class="page-content">
         <div class="overview-container">
           <h2>評語總覽與修訂</h2>
@@ -1604,25 +1609,27 @@
             </div>
           </details>
 
-          <p style="margin-top:1.5rem;">此頁為評語庫的來源。您可在此處編輯、新增或刪除評語項目。所有修改將自動保存至雲端（需登入）。</p>
+          <p style="margin-top:1.5rem;">
+            此頁為評語庫的來源。您可在此處編輯、新增或刪除評語項目。所有修改將自動保存至雲端（需登入）。
+          </p>
 
           <details class="io-details">
             <summary><h3>評語庫管理 (導入/導出/重設)</h3></summary>
             <div class="io-details-content">
-                <div class="btn-group">
-                    <button class="action-btn" onclick="downloadCritiqueTemplate()">下載範本(Excel)</button>
-                    <button class="action-btn" onclick="exportCritiquesToExcel()">導出評語庫(Excel)</button>
-                    <label class="action-btn" for="import-critique-excel" style="cursor:pointer;">導入評語庫(Excel)</label>
-                    <input type="file" id="import-critique-excel" accept=".xlsx, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" style="display:none;"/>
-                </div>
-                <div class="btn-group">
-                    <button class="secondary-btn" onclick="exportCritiquesToJSON()">導出評語庫(JSON)</button>
-                    <label class="secondary-btn" for="import-critique-json" style="cursor:pointer;">導入評語庫(JSON)</label>
-                    <input type="file" id="import-critique-json" accept=".json" style="display:none;"/>
-                </div>
-                 <div class="btn-group" style="margin-top: 1rem;">
-                    <button class="danger-btn" onclick="confirmUI('確定要重設為程式內建的預設評語嗎？這會覆蓋您當前的評語庫。', resetToDefaultCritiques)">重設為程式預設評語</button>
-                </div>
+              <div class="btn-group">
+                <button class="action-btn" onclick="downloadCritiqueTemplate()">下載範本(Excel)</button>
+                <button class="action-btn" onclick="exportCritiquesToExcel()">導出評語庫(Excel)</button>
+                <label class="action-btn" for="import-critique-excel" style="cursor:pointer;">導入評語庫(Excel)</label>
+                <input type="file" id="import-critique-excel" accept=".xlsx, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" style="display:none;"/>
+              </div>
+              <div class="btn-group">
+                <button class="secondary-btn" onclick="exportCritiquesToJSON()">導出評語庫(JSON)</button>
+                <label class="secondary-btn" for="import-critique-json" style="cursor:pointer;">導入評語庫(JSON)</label>
+                <input type="file" id="import-critique-json" accept=".json" style="display:none;"/>
+              </div>
+              <div class="btn-group" style="margin-top: 1rem;">
+                <button class="danger-btn" onclick="confirmUI('確定要重設為程式內建的預設評語嗎？這會覆蓋您當前的評語庫。', resetToDefaultCritiques)">重設為程式預設評語</button>
+              </div>
             </div>
           </details>
 
@@ -1634,7 +1641,7 @@
         </div>
       </div>
 
-      <!-- ==================== 第四頁：學生總覽 (原 page 3) ==================== -->
+      <!-- ======== 第四頁：學生總覽 ======== -->
       <div id="page4" class="page-content">
         <div class="overview-container">
           <div class="page-header">
@@ -1649,30 +1656,30 @@
           </div>
           <h3 id="overview-class-display"></h3>
           <div id="student-overview-table-wrapper">
-              <table id="student-overview-table">
-                  <thead>
-                      <tr>
-                          <th>學號</th>
-                          <th>姓名</th>
-                          <th>內容</th>
-                          <th>表達</th>
-                          <th>結構</th>
-                          <th>標點</th>
-                          <th>錯別字</th>
-                          <th>總分</th>
-                          <th>完整版評語</th>
-                          <th>學生版評語</th>
-                      </tr>
-                  </thead>
-                  <tbody>
-                      <!-- 學生資料將由 JavaScript 動態填入 -->
-                  </tbody>
-              </table>
+            <table id="student-overview-table">
+              <thead>
+                <tr>
+                  <th>學號</th>
+                  <th>姓名</th>
+                  <th>內容</th>
+                  <th>表達</th>
+                  <th>結構</th>
+                  <th>標點</th>
+                  <th>錯別字</th>
+                  <th>總分</th>
+                  <th>完整版評語</th>
+                  <th>學生版評語</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- 動態填入 -->
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
 
-      <!-- ==================== 第五頁：評語分析 (原 page 4) ==================== -->
+      <!-- ======== 第五頁：評語分析 ======== -->
       <div id="page5" class="page-content">
         <div class="overview-container">
           <div class="page-header">
@@ -1698,17 +1705,13 @@
         </div>
       </div>
 
-      <!-- ==================== 第六頁：AI 評語庫生成 (原 page 5) ==================== -->
+      <!-- ======== 第六頁：AI 評語庫生成 ======== -->
       <div id="page6" class="page-content">
         <div class="overview-container">
           <h2>AI 輔助評語庫生成</h2>
           <p style="font-size:0.9rem;color:#777;">
             此頁面幫助您生成一段專為 AI 設計的指令 (Prompt)，用以快速擴充您的個人評語庫。<br>
-            請按照以下步驟操作：<br>
-            1. 於左欄填寫作文的相關資訊。<br>
-            2. 按下「生成 Prompt 預覽」按鈕，並複製生成的指令。<br>
-            3. 將指令貼到 AI 對話框中，等待 AI 回覆 JSON 內容。<br>
-            4. 將 AI 回覆的完整 JSON 內容貼回右欄的輸入框中，並按下「應用 JSON」按鈕，即可自動更新您的評語庫。
+            1. 左欄填寫作文資訊。2. 生成 Prompt，複製到 AI。3. 把 AI 回覆的 JSON 貼回右欄，按「應用 JSON」更新評語庫。
           </p>
 
           <div class="ai-page-grid">
@@ -1774,17 +1777,12 @@
         </div>
       </div>
 
-      <!-- ==================== 第七頁：AI 生成回饋 (原 page 6) ==================== -->
+      <!-- ======== 第七頁：AI 生成回饋 ======== -->
       <div id="page7" class="page-content">
         <div class="overview-container">
           <h2>AI 生成回饋文件</h2>
           <p style="font-size:0.9rem;color:#777;">
-            此頁面幫助您基於全班的寫作表現，生成一份給予老師及學生的綜合回饋文件。<br>
-            請按照以下步驟操作：<br>
-            1. 在下方選擇 AI 需要分析的資料，以及希望它產出的回饋內容。<br>
-            2. （可選但建議）匯出「全班評語 Excel」並上傳給 AI。<br>
-            3. 生成並複製 Prompt，貼到您的 AI 工具中。<br>
-            4. 將 AI 回覆的 JSON 內容貼回下方，並生成最終的 Word 文件。
+            此頁幫助你基於全班表現，生成給老師及學生的綜合回饋 Word 文件。
           </p>
 
           <div class="section-box">
@@ -1804,7 +1802,6 @@
                   <label><input type="checkbox" id="ai-source-stats" checked> 本系統自動計算的「分數概覽+評語TOP10」</label>
                   <label><input type="checkbox" id="ai-source-basic" checked> 題目、年級、班別等基本資料</label>
                 </div>
-                <p style="font-size:0.85rem; color:#888; margin-top:0.5rem;">建議：至少保留「全班評語 Excel」及「題目/級別」，AI 才能針對你的班去分析。</p>
               </div>
               <div>
                 <div class="ai-feedback-section-header">
@@ -1836,7 +1833,6 @@
               <div class="btn-group">
                 <button class="action-btn" onclick="exportStudentDataForAI()">📊 匯出學生評語 Excel</button>
               </div>
-              <p style="font-size:0.85rem; color:#888; margin-top:0.5rem;">匯出後，可將 Excel 上傳到 AI (若平台支援)，或複製部分內容貼給對話框。</p>
             </div>
             <div style="margin-top: 2rem;">
               <h4 style="font-size: 1.1rem;">2. 生成給 AI 的 Prompt (文字指令)</h4>
@@ -1850,7 +1846,7 @@
 
           <div class="section-box">
             <h3>步驟三：貼上 AI 回應並生成 Word 文件</h3>
-            <p>請將從 AI 獲取的完整 JSON 物件內容（由 `{` 開始，到 `}` 結束）貼到下方。此 JSON 將用於生成下方兩個版本的 Word 文件。</p>
+            <p>請將從 AI 獲取的完整 JSON 物件內容（由 `{` 開始，到 `}` 結束）貼到下方。</p>
             <textarea id="ai-feedback-json-input" rows="10" placeholder="{&#10;  &quot;classOverview&quot;: { ... },&#10;  &quot;topicAnalysis&quot;: { ... },&#10;  ...&#10;}"></textarea>
             <div class="btn-group" style="margin-top: 1rem;">
               <button class="action-btn" onclick="generateTeacherWord()">📄 生成並匯出 Word (老師版)</button>
@@ -1878,29 +1874,28 @@
 
   <!-- 評語資料來源 -->
   <div id="critique-data" style="display:none;">
-    <!-- 預設評語會由 JS 載入 -->
+    <!-- 預設評語會由 JS 載入／更新 -->
   </div>
 
 <script>
-// --- Supabase 初始化與設定 ---
+/* ===== Supabase 初始化與全局變數 ===== */
 const SUPABASE_URL = 'https://wtcegbkfuklnkurrouka.supabase.co'; 
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind0Y2VnYmtmdWtsbmt1cnJvdWthIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM0MTU5MjgsImV4cCI6MjA3ODk5MTkyOH0.mQT2TXLR6m41D1WzmqH35mKdoGDGqHaHhZm-sTpPmpQ';
 const { createClient } = supabase;
 const supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// --- 全域變數 ---
 let currentUser = null;
 let isDataDirty = false; 
 let allStudentRecords = [];
 let currentTypos = [];
 let commonTypos = [];
-let cannedCritiques = {}; // 用於儲存預設評語
+let cannedCritiques = {}; // 預設罐頭評語
 
-// --- 程式入口 ---
+/* ===== DOM Ready ===== */
 document.addEventListener('DOMContentLoaded', () => {
-  loadDefaultCritiques(); // 載入預設評語到 JS 變數
-  buildChecklist(); // 初始建立空的 checklist
-  buildOverviewPage(); // 初始建立空的總覽頁
+  loadDefaultCritiques();      // 準備罐頭評語
+  buildChecklist();            // 初始 checklist
+  buildOverviewPage();         // 初始評語總覽
   attachGlobalListeners();
   updateStudentDropdown(); 
   updateAllOutputs();
@@ -1908,7 +1903,7 @@ document.addEventListener('DOMContentLoaded', () => {
   loadFontSize();
 });
 
-/* ====== 小型 Confirm UI ====== */
+/* ===== 小型 Confirm UI ===== */
 const modal = {
   el: null, okBtn: null, cancelBtn: null, textEl: null, resolve: null,
   init() {
@@ -1936,7 +1931,7 @@ function confirmUI(message, onOk) {
   modal.show(message).then(ok => { if (ok && typeof onOk === 'function') onOk(); });
 }
 
-// --- Supabase 核心功能 ---
+/* ===== Supabase 登入／同步 ===== */
 
 async function checkUser() {
   const { data: { session } } = await supabaseClient.auth.getSession();
@@ -1956,7 +1951,7 @@ async function checkUser() {
       sessionStorage.removeItem('projectPromptShownThisSession');
       commonTypos = [];
       allStudentRecords = [];
-      resetToDefaultCritiques(false); // 登出時重設為預設評語，不顯示確認框
+      resetToDefaultCritiques(false);
       buildChecklist();
       buildOverviewPage();
       renderCommonTypoList();
@@ -2006,7 +2001,7 @@ async function loadDataFromCloud() {
         optionsLabel: c.options_label
       })));
     } else {
-      resetToDefaultCritiques(false); // 如果雲端為空，載入預設
+      resetToDefaultCritiques(false);
     }
     buildChecklist();
     buildOverviewPage();
@@ -2018,8 +2013,8 @@ async function loadDataFromCloud() {
     renderCommonTypoList();
 
     if (!sessionStorage.getItem('projectPromptShownThisSession')) {
-        await promptAndLoadCloudProject();
-        sessionStorage.setItem('projectPromptShownThisSession', 'true');
+      await promptAndLoadCloudProject();
+      sessionStorage.setItem('projectPromptShownThisSession', 'true');
     }
     
     isDataDirty = false;
@@ -2032,59 +2027,59 @@ async function loadDataFromCloud() {
 }
 
 async function promptAndLoadCloudProject() {
-    if (!currentUser) {
-        alert("請先登入以使用雲端專案功能。");
-        return;
+  if (!currentUser) {
+    alert("請先登入以使用雲端專案功能。");
+    return;
+  }
+  const { data: projectsData, error: projectsError } = await supabaseClient
+    .from('student_projects').select('id, class_name, topic, updated_at').eq('user_id', currentUser.id);
+  if (projectsError) {
+    alert(`讀取雲端專案列表時出錯：${projectsError.message}`);
+    return;
+  }
+  if (!projectsData || projectsData.length === 0) {
+    if (sessionStorage.getItem('projectPromptShownThisSession')) {
+      alert("雲端上沒有找到任何專案。");
     }
-    const { data: projectsData, error: projectsError } = await supabaseClient
-        .from('student_projects').select('id, class_name, topic, updated_at').eq('user_id', currentUser.id);
-    if (projectsError) {
-        alert(`讀取雲端專案列表時出錯：${projectsError.message}`);
-        return;
-    }
-    if (!projectsData || projectsData.length === 0) {
-        if (sessionStorage.getItem('projectPromptShownThisSession')) {
-            alert("雲端上沒有找到任何專案。");
-        }
-        return;
-    }
-    let projectChoices = projectsData
-        .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))
-        .map((p, i) => `${i + 1}. ${p.class_name || '未命名班別'} - ${p.topic || '未命名題目'} (${new Date(p.updated_at).toLocaleDateString()})`)
-        .join('\n');
-    const choice = prompt(`在雲端找到 ${projectsData.length} 個專案，你想載入哪一個？\n請輸入數字，或按「取消」以繼續。\n\n${projectChoices}`);
-    const choiceIndex = parseInt(choice, 10) - 1;
+    return;
+  }
+  let projectChoices = projectsData
+    .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))
+    .map((p, i) => `${i + 1}. ${p.class_name || '未命名班別'} - ${p.topic || '未命名題目'} (${new Date(p.updated_at).toLocaleDateString()})`)
+    .join('\n');
+  const choice = prompt(`在雲端找到 ${projectsData.length} 個專案，你想載入哪一個？\n請輸入數字，或按「取消」以繼續。\n\n${projectChoices}`);
+  const choiceIndex = parseInt(choice, 10) - 1;
 
-    if (!isNaN(choiceIndex) && choiceIndex >= 0 && choiceIndex < projectsData.length) {
-        const projectId = projectsData[choiceIndex].id;
-        try {
-            const { data: fullProject, error: fullProjectError } = await supabaseClient
-                .from('student_projects').select('project_data, class_name, topic').eq('id', projectId).single();
-            if (fullProjectError) throw fullProjectError;
-            
-            clearAllCore(false);
-            allStudentRecords = [];
-            document.getElementById('student-names').value = '';
+  if (!isNaN(choiceIndex) && choiceIndex >= 0 && choiceIndex < projectsData.length) {
+    const projectId = projectsData[choiceIndex].id;
+    try {
+      const { data: fullProject, error: fullProjectError } = await supabaseClient
+        .from('student_projects').select('project_data, class_name, topic').eq('id', projectId).single();
+      if (fullProjectError) throw fullProjectError;
+      
+      clearAllCore(false);
+      allStudentRecords = [];
+      document.getElementById('student-names').value = '';
 
-            allStudentRecords = fullProject.project_data || [];
-            document.getElementById('student-class').value = fullProject.class_name || '';
-            document.getElementById('topic').value = fullProject.topic || '';
-            document.getElementById('student-names').value = allStudentRecords.map(r => r.originalName).join('\n');
-            
-            updateStudentDropdown();
-            renderStudentOverviewTable();
-            
-            const studentSelect = document.getElementById('student-select');
-            if (studentSelect.options.length > 0) {
-                studentSelect.selectedIndex = 0;
-                loadStudentData(studentSelect.value);
-            }
-            showPage('page2');
-            alert(`專案「${fullProject.class_name || '未命名'} - ${fullProject.topic || '未命名'}」已成功載入。`);
-        } catch (error) {
-            alert(`載入專案時發生錯誤：${error.message}`);
-        }
+      allStudentRecords = fullProject.project_data || [];
+      document.getElementById('student-class').value = fullProject.class_name || '';
+      document.getElementById('topic').value = fullProject.topic || '';
+      document.getElementById('student-names').value = allStudentRecords.map(r => r.originalName).join('\n');
+      
+      updateStudentDropdown();
+      renderStudentOverviewTable();
+      
+      const studentSelect = document.getElementById('student-select');
+      if (studentSelect.options.length > 0) {
+        studentSelect.selectedIndex = 0;
+        loadStudentData(studentSelect.value);
+      }
+      showPage('page2');
+      alert(`專案「${fullProject.class_name || '未命名'} - ${fullProject.topic || '未命名'}」已成功載入。`);
+    } catch (error) {
+      alert(`載入專案時發生錯誤：${error.message}`);
     }
+  }
 }
 
 async function syncDataToCloud() {
@@ -2117,17 +2112,17 @@ async function syncDataToCloud() {
     const className = document.getElementById('student-class').value.trim();
     const topic = document.getElementById('topic').value.trim();
     if (allStudentRecords.length > 0 && (className || topic)) {
-        const { data: existingProject, error: findError } = await supabaseClient
-            .from('student_projects').select('id').eq('user_id', currentUser.id)
-            .eq('class_name', className).eq('topic', topic).maybeSingle();
-        if(findError) throw findError;
-        const projectToUpsert = {
-            id: existingProject ? existingProject.id : undefined, user_id: currentUser.id,
-            class_name: className, topic: topic, project_data: allStudentRecords,
-            updated_at: new Date().toISOString()
-        };
-        const { error: projectError } = await supabaseClient.from('student_projects').upsert(projectToUpsert);
-        if (projectError) throw projectError;
+      const { data: existingProject, error: findError } = await supabaseClient
+        .from('student_projects').select('id').eq('user_id', currentUser.id)
+        .eq('class_name', className).eq('topic', topic).maybeSingle();
+      if(findError) throw findError;
+      const projectToUpsert = {
+        id: existingProject ? existingProject.id : undefined, user_id: currentUser.id,
+        class_name: className, topic: topic, project_data: allStudentRecords,
+        updated_at: new Date().toISOString()
+      };
+      const { error: projectError } = await supabaseClient.from('student_projects').upsert(projectToUpsert);
+      if (projectError) throw projectError;
     }
     isDataDirty = false;
     alert("同步成功！所有變更已儲存到雲端。");
@@ -2140,55 +2135,64 @@ async function syncDataToCloud() {
 }
 
 function updateUIBasedOnAuthState() {
-    const authStatus = document.getElementById('auth-status');
-    const loginBtn = document.getElementById('login-btn');
-    const logoutBtn = document.getElementById('logout-btn');
-    const syncBtn = document.getElementById('sync-btn');
-    const selectProjectBtn = document.getElementById('select-project-btn');
-    if (currentUser) {
-        authStatus.textContent = `已登入: ${currentUser.email}`;
-        loginBtn.style.display = 'none';
-        logoutBtn.style.display = 'inline-flex';
-        syncBtn.style.display = 'inline-flex';
-        if (selectProjectBtn) selectProjectBtn.style.display = 'inline-flex';
-        if (isDataDirty) {
-            syncBtn.disabled = false;
-            syncBtn.classList.add('dirty');
-            syncBtn.textContent = '儲存變更到雲端';
-        } else {
-            syncBtn.disabled = true;
-            syncBtn.classList.remove('dirty');
-            syncBtn.textContent = '數據已同步';
-        }
+  const authStatus = document.getElementById('auth-status');
+  const loginBtn = document.getElementById('login-btn');
+  const logoutBtn = document.getElementById('logout-btn');
+  const syncBtn = document.getElementById('sync-btn');
+  const selectProjectBtn = document.getElementById('select-project-btn');
+  if (currentUser) {
+    authStatus.textContent = `已登入: ${currentUser.email}`;
+    loginBtn.style.display = 'inline-flex';
+    loginBtn.style.display = 'none';
+    logoutBtn.style.display = 'inline-flex';
+    syncBtn.style.display = 'inline-flex';
+    if (selectProjectBtn) selectProjectBtn.style.display = 'inline-flex';
+    if (isDataDirty) {
+      syncBtn.disabled = false;
+      syncBtn.classList.add('dirty');
+      syncBtn.textContent = '儲存變更到雲端';
     } else {
-        authStatus.textContent = '離線模式';
-        loginBtn.style.display = 'inline-flex';
-        logoutBtn.style.display = 'none';
-        syncBtn.style.display = 'none';
-        if (selectProjectBtn) selectProjectBtn.style.display = 'none';
+      syncBtn.disabled = true;
+      syncBtn.classList.remove('dirty');
+      syncBtn.textContent = '數據已同步';
     }
+  } else {
+    authStatus.textContent = '離線模式';
+    loginBtn.style.display = 'inline-flex';
+    logoutBtn.style.display = 'none';
+    syncBtn.style.display = 'none';
+    if (selectProjectBtn) selectProjectBtn.style.display = 'none';
+  }
 }
 
-/* ====== 字體大小調整功能 ====== */
+/* ===== 字體調整 ===== */
 const FONT_SCALE_KEY = 'globalFontScale';
 const FONT_SCALE_STEP = 0.05;
 const MIN_FONT_SCALE = 0.8;
 const MAX_FONT_SCALE = 1.3;
 const DEFAULT_FONT_SCALE = 1.0;
 function adjustFontSize(direction) {
-    const root = document.documentElement;
-    let currentScale = parseFloat(root.style.getPropertyValue('--font-scale') || DEFAULT_FONT_SCALE);
-    if (direction === 'increase') currentScale = Math.min(MAX_FONT_SCALE, currentScale + FONT_SCALE_STEP);
-    else if (direction === 'decrease') currentScale = Math.max(MIN_FONT_SCALE, currentScale - FONT_SCALE_STEP);
-    else currentScale = DEFAULT_FONT_SCALE;
-    root.style.setProperty('--font-scale', currentScale);
-    root.style.fontSize = `calc(16px * ${currentScale})`;
-    saveFontSize(currentScale);
+  const root = document.documentElement;
+  let currentScale = parseFloat(root.style.getPropertyValue('--font-scale') || DEFAULT_FONT_SCALE);
+  if (direction === 'increase') currentScale = Math.min(MAX_FONT_SCALE, currentScale + FONT_SCALE_STEP);
+  else if (direction === 'decrease') currentScale = Math.max(MIN_FONT_SCALE, currentScale - FONT_SCALE_STEP);
+  else currentScale = DEFAULT_FONT_SCALE;
+  root.style.setProperty('--font-scale', currentScale);
+  root.style.fontSize = `calc(16px * ${currentScale})`;
+  saveFontSize(currentScale);
 }
-function saveFontSize(scale) { try { localStorage.setItem(FONT_SCALE_KEY, scale); } catch (e) { console.warn("無法儲存字體大小設定:", e); } }
-function loadFontSize() { try { const savedScale = localStorage.getItem(FONT_SCALE_KEY); const scale = parseFloat(savedScale) || DEFAULT_FONT_SCALE; const root = document.documentElement; root.style.setProperty('--font-scale', scale); root.style.fontSize = `calc(16px * ${scale})`; } catch (e) { console.warn("無法讀取字體大小設定:", e); } }
+function saveFontSize(scale) { try { localStorage.setItem(FONT_SCALE_KEY, scale); } catch (e) {} }
+function loadFontSize() { 
+  try { 
+    const savedScale = localStorage.getItem(FONT_SCALE_KEY); 
+    const scale = parseFloat(savedScale) || DEFAULT_FONT_SCALE; 
+    const root = document.documentElement; 
+    root.style.setProperty('--font-scale', scale); 
+    root.style.fontSize = `calc(16px * ${scale})`; 
+  } catch (e) {} 
+}
 
-/* ---------------- 頁面切換與通用功能 ---------------- */
+/* ===== 頁面切換 ===== */
 function showPage(pageId) {
   document.querySelectorAll('.page-content').forEach(p => p.classList.remove('active'));
   const page = document.getElementById(pageId);
@@ -2205,9 +2209,9 @@ function showPage(pageId) {
     const records = allStudentRecords.filter(r => r.data);
     const promptTextarea = document.getElementById('ai-feedback-prompt-preview');
     if (promptTextarea) {
-        promptTextarea.placeholder = records.length === 0 
-          ? "請先在「學生總覽」頁面儲存至少一位學生的評語數據，才能生成分析與 Prompt。"
-          : "點擊「生成回饋 Prompt」按鈕後，這裏會顯示給 AI 的完整指令...";
+      promptTextarea.placeholder = records.length === 0 
+        ? "請先在「學生總覽」頁面儲存至少一位學生的評語數據，才能生成分析與 Prompt。"
+        : "點擊「生成回饋 Prompt」按鈕後，這裏會顯示給 AI 的完整指令...";
     }
   }
 }
@@ -2216,114 +2220,115 @@ function toggleAllDetails(containerId, openState) {
   if (container) container.querySelectorAll('details').forEach(detail => detail.open = openState);
 }
 
-/* ---------------- 評語庫核心功能 (新增/修改) ---------------- */
+/* ===== 罐頭評語定義 ===== */
 function loadDefaultCritiques() {
-    cannedCritiques = {
-        narrative: [
-            { id: 'nar_exc_1', category: '結構與鋪排', type: 'excellent', title: '敘事線索清晰', strengthSummary: '能圍繞單一線索（如時間、地點、物件）展開敘事，脈絡分明。', example: '以「那隻舊手錶」為線索，串連起童年回憶與現在的感受，結構完整。' },
-            { id: 'nar_exc_2', category: '取材與刻畫', type: 'excellent', title: '情節曲折，引人入勝', strengthSummary: '情節有起伏，善用[選項]製造懸念或轉折。', options: '倒敘\n插敘\n預設懸念', optionsLabel: '敘事技巧', example: '開首寫出結果，再用倒敘法交代前因後果，成功吸引讀者追看。' },
-            { id: 'nar_pro_1', category: '取材與刻畫', type: 'problem', title: '敘事平鋪直敘', problemCore: '事件只按時序記下，缺乏重點和波瀾。', suggestion: '可嘗試在關鍵部分詳細描寫，加入人物的心理活動，或製造情節的起伏。', example: '寫宿營只是「早上集合、中午吃飯、下午遊戲」，可集中寫一次晚上的營火會及與同學的互動。' },
-            { id: 'nar_pro_2', category: '扣題與立意', type: 'problem', title: '有敘事，欠主題', problemCore: '只記敘了事件經過，但未從中提煉出感受或道理。', suggestion: '可在結尾點明事件對你的影響或啟發，深化文章主旨。', example: '記一次旅行，除了行程，更應寫出旅行讓你學到了什麼，或對你心情的影響。' }
-        ],
-        lyrical: [
-            { id: 'lyr_exc_1', category: '語言與表達', type: 'excellent', title: '情景交融，觸景生情', strengthSummary: '能將眼前景物與內心感受緊密結合，互相烘托。', example: '透過描寫窗外的冷雨，來烘托自己孤單、失落的心情，情景配合得宜。' },
-            { id: 'lyr_exc_2', category: '扣題與立意', type: 'excellent', title: '感情真摯，深刻動人', strengthSummary: '情感表達真實、自然，不造作，能引起讀者共鳴。', example: '對祖母的思念之情，透過回憶共處的瑣碎小事表達，真實感人。' },
-            { id: 'lyr_pro_1', category: '語言與表達', type: 'problem', title: '情感空泛，欠缺承托', problemCore: '只不斷重複「我好難過」，但沒有具體事件或描寫來支撐。', suggestion: '可透過描寫具體的動作、神情或回憶一個片段，來表現抽象的情感。', example: '與其說「我很開心」，不如寫「我一路上哼著歌，腳步也輕快起來」。' },
-            { id: 'lyr_pro_2', category: '結構與鋪排', type: 'problem', title: '情感跳躍，缺乏鋪墊', problemCore: '情感轉變過於突兀，讀者難以理解。', suggestion: '在情感轉變處，可加入過渡句或心理獨白，交代心路歷程。', example: '由悲傷轉為釋懷，可加上「看著窗外雨後天晴，我忽然覺得…」等過渡。' }
-        ],
-        descriptive: [
-            { id: 'des_exc_1', category: '取材與刻畫', type: 'excellent', title: '多角度描寫，層次豐富', strengthSummary: '能從視覺、聽覺、嗅覺、觸覺等多個感官角度描寫[選項]，使形象更立體。', options: '景物\n人物', optionsLabel: '描寫對象', example: '描寫街市不只寫看見的東西，還寫了叫賣聲（聽覺）和魚腥味（嗅覺），非常立體。' },
-            { id: 'des_exc_2', category: '語言與表達', type: 'excellent', title: '善用修辭，描寫生動', strengthSummary: '善於運用比喻、擬人、誇張等修辭手法，使描寫更生動有趣。', example: '用「像一塊巨大的綠色地氈」來比喻草地，貼切而形象。' },
-            { id: 'des_pro_1', category: '取材與刻畫', type: 'problem', title: '描寫欠具體', problemCore: '只用「美麗」、「宏偉」等抽象詞語，缺乏細節支撐。', suggestion: '嘗試將抽象形容詞，轉化為具體的細節描寫。', example: '與其說「公園很美」，不如描寫公園裡花朵的顏色、樹木的形態、湖水的波光。' },
-            { id: 'des_pro_2', category: '結構與鋪排', type: 'problem', title: '描寫沒有順序', problemCore: '描寫景物時東一句西一句，缺乏觀察順序。', suggestion: '可按固定順序描寫，如「由遠及近」、「由上而下」或「由靜態到動態」。', example: '描寫房間時，可先從門口望進去，再逐一描寫房內的傢俱佈置。' }
-        ],
-        argumentative: [
-            { id: 'arg_exc_1', category: '扣題與立意', type: 'excellent', title: '論點清晰，立場鮮明', strengthSummary: '在文章開首已明確提出中心論點，並且全文圍繞此論點展開。', example: '開宗明義指出「我認為中學生不應沉迷手機遊戲」，立場清晰。' },
-            { id: 'arg_exc_2', category: '結構與鋪排', type: 'excellent', title: '論證層層遞進', strengthSummary: '論證由淺入深，或由個人層面推及至社會層面，結構嚴謹。', example: '先論證沉迷手機遊戲影響個人學業，再論證影響人際關係，最後推及對社會風氣的影響，層次分明。' },
-            { id: 'arg_pro_1', category: '扣題與立意', type: 'problem', title: '論點模糊，立場搖擺', problemCore: '文章沒有明確的中心論點，或在文中不斷轉換立場。', suggestion: '在下筆前，應先確立自己支持或反對的立場，並以此作為全文的中心。', example: '文章一時說勤能補拙，一時又說天分更重要，讓讀者感到混亂。' },
-            { id: 'arg_pro_2', category: '結構與鋪排', type: 'problem', title: '論據不足，說服力弱', problemCore: '只有論點，沒有足夠的例子或道理去支持。', suggestion: '每個分論點後，都應配以具體的例證（史例、設例、語例）或道理論證來加強說服力。', example: '提出「合作很重要」的論點後，可引用「三個臭皮匠，勝過一個諸葛亮」的俗語，或舉出球隊合作取勝的例子。' }
-        ],
-        common: [
-            { id: 'com_exc_1', category: '語言與表達', type: 'excellent', title: '語言流暢', strengthSummary: '文句通順，表達準確，詞彙豐富。', example: '用詞精煉，沒有贅言，閱讀時感覺一氣呵成。' },
-            { id: 'com_pro_1', category: '語言與表達', type: 'problem', title: '語句不通', problemCore: '語言欠通順，有病句，影響文意表達。', suggestion: '寫作後宜多讀幾遍，檢查並修正語句不通順之處。', example: '「我的心情十分高興。」（「心情」與「高興」搭配不當）' },
-            { id: 'com_pro_2', category: '語言與表達', type: 'problem', title: '用詞單調', problemCore: '詞彙貧乏，用詞重複單調。', suggestion: '可多積累同義詞、近義詞，並在寫作中嘗試替換使用。', example: '全文多次使用「開心」，可用「愉快」、「興奮」、「雀躍」等詞代替。' },
-            { id: 'com_pro_3', category: '語言與表達', type: 'problem', title: '字詞標點錯誤', problemCore: '錯別字較多，標點符號運用不當。', suggestion: '需加強對字詞的掌握，並注意標點符號的正確用法。', example: '「的、地、得」不分；一句話結尾沒有句號。' }
-        ]
-    };
+  cannedCritiques = {
+    narrative: [
+      { id: 'nar_exc_1', category: '結構與鋪排', type: 'excellent', title: '敘事線索清晰', strengthSummary: '能圍繞單一線索（如時間、地點、物件）展開敘事，脈絡分明。', example: '以「那隻舊手錶」為線索，串連起童年回憶與現在的感受，結構完整。' },
+      { id: 'nar_exc_2', category: '取材與刻畫', type: 'excellent', title: '情節曲折，引人入勝', strengthSummary: '情節有起伏，善用[選項]製造懸念或轉折。', options: '倒敘\n插敘\n預設懸念', optionsLabel: '敘事技巧', example: '開首寫出結果，再用倒敘法交代前因後果，成功吸引讀者追看。' },
+      { id: 'nar_pro_1', category: '取材與刻畫', type: 'problem', title: '敘事平鋪直敘', problemCore: '事件只按時序記下，缺乏重點和波瀾。', suggestion: '可嘗試在關鍵部分詳細描寫，加入人物的心理活動，或製造情節的起伏。', example: '寫宿營只是「早上集合、中午吃飯、下午遊戲」，可集中寫一次晚上的營火會及與同學的互動。' },
+      { id: 'nar_pro_2', category: '扣題與立意', type: 'problem', title: '有敘事，欠主題', problemCore: '只記敘了事件經過，但未從中提煉出感受或道理。', suggestion: '可在結尾點明事件對你的影響或啟發，深化文章主旨。', example: '記一次旅行，除了行程，更應寫出旅行讓你學到了什麼，或對你心情的影響。' }
+    ],
+    lyrical: [
+      { id: 'lyr_exc_1', category: '語言與表達', type: 'excellent', title: '情景交融，觸景生情', strengthSummary: '能將眼前景物與內心感受緊密結合，互相烘托。', example: '透過描寫窗外的冷雨，來烘托自己孤單、失落的心情，情景配合得宜。' },
+      { id: 'lyr_exc_2', category: '扣題與立意', type: 'excellent', title: '感情真摯，深刻動人', strengthSummary: '情感表達真實、自然，不造作，能引起讀者共鳴。', example: '對祖母的思念之情，透過回憶共處的瑣碎小事表達，真實感人。' },
+      { id: 'lyr_pro_1', category: '語言與表達', type: 'problem', title: '情感空泛，欠缺承托', problemCore: '只不斷重複「我好難過」，但沒有具體事件或描寫來支撐。', suggestion: '可透過描寫具體的動作、神情或回憶一個片段，來表現抽象的情感。', example: '與其說「我很開心」，不如寫「我一路上哼著歌，腳步也輕快起來」。' },
+      { id: 'lyr_pro_2', category: '結構與鋪排', type: 'problem', title: '情感跳躍，缺乏鋪墊', problemCore: '情感轉變過於突兀，讀者難以理解。', suggestion: '在情感轉變處，可加入過渡句或心理獨白，交代心路歷程。', example: '由悲傷轉為釋懷，可加上「看著窗外雨後天晴，我忽然覺得…」等過渡。' }
+    ],
+    descriptive: [
+      { id: 'des_exc_1', category: '取材與刻畫', type: 'excellent', title: '多角度描寫，層次豐富', strengthSummary: '能從視覺、聽覺、嗅覺、觸覺等多個感官角度描寫[選項]，使形象更立體。', options: '景物\n人物', optionsLabel: '描寫對象', example: '描寫街市不只寫看見的東西，還寫了叫賣聲（聽覺）和魚腥味（嗅覺），非常立體。' },
+      { id: 'des_exc_2', category: '語言與表達', type: 'excellent', title: '善用修辭，描寫生動', strengthSummary: '善於運用比喻、擬人、誇張等修辭手法，使描寫更生動有趣。', example: '用「像一塊巨大的綠色地氈」來比喻草地，貼切而形象。' },
+      { id: 'des_pro_1', category: '取材與刻畫', type: 'problem', title: '描寫欠具體', problemCore: '只用「美麗」、「宏偉」等抽象詞語，缺乏細節支撐。', suggestion: '嘗試將抽象形容詞，轉化為具體的細節描寫。', example: '與其說「公園很美」，不如描寫公園裡花朵的顏色、樹木的形態、湖水的波光。' },
+      { id: 'des_pro_2', category: '結構與鋪排', type: 'problem', title: '描寫沒有順序', problemCore: '描寫景物時東一句西一句，缺乏觀察順序。', suggestion: '可按固定順序描寫，如「由遠及近」、「由上而下」或「由靜態到動態」。', example: '描寫房間時，可先從門口望進去，再逐一描寫房內的傢俱佈置。' }
+    ],
+    argumentative: [
+      { id: 'arg_exc_1', category: '扣題與立意', type: 'excellent', title: '論點清晰，立場鮮明', strengthSummary: '在文章開首已明確提出中心論點，並且全文圍繞此論點展開。', example: '開宗明義指出「我認為中學生不應沉迷手機遊戲」，立場清晰。' },
+      { id: 'arg_exc_2', category: '結構與鋪排', type: 'excellent', title: '論證層層遞進', strengthSummary: '論證由淺入深，或由個人層面推及至社會層面，結構嚴謹。', example: '先論證沉迷手機遊戲影響個人學業，再論證影響人際關係，最後推及對社會風氣的影響，層次分明。' },
+      { id: 'arg_pro_1', category: '扣題與立意', type: 'problem', title: '論點模糊，立場搖擺', problemCore: '文章沒有明確的中心論點，或在文中不斷轉換立場。', suggestion: '在下筆前，應先確立自己支持或反對的立場，並以此作為全文的中心。', example: '文章一時說勤能補拙，一時又說天分更重要，讓讀者感到混亂。' },
+      { id: 'arg_pro_2', category: '結構與鋪排', type: 'problem', title: '論據不足，說服力弱', problemCore: '只有論點，沒有足夠的例子或道理去支持。', suggestion: '每個分論點後，都應配以具體的例證（史例、設例、語例）或道理論證來加強說服力。', example: '提出「合作很重要」的論點後，可引用「三個臭皮匠，勝過一個諸葛亮」的俗語，或舉出球隊合作取勝的例子。' }
+    ],
+    common: [
+      { id: 'com_exc_1', category: '語言與表達', type: 'excellent', title: '語言流暢', strengthSummary: '文句通順，表達準確，詞彙豐富。', example: '用詞精煉，沒有贅言，閱讀時感覺一氣呵成。' },
+      { id: 'com_pro_1', category: '語言與表達', type: 'problem', title: '語句不通', problemCore: '語言欠通順，有病句，影響文意表達。', suggestion: '寫作後宜多讀幾遍，檢查並修正語句不通順之處。', example: '「我的心情十分高興。」（「心情」與「高興」搭配不當）' },
+      { id: 'com_pro_2', category: '語言與表達', type: 'problem', title: '用詞單調', problemCore: '詞彙貧乏，用詞重複單調。', suggestion: '可多積累同義詞、近義詞，並在寫作中嘗試替換使用。', example: '全文多次使用「開心」，可用「愉快」、「興奮」、「雀躍」等詞代替。' },
+      { id: 'com_pro_3', category: '語言與表達', type: 'problem', title: '字詞標點錯誤', problemCore: '錯別字較多，標點符號運用不當。', suggestion: '需加強對字詞的掌握，並注意標點符號的正確用法。', example: '「的、地、得」不分；一句話結尾沒有句號。' }
+    ]
+  };
 }
 
+/* ===== 罐頭評語載入 ===== */
 function loadCannedCritiques() {
-    const selectedGenres = Array.from(document.querySelectorAll('#genre-selection input:checked')).map(cb => cb.value);
-    if (selectedGenres.length === 0) {
-        alert('請至少選擇一種文章類型。');
-        return;
+  const selectedGenres = Array.from(document.querySelectorAll('#genre-selection input:checked')).map(cb => cb.value);
+  if (selectedGenres.length === 0) {
+    alert('請至少選擇一種文章類型。');
+    return;
+  }
+
+  const critiquesToLoad = new Map();
+  const addCritique = (critique) => {
+    if (!critiquesToLoad.has(critique.id)) {
+      critiquesToLoad.set(critique.id, critique);
     }
+  };
 
-    const critiquesToLoad = new Map();
-    const addCritique = (critique) => {
-        if (!critiquesToLoad.has(critique.id)) {
-            critiquesToLoad.set(critique.id, critique);
-        }
-    };
+  selectedGenres.forEach(genre => {
+    if (cannedCritiques[genre]) {
+      cannedCritiques[genre].forEach(addCritique);
+    }
+  });
+  cannedCritiques.common.forEach(addCritique);
+  
+  const finalCritiques = Array.from(critiquesToLoad.values());
 
-    selectedGenres.forEach(genre => {
-        if (cannedCritiques[genre]) {
-            cannedCritiques[genre].forEach(addCritique);
-        }
-    });
-    cannedCritiques.common.forEach(addCritique);
-    
-    const finalCritiques = Array.from(critiquesToLoad.values());
+  applyCritiquesToDOM(finalCritiques);
+  buildChecklist();
+  buildOverviewPage();
+  isDataDirty = true;
+  updateUIBasedOnAuthState();
+  alert(`已成功載入 ${finalCritiques.length} 條預設評語！`);
+  showPage('page2');
+}
 
-    applyCritiquesToDOM(finalCritiques);
+function resetToDefaultCritiques(showConfirm = true) {
+  const action = () => {
+    const allDefaultCritiques = Object.values(cannedCritiques).flat();
+    const uniqueCritiques = Array.from(new Map(allDefaultCritiques.map(c => [c.id, c])).values());
+    applyCritiquesToDOM(uniqueCritiques);
     buildChecklist();
     buildOverviewPage();
     isDataDirty = true;
     updateUIBasedOnAuthState();
-    alert(`已成功載入 ${finalCritiques.length} 條預設評語！`);
-    showPage('page2');
+    if (showConfirm) alert('評語庫已重設為程式內建的預設評語。');
+  };
+
+  if (showConfirm) {
+    confirmUI('確定要重設為程式內建的預設評語嗎？這會覆蓋您當前的評語庫。', action);
+  } else {
+    action();
+  }
 }
 
-function resetToDefaultCritiques(showConfirm = true) {
-    const action = () => {
-        const allDefaultCritiques = Object.values(cannedCritiques).flat();
-        const uniqueCritiques = Array.from(new Map(allDefaultCritiques.map(c => [c.id, c])).values());
-        applyCritiquesToDOM(uniqueCritiques);
-        buildChecklist();
-        buildOverviewPage();
-        isDataDirty = true;
-        updateUIBasedOnAuthState();
-        if (showConfirm) alert('評語庫已重設為程式內建的預設評語。');
-    };
-
-    if (showConfirm) {
-        confirmUI('確定要重設為程式內建的預設評語嗎？這會覆蓋您當前的評語庫。', action);
-    } else {
-        action();
-    }
-}
-
+/* ===== 將評語資料寫回 DOM (critique-data) ===== */
 function applyCritiquesToDOM(critiques) {
-    const dataContainer = document.getElementById('critique-data');
-    dataContainer.innerHTML = ''; // 清空現有
-    critiques.forEach(c => {
-        const div = document.createElement('div');
-        div.dataset.id = c.id || c.critique_id;
-        div.dataset.category = c.category;
-        div.dataset.type = c.type;
-        div.dataset.strengthSummary = c.strengthSummary || c.strength_summary || '';
-        div.dataset.problemCore = c.problemCore || c.problem_core || '';
-        div.dataset.suggestion = c.suggestion || '';
-        div.dataset.example = c.example || '';
-        div.dataset.options = c.options || '';
-        div.dataset.optionsLabel = c.optionsLabel || c.options_label || '';
-        div.innerHTML = `<h4>${c.title}</h4>`;
-        dataContainer.appendChild(div);
-    });
+  const dataContainer = document.getElementById('critique-data');
+  dataContainer.innerHTML = '';
+  critiques.forEach(c => {
+    const div = document.createElement('div');
+    div.dataset.id = c.id || c.critique_id;
+    div.dataset.category = c.category || '';
+    div.dataset.type = c.type || 'excellent';
+    div.dataset.strengthSummary = c.strengthSummary || c.strength_summary || '';
+    div.dataset.problemCore = c.problemCore || c.problem_core || '';
+    div.dataset.suggestion = c.suggestion || '';
+    div.dataset.example = c.example || '';
+    div.dataset.options = c.options || '';
+    div.dataset.optionsLabel = c.optionsLabel || c.options_label || '';
+    div.innerHTML = `<h4>${c.title}</h4>`;
+    dataContainer.appendChild(div);
+  });
 }
 
-
-/* ---------------- 第一頁 & 第二頁：設定與批改 ---------------- */
+/* ===== 全局事件綁定 ===== */
 function attachGlobalListeners() {
   document.getElementById('login-btn').addEventListener('click', handleLogin);
   document.getElementById('logout-btn').addEventListener('click', handleLogout);
@@ -2355,28 +2360,28 @@ function attachGlobalListeners() {
         }
       }
       if (e.target.closest('.score-main-grid, .typo-score-input-group')) {
-          calculateTotalScore();
+        calculateTotalScore();
       }
       updateAllOutputs();
-      isDataDirty = true; 
+      isDataDirty = true;
       updateUIBasedOnAuthState();
     } else if (targetPage.id === 'page3' || targetPage.id === 'page4') {
-        isDataDirty = true;
-        updateUIBasedOnAuthState();
+      isDataDirty = true;
+      updateUIBasedOnAuthState();
     }
   });
-  
+
   document.body.addEventListener('click', (e) => {
-      const checkItem = e.target.closest('.check-item');
-      if (checkItem) {
-          const checkbox = checkItem.querySelector('input[type="checkbox"]');
-          if (checkbox && e.target.tagName !== 'SELECT' && e.target.tagName !== 'TEXTAREA' && e.target.tagName !== 'INPUT') {
-              checkbox.checked = !checkbox.checked;
-              handleCheckboxChange(checkbox);
-              isDataDirty = true;
-              updateUIBasedOnAuthState();
-          }
+    const checkItem = e.target.closest('.check-item');
+    if (checkItem) {
+      const checkbox = checkItem.querySelector('input[type="checkbox"]');
+      if (checkbox && e.target.tagName !== 'SELECT' && e.target.tagName !== 'TEXTAREA' && e.target.tagName !== 'INPUT') {
+        checkbox.checked = !checkbox.checked;
+        handleCheckboxChange(checkbox);
+        isDataDirty = true;
+        updateUIBasedOnAuthState();
       }
+    }
   });
 
   document.body.addEventListener('change', (e) => {
@@ -2397,15 +2402,14 @@ function attachGlobalListeners() {
   const topicInput = document.getElementById('topic');
   const aiTopicInput = document.getElementById('ai-topic');
   topicInput.addEventListener('input', () => {
-      if (aiTopicInput.value !== topicInput.value) aiTopicInput.value = topicInput.value;
-      isDataDirty = true;
-      updateUIBasedOnAuthState();
+    if (aiTopicInput.value !== topicInput.value) aiTopicInput.value = topicInput.value;
+    isDataDirty = true;
+    updateUIBasedOnAuthState();
   });
   aiTopicInput.addEventListener('input', () => {
-      if (topicInput.value !== aiTopicInput.value) topicInput.value = aiTopicInput.value;
+    if (topicInput.value !== aiTopicInput.value) topicInput.value = aiTopicInput.value;
   });
 
-  // 綁定導入/導出事件
   document.getElementById('import-student-list').addEventListener('change', handleStudentListImport);
   document.getElementById('import-progress-excel').addEventListener('change', handleProgressImportExcel);
   document.getElementById('import-critique-excel').addEventListener('change', handleCritiqueImportExcel);
@@ -2421,21 +2425,22 @@ function attachGlobalListeners() {
 
   const scoreInputOrder = ['score-content', 'score-expression', 'score-structure', 'score-punctuation', 'score-typos'];
   scoreInputOrder.forEach(id => {
-      const input = document.getElementById(id);
-      if (input) {
-          input.addEventListener('keydown', (e) => {
-              if (e.key === 'Enter') {
-                  e.preventDefault();
-                  const currentIndex = scoreInputOrder.indexOf(id);
-                  if (currentIndex > -1 && currentIndex < scoreInputOrder.length - 1) {
-                      document.getElementById(scoreInputOrder[currentIndex + 1]).focus();
-                  }
-              }
-          });
-      }
+    const input = document.getElementById(id);
+    if (input) {
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          const currentIndex = scoreInputOrder.indexOf(id);
+          if (currentIndex > -1 && currentIndex < scoreInputOrder.length - 1) {
+            document.getElementById(scoreInputOrder[currentIndex + 1]).focus();
+          }
+        }
+      });
+    }
   });
 }
 
+/* ===== 評語 checklist 建構 ===== */
 function buildChecklist() {
   const dataContainer = document.getElementById('critique-data');
   const checklistContainer = document.getElementById('checklist-container');
@@ -2454,7 +2459,7 @@ function buildChecklist() {
   const currentCategories = {};
 
   dataContainer.querySelectorAll('div[data-id]').forEach(el => {
-    const category = el.dataset.category;
+    const category = el.dataset.category || '未分類';
     if (!currentCategories[category]) {
       currentCategories[category] = []; 
     }
@@ -2509,7 +2514,7 @@ function buildChecklist() {
   }
 
   if (!hasContent) {
-    checklistContainer.innerHTML = `<div class="empty-state-message">評語庫目前為空。<br>請返回「基本設定」頁選擇或建立評語庫，或在「評語總覽」頁新增/導入。</div>`;
+    checklistContainer.innerHTML = `<div class="empty-state-message">評語庫目前為空。<br>請在「基本資料」頁載入預設評語，或在「評語總覽」頁新增/導入。</div>`;
   }
 }
 
@@ -2550,27 +2555,21 @@ function populateEditableTextarea(id) {
   textarea.value = composeStudentFromConcise(id);
 }
 
-function concretizeExample(id, rawExample) {
-  const trimmed = (rawExample || '').trim();
-  if (!trimmed) return [];
-  let lines = trimmed.split('\n').map(s=>s.trim()).filter(Boolean);
-  return lines.slice(0, 2);
-}
-
+/* ===== 名單處理 ===== */
 function parseStudentName(rawName) {
-    const match = rawName.trim().match(/^(\d+)[-\s._]*(.*)$/);
-    if (match) {
-        return {
-            number: parseInt(match[1], 10),
-            name: match[2].trim(),
-            originalName: rawName.trim()
-        };
-    }
+  const match = rawName.trim().match(/^(\d+)[-\s._]*(.*)$/);
+  if (match) {
     return {
-        number: null,
-        name: rawName.trim(),
-        originalName: rawName.trim()
+      number: parseInt(match[1], 10),
+      name: match[2].trim(),
+      originalName: rawName.trim()
     };
+  }
+  return {
+    number: null,
+    name: rawName.trim(),
+    originalName: rawName.trim()
+  };
 }
 
 function updateStudentDropdown() {
@@ -2585,7 +2584,7 @@ function updateStudentDropdown() {
   });
 
   const currentSelected = studentSelect.value;
-  studentSelect.innerHTML = parsedNames.length === 0 ? '<option value="">請先在上方輸入學生名單</option>' : '';
+  studentSelect.innerHTML = parsedNames.length === 0 ? '<option value="">請先在「基本資料」頁輸入學生名單</option>' : '';
   
   let newSelectionExists = false;
   parsedNames.forEach(p => {
@@ -2594,18 +2593,29 @@ function updateStudentDropdown() {
     option.textContent = p.originalName;
     studentSelect.appendChild(option);
     if (p.originalName === currentSelected) {
-        newSelectionExists = true;
+      newSelectionExists = true;
     }
   });
 
   if (newSelectionExists) {
-      studentSelect.value = currentSelected;
+    studentSelect.value = currentSelected;
   }
   
   updateAllOutputs();
   renderStudentOverviewTable();
 }
 
+function navigateToStudent(direction) {
+  const select = document.getElementById('student-select');
+  if (select.options.length <= 1) return;
+  let newIndex = select.selectedIndex + (direction === 'next' ? 1 : -1);
+  if (newIndex >= select.options.length) newIndex = 0; 
+  if (newIndex < 0) newIndex = select.options.length - 1; 
+  select.selectedIndex = newIndex;
+  select.dispatchEvent(new Event('change'));
+}
+
+/* ===== 評分 & 錯別字 ===== */
 function toggleOtherBlock(idPrefix, value) {
   const block = document.getElementById(`${idPrefix}-other`);
   if (!block) return;
@@ -2626,238 +2636,6 @@ function calculateTotalScore() {
   const total = (content * 4) + (expression * 3) + (structure * 2) + (punctuation * 1) + typos;
   document.getElementById('score-total').value = total;
   return total;
-}
-
-function handleCheckboxChange(checkbox, doUpdate = true) {
-  const id = checkbox.id;
-  const isChecked = checkbox.checked;
-  const checkItem = checkbox.closest('.check-item');
-  const interactiveModule = checkItem.querySelector('.interactive-module');
-  const editableComment = checkItem.querySelector('.editable-comment');
-
-  if (interactiveModule) interactiveModule.style.display = isChecked ? 'block' : 'none';
-  if (editableComment) editableComment.style.display = isChecked ? 'block' : 'none';
-
-  if (isChecked) populateEditableTextarea(id);
-  if (doUpdate) updateAllOutputs();
-}
-
-function getCritiqueData(id, type) {
-  const critiqueEl = document.querySelector(`#critique-data div[data-id="${id}"]`);
-  if (!critiqueEl) return '';
-  switch (type) {
-    case 'title': return critiqueEl.querySelector('h4')?.textContent || critiqueEl.dataset.title || '';
-    default: return '';
-  }
-}
-
-function getConciseData(id) {
-  const el = document.querySelector(`#critique-data div[data-id="${id}"]`);
-  if (!el) return null;
-  return {
-    problemCore: el.dataset.problemCore || '',
-    suggestion: el.dataset.suggestion || '',
-    strengthSummary: el.dataset.strengthSummary || '',
-    example: el.dataset.example || ''
-  };
-}
-
-function getInteractiveValue(id, includePlaceholder = true) {
-    let value = '';
-    const critiqueEl = document.querySelector(`#critique-data div[data-id="${id}"]`);
-    const placeholder = critiqueEl?.dataset.optionsLabel || '選項';
-    const select = document.getElementById(`${id}-select`);
-    const otherInput = document.getElementById(`${id}-other-text`);
-    if (select) {
-        value = select.value;
-        if (value === '其他' && otherInput) value = otherInput.value.trim();
-    }
-    return includePlaceholder ? (value || placeholder) : value;
-}
-
-function buildTypoSectionRaw(typosList) {
-  const list = Array.isArray(typosList) ? typosList : currentTypos;
-  if (!list.length) return [];
-  return list.map((t, idx) => {
-    const wrong = t.wrong ? `「${t.wrong}」` : '';
-    const correct = t.correct ? `「${t.correct}」` : '「（未填正字）」';
-    return `${idx + 1}. ${wrong}→${correct}`;
-  });
-}
-
-function buildTypoSection(isStudent = false, typosList = null) {
-  const rawLines = buildTypoSectionRaw(typosList);
-  if (!rawLines.length) return '';
-  const header = isStudent ? '【✏️錯別字】' : '【錯別字】';
-  const body = (isStudent ? rawLines.map(s => `- ${s}`) : rawLines).join('\n');
-  return [header, body].filter(s => s && s.trim()).join('\n');
-}
-
-function normalizeSpacing(text) {
-  if (!text) return '';
-  let t = text.split('\n').map(s=>s.replace(/\s+$/,'')).join('\n').trim();
-  t = t.replace(/\n{3,}/g, '\n\n');
-  return t.replace(/^\n+/, '').replace(/\n+$/, '');
-}
-
-function toFullWidthPunctuation(str) {
-    if (typeof str !== 'string') return str;
-    const map = { ',': '，', '.': '。', '?': '？', '!': '！', ':': '：', ';': '；', '(': '（', ')': '）', '[': '【', ']': '】' };
-    return str.replace(/[[],.?_!:]/g, m => map[m] || m);
-}
-
-function updateAllOutputs() {
-  const studentClass = document.getElementById('student-class').value.trim();
-  const topic = document.getElementById('topic').value.trim();
-  const selectedStudentOriginalName = document.getElementById('student-select').value;
-  const uniqueComment = document.getElementById('unique-comment').value.trim();
-
-  const scores = {
-    content: document.getElementById('score-content').value,
-    expression: document.getElementById('score-expression').value,
-    structure: document.getElementById('score-structure').value,
-    punctuation: document.getElementById('score-punctuation').value,
-    typos: document.getElementById('score-typos').value,
-    total: document.getElementById('score-total').value,
-  };
-  let scoreSummaryText = '';
-  if (Object.values(scores).some(v => v)) {
-    scoreSummaryText = [
-      '【📝評分】',
-      `內容：${scores.content||'-'} | 表達：${scores.expression||'-'} | 結構：${scores.structure||'-'} | 標點及字體：${scores.punctuation||'-'} | 錯別字：${scores.typos||'-'}`,
-      `總分：${scores.total||'-'}`
-    ].join('\n');
-  }
-
-  const checked = document.querySelectorAll('#checklist-container input[type="checkbox"]:checked');
-  const excellentCritiques = [], problemCritiques = [];
-  checked.forEach(cb => {
-    const el = document.querySelector(`#critique-data div[data-id="${cb.id}"]`);
-    if (el) {
-        const critique = { id: cb.id };
-        if (el.dataset.type === 'excellent') excellentCritiques.push(critique);
-        else problemCritiques.push(critique);
-    }
-  });
-
-  const typoTextFullRaw = buildTypoSection(false);
-  const typoTextStudentRaw = buildTypoSection(true);
-
-  generateFullVersion(studentClass, selectedStudentOriginalName, topic, uniqueComment, excellentCritiques, problemCritiques, scoreSummaryText, typoTextFullRaw);
-  generateStudentReport(studentClass, selectedStudentOriginalName, topic, uniqueComment, excellentCritiques, problemCritiques, scoreSummaryText, typoTextStudentRaw);
-}
-
-function generatePureFullVersion(excellents, problems) {
-  let parts = [];
-  if (excellents.length > 0) {
-    parts.push('【優點】');
-    excellents.forEach((c, i) => {
-      const concise = getConciseData(c.id);
-      if (!concise) return;
-      const v = getInteractiveValue(c.id, false);
-      let summary = (concise.strengthSummary || '').replace(/[選項]/g, v ? `「${v}」` : '');
-      const examples = concretizeExample(c.id, concise.example).join(' ');
-      parts.push(`（${i+1}）${getCritiqueData(c.id, 'title')}\n${summary}\n${examples ? `例如：${examples}` : ''}`.trim());
-    });
-  }
-  if (problems.length > 0) {
-    parts.push('', '【待改進】');
-    problems.forEach((c, i) => {
-      const concise = getConciseData(c.id);
-      if (!concise) return;
-      const v = getInteractiveValue(c.id, false);
-      let problemText = (concise.problemCore || '').replace(/[選項]/g, v ? `「${v}」` : '');
-      let suggestion = (concise.suggestion || '').replace(/[選項]/g, v ? `「${v}」` : '');
-      const examples = concretizeExample(c.id, concise.example).join(' ');
-      parts.push(`（${i+1}）\n問題：${problemText}\n宜：${suggestion}\n${examples ? `例如，${examples}` : ''}`.trim());
-    });
-  }
-  return toFullWidthPunctuation(normalizeSpacing(parts.join('\n\n')));
-}
-
-function generatePureStudentReport(excellents, problems) {
-  let out = [];
-  if (excellents.length > 0) {
-    out.push('【😎做得好】');
-    excellents.forEach((c, index) => {
-      const ta = document.getElementById(`text-${c.id}`);
-      out.push(`(${index + 1}) ${(ta && ta.value) ? ta.value : composeStudentFromConcise(c.id)}`);
-    });
-  }
-  if (problems.length > 0) {
-    out.push('', '【😥待改進】');
-    problems.forEach((c, index) => {
-      const ta = document.getElementById(`text-${c.id}`);
-      out.push(`(${index + 1}) ${(ta && ta.value) ? ta.value : composeStudentFromConcise(c.id)}`);
-    });
-  }
-  return toFullWidthPunctuation(normalizeSpacing(out.join('\n')));
-}
-
-function generateFullVersion(studentClass, student, topic, unique, excellents, problems, score, typoTextFullRaw) {
-  const ta = document.getElementById('full-output');
-  if (ta?.dataset.userEditing) return;
-  let parts = [`班別：${studentClass || 'N/A'}`, `學生：${student || 'N/A'}`, `題目：${topic || 'N/A'}`];
-  if (unique) parts.push('', '【特別留言】', unique);
-  const pureComment = generatePureFullVersion(excellents, problems);
-  if(pureComment) parts.push('', pureComment);
-  if (typoTextFullRaw) parts.push('', typoTextFullRaw);
-  if (score) parts.push('', score);
-  ta.value = toFullWidthPunctuation(normalizeSpacing(parts.join('\n')));
-}
-
-function generateStudentReport(studentClass, student, topic, unique, excellents, problems, scoreTextRaw, typoTextRaw) {
-  const ta = document.getElementById('student-report-output');
-  if (ta?.dataset.userEditing) return;
-  let out = [`班別：${studentClass || 'N/A'}`, `學生：${student || 'N/A'}`, `題目：${topic || 'N/A'}`];
-  if (unique) out.push('', '【特別留言】', unique);
-  const pureComment = generatePureStudentReport(excellents, problems);
-  if(pureComment) out.push('', pureComment);
-if (typoTextRaw) out.push('', typoTextRaw);
-  if (scoreTextRaw) out.push('', scoreTextRaw);
-  ta.value = toFullWidthPunctuation(normalizeSpacing(out.join('\n')));
-}
-
-function composeStudentFromConcise(id) {
-  const c = getConciseData(id);
-  if (!c) return '';
-  const isExcellent = document.querySelector(`#critique-data div[data-id="${id}"]`)?.dataset.type === 'excellent';
-  const v = getInteractiveValue(id, false);
-  const exampleLines = concretizeExample(id, c.example);
-  const parts = [`${getCritiqueData(id, 'title')}`];
-  if (isExcellent) {
-    let summary = (c.strengthSummary || '').replace(/[選項]/g, v ? `「${v}」` : '');
-    if (summary) parts.push(`- 優點：${summary}`);
-    exampleLines.forEach(line => parts.push(`- ${line}`));
-  } else {
-    let problem = (c.problemCore || '').replace(/[選項]/g, v ? `「${v}」` : '');
-    if (problem) parts.push(`- 問題：${problem}`);
-    let suggestion = (c.suggestion || '').replace(/[選項]/g, v ? `「${v}」` : '');
-    if (suggestion) parts.push(`- 宜：${suggestion}`);
-    exampleLines.forEach(line => parts.push(`- 例：${line}`));
-  }
-  return parts.join('\n');
-}
-
-function copyOutput(textareaId, buttonElement) {
-  const textarea = document.getElementById(textareaId);
-  if (!textarea.value) return;
-  textarea.select();
-  navigator.clipboard.writeText(textarea.value).then(() => {
-    notifyCopySuccess(buttonElement, "已複製");
-  }).catch(() => {
-    try { document.execCommand('copy'); notifyCopySuccess(buttonElement, "已複製"); } catch (e) { notifyCopySuccess(buttonElement, "複製失敗"); }
-  });
-}
-
-function notifyCopySuccess(buttonElement, message) {
-  const originalText = buttonElement.innerText;
-  buttonElement.innerText = message;
-  buttonElement.classList.add('copied');
-  setTimeout(() => {
-    buttonElement.innerText = originalText;
-    buttonElement.classList.remove('copied');
-  }, 2000);
 }
 
 function addTypo() {
@@ -2967,7 +2745,7 @@ function toggleCommonToCurrent(id, checked) {
   if (!item) return;
   if (checked) {
     if (!currentTypos.some(x => x.wrong === item.wrong && x.correct === item.correct)) {
-        currentTypos.push({ wrong: item.wrong, correct: item.correct });
+      currentTypos.push({ wrong: item.wrong, correct: item.correct });
     }
   } else {
     const idx = currentTypos.findIndex(x => x.wrong === item.wrong && x.correct === item.correct);
@@ -2995,18 +2773,249 @@ function deleteCommonTypo(id) {
   }
 }
 
-/* --- 學生資料儲存、讀取與總覽 --- */
+/* ===== checkbox 點選邏輯 ===== */
+function handleCheckboxChange(checkbox, doUpdate = true) {
+  const id = checkbox.id;
+  const isChecked = checkbox.checked;
+  const checkItem = checkbox.closest('.check-item');
+  const interactiveModule = checkItem.querySelector('.interactive-module');
+  const editableComment = checkItem.querySelector('.editable-comment');
 
-function navigateToStudent(direction) {
-  const select = document.getElementById('student-select');
-  if (select.options.length <= 1) return;
-  let newIndex = select.selectedIndex + (direction === 'next' ? 1 : -1);
-  if (newIndex >= select.options.length) newIndex = 0; 
-  if (newIndex < 0) newIndex = select.options.length - 1; 
-  select.selectedIndex = newIndex;
-  select.dispatchEvent(new Event('change'));
+  if (interactiveModule) interactiveModule.style.display = isChecked ? 'block' : 'none';
+  if (editableComment) editableComment.style.display = isChecked ? 'block' : 'none';
+
+  if (isChecked) populateEditableTextarea(id);
+  if (doUpdate) updateAllOutputs();
 }
 
+function getCritiqueData(id, type) {
+  const critiqueEl = document.querySelector(`#critique-data div[data-id="${id}"]`);
+  if (!critiqueEl) return '';
+  switch (type) {
+    case 'title': return critiqueEl.querySelector('h4')?.textContent || critiqueEl.dataset.title || '';
+    default: return '';
+  }
+}
+
+function getConciseData(id) {
+  const el = document.querySelector(`#critique-data div[data-id="${id}"]`);
+  if (!el) return null;
+  return {
+    problemCore: el.dataset.problemCore || '',
+    suggestion: el.dataset.suggestion || '',
+    strengthSummary: el.dataset.strengthSummary || '',
+    example: el.dataset.example || ''
+  };
+}
+
+function getInteractiveValue(id, includePlaceholder = true) {
+  let value = '';
+  const critiqueEl = document.querySelector(`#critique-data div[data-id="${id}"]`);
+  const placeholder = critiqueEl?.dataset.optionsLabel || '選項';
+  const select = document.getElementById(`${id}-select`);
+  const otherInput = document.getElementById(`${id}-other-text`);
+  if (select) {
+    value = select.value;
+    if (value === '其他' && otherInput) value = otherInput.value.trim();
+  }
+  return includePlaceholder ? (value || placeholder) : value;
+}
+
+function concretizeExample(id, rawExample) {
+  const trimmed = (rawExample || '').trim();
+  if (!trimmed) return [];
+  let lines = trimmed.split('\n').map(s=>s.trim()).filter(Boolean);
+  return lines.slice(0, 2);
+}
+
+function buildTypoSectionRaw(typosList) {
+  const list = Array.isArray(typosList) ? typosList : currentTypos;
+  if (!list.length) return [];
+  return list.map((t, idx) => {
+    const wrong = t.wrong ? `「${t.wrong}」` : '';
+    const correct = t.correct ? `「${t.correct}」` : '「（未填正字）」';
+    return `${idx + 1}. ${wrong}→${correct}`;
+  });
+}
+
+function buildTypoSection(isStudent = false, typosList = null) {
+  const rawLines = buildTypoSectionRaw(typosList);
+  if (!rawLines.length) return '';
+  const header = isStudent ? '【✏️錯別字】' : '【錯別字】';
+  const body = (isStudent ? rawLines.map(s => `- ${s}`) : rawLines).join('\n');
+  return [header, body].filter(s => s && s.trim()).join('\n');
+}
+
+function normalizeSpacing(text) {
+  if (!text) return '';
+  let t = text.split('\n').map(s=>s.replace(/\s+$/,'')).join('\n').trim();
+  t = t.replace(/\n{3,}/g, '\n\n');
+  return t.replace(/^\n+/, '').replace(/\n+$/, '');
+}
+
+function toFullWidthPunctuation(str) {
+  if (typeof str !== 'string') return str;
+  const map = { ',': '，', '.': '。', '?': '？', '!': '！', ':': '：', ';': '；', '(': '（', ')': '）', '[': '【', ']': '】' };
+  return str.replace(/[,.?!:;()[\]]/g, m => map[m] || m);
+}
+
+/* ===== 輸出組合 ===== */
+function updateAllOutputs() {
+  const studentClass = document.getElementById('student-class').value.trim();
+  const topic = document.getElementById('topic').value.trim();
+  const selectedStudentOriginalName = document.getElementById('student-select').value;
+  const uniqueComment = document.getElementById('unique-comment').value.trim();
+
+  const scores = {
+    content: document.getElementById('score-content').value,
+    expression: document.getElementById('score-expression').value,
+    structure: document.getElementById('score-structure').value,
+    punctuation: document.getElementById('score-punctuation').value,
+    typos: document.getElementById('score-typos').value,
+    total: document.getElementById('score-total').value,
+  };
+  let scoreSummaryText = '';
+  if (Object.values(scores).some(v => v)) {
+    scoreSummaryText = [
+      '【📝評分】',
+      `內容：${scores.content||'-'} | 表達：${scores.expression||'-'} | 結構：${scores.structure||'-'} | 標點及字體：${scores.punctuation||'-'} | 錯別字：${scores.typos||'-'}`,
+      `總分：${scores.total||'-'}`
+    ].join('\n');
+  }
+
+  const checked = document.querySelectorAll('#checklist-container input[type="checkbox"]:checked');
+  const excellentCritiques = [], problemCritiques = [];
+  checked.forEach(cb => {
+    const el = document.querySelector(`#critique-data div[data-id="${cb.id}"]`);
+    if (el) {
+      const critique = { id: cb.id };
+      if (el.dataset.type === 'excellent') excellentCritiques.push(critique);
+      else problemCritiques.push(critique);
+    }
+  });
+
+  const typoTextFullRaw = buildTypoSection(false);
+  const typoTextStudentRaw = buildTypoSection(true);
+
+  generateFullVersion(studentClass, selectedStudentOriginalName, topic, uniqueComment, excellentCritiques, problemCritiques, scoreSummaryText, typoTextFullRaw);
+  generateStudentReport(studentClass, selectedStudentOriginalName, topic, uniqueComment, excellentCritiques, problemCritiques, scoreSummaryText, typoTextStudentRaw);
+}
+
+function generatePureFullVersion(excellents, problems) {
+  let parts = [];
+  if (excellents.length > 0) {
+    parts.push('【優點】');
+    excellents.forEach((c, i) => {
+      const concise = getConciseData(c.id);
+      if (!concise) return;
+      const v = getInteractiveValue(c.id, false);
+      let summary = (concise.strengthSummary || '').replace(/[選項]/g, v ? `「${v}」` : '');
+      const examples = concretizeExample(c.id, concise.example).join(' ');
+      parts.push(`（${i+1}）${getCritiqueData(c.id, 'title')}\n${summary}\n${examples ? `例如：${examples}` : ''}`.trim());
+    });
+  }
+  if (problems.length > 0) {
+    parts.push('', '【待改進】');
+    problems.forEach((c, i) => {
+      const concise = getConciseData(c.id);
+      if (!concise) return;
+      const v = getInteractiveValue(c.id, false);
+      let problemText = (concise.problemCore || '').replace(/[選項]/g, v ? `「${v}」` : '');
+      let suggestion = (concise.suggestion || '').replace(/[選項]/g, v ? `「${v}」` : '');
+      const examples = concretizeExample(c.id, concise.example).join(' ');
+      parts.push(`（${i+1}）\n問題：${problemText}\n宜：${suggestion}\n${examples ? `例如，${examples}` : ''}`.trim());
+    });
+  }
+  return toFullWidthPunctuation(normalizeSpacing(parts.join('\n\n')));
+}
+
+function generatePureStudentReport(excellents, problems) {
+  let out = [];
+  if (excellents.length > 0) {
+    out.push('【😎做得好】');
+    excellents.forEach((c, index) => {
+      const ta = document.getElementById(`text-${c.id}`);
+      out.push(`(${index + 1}) ${(ta && ta.value) ? ta.value : composeStudentFromConcise(c.id)}`);
+    });
+  }
+  if (problems.length > 0) {
+    out.push('', '【😥待改進】');
+    problems.forEach((c, index) => {
+      const ta = document.getElementById(`text-${c.id}`);
+      out.push(`(${index + 1}) ${(ta && ta.value) ? ta.value : composeStudentFromConcise(c.id)}`);
+    });
+  }
+  return toFullWidthPunctuation(normalizeSpacing(out.join('\n')));
+}
+
+function generateFullVersion(studentClass, student, topic, unique, excellents, problems, score, typoTextFullRaw) {
+  const ta = document.getElementById('full-output');
+  if (ta?.dataset.userEditing) return;
+  let parts = [`班別：${studentClass || 'N/A'}`, `學生：${student || 'N/A'}`, `題目：${topic || 'N/A'}`];
+  if (unique) parts.push('', '【特別留言】', unique);
+  const pureComment = generatePureFullVersion(excellents, problems);
+  if(pureComment) parts.push('', pureComment);
+  if (typoTextFullRaw) parts.push('', typoTextFullRaw);
+  if (score) parts.push('', score);
+  ta.value = toFullWidthPunctuation(normalizeSpacing(parts.join('\n')));
+}
+
+function generateStudentReport(studentClass, student, topic, unique, excellents, problems, scoreTextRaw, typoTextRaw) {
+  const ta = document.getElementById('student-report-output');
+  if (ta?.dataset.userEditing) return;
+  let out = [`班別：${studentClass || 'N/A'}`, `學生：${student || 'N/A'}`, `題目：${topic || 'N/A'}`];
+  if (unique) out.push('', '【特別留言】', unique);
+  const pureComment = generatePureStudentReport(excellents, problems);
+  if(pureComment) out.push('', pureComment);
+  if (typoTextRaw) out.push('', typoTextRaw);
+  if (scoreTextRaw) out.push('', scoreTextRaw);
+  ta.value = toFullWidthPunctuation(normalizeSpacing(out.join('\n')));
+}
+
+function composeStudentFromConcise(id) {
+  const c = getConciseData(id);
+  if (!c) return '';
+  const isExcellent = document.querySelector(`#critique-data div[data-id="${id}"]`)?.dataset.type === 'excellent';
+  const v = getInteractiveValue(id, false);
+  const exampleLines = concretizeExample(id, c.example);
+  const parts = [`${getCritiqueData(id, 'title')}`];
+  if (isExcellent) {
+    let summary = (c.strengthSummary || '').replace(/[選項]/g, v ? `「${v}」` : '');
+    if (summary) parts.push(`- 優點：${summary}`);
+    exampleLines.forEach(line => parts.push(`- ${line}`));
+  } else {
+    let problem = (c.problemCore || '').replace(/[選項]/g, v ? `「${v}」` : '');
+    if (problem) parts.push(`- 問題：${problem}`);
+    let suggestion = (c.suggestion || '').replace(/[選項]/g, v ? `「${v}」` : '');
+    if (suggestion) parts.push(`- 宜：${suggestion}`);
+    exampleLines.forEach(line => parts.push(`- 例：${line}`));
+  }
+  return parts.join('\n');
+}
+
+/* ===== 複製輸出 ===== */
+function copyOutput(textareaId, buttonElement) {
+  const textarea = document.getElementById(textareaId);
+  if (!textarea.value) return;
+  textarea.select();
+  navigator.clipboard.writeText(textarea.value).then(() => {
+    notifyCopySuccess(buttonElement, "已複製");
+  }).catch(() => {
+    try { document.execCommand('copy'); notifyCopySuccess(buttonElement, "已複製"); } catch (e) { notifyCopySuccess(buttonElement, "複製失敗"); }
+  });
+}
+
+function notifyCopySuccess(buttonElement, message) {
+  const originalText = buttonElement.innerText;
+  buttonElement.innerText = message;
+  buttonElement.classList.add('copied');
+  setTimeout(() => {
+    buttonElement.innerText = originalText;
+    buttonElement.classList.remove('copied');
+  }, 2000);
+}
+
+/* ===== 學生儲存／讀取 ===== */
 function saveCurrentStudentData() {
   const studentOriginalName = document.getElementById('student-select').value;
   if (!studentOriginalName) {
@@ -3036,8 +3045,8 @@ function saveCurrentStudentData() {
     checkedCritiques.push(data);
     const el = document.querySelector(`#critique-data div[data-id="${id}"]`);
     if (el) {
-        if (el.dataset.type === 'excellent') excellentCritiques.push({ id });
-        else problemCritiques.push({ id });
+      if (el.dataset.type === 'excellent') excellentCritiques.push({ id });
+      else problemCritiques.push({ id });
     }
   });
 
@@ -3126,35 +3135,36 @@ function loadStudentData(studentOriginalName) {
   updateAllOutputs();
 }
 
+/* ===== 學生總覽表 ===== */
 function handleTableEdit(textarea) {
-    const studentOriginalName = textarea.dataset.studentName;
-    const field = textarea.dataset.field;
-    const studentRecord = allStudentRecords.find(r => r.originalName === studentOriginalName);
-    if (studentRecord && studentRecord.data) {
-        studentRecord.data[field] = textarea.value;
-        isDataDirty = true;
-        updateUIBasedOnAuthState();
-    }
+  const studentOriginalName = textarea.dataset.studentName;
+  const field = textarea.dataset.field;
+  const studentRecord = allStudentRecords.find(r => r.originalName === studentOriginalName);
+  if (studentRecord && studentRecord.data) {
+    studentRecord.data[field] = textarea.value;
+    isDataDirty = true;
+    updateUIBasedOnAuthState();
+  }
 }
 
 function autoResizeTextarea(textarea) {
-    textarea.style.height = 'auto';
-    textarea.style.height = textarea.scrollHeight + 'px';
+  textarea.style.height = 'auto';
+  textarea.style.height = textarea.scrollHeight + 'px';
 }
 
 function handleOverviewScoreChange(input) {
-    const studentOriginalName = input.dataset.studentName;
-    const scoreType = input.dataset.scoreType;
-    const studentRecord = allStudentRecords.find(r => r.originalName === studentOriginalName);
-    if (!studentRecord || !studentRecord.data) return;
-    studentRecord.data.scores[scoreType] = input.value;
-    const s = studentRecord.data.scores;
-    const newTotal = ((parseFloat(s.content) || 0) * 4) + ((parseFloat(s.expression) || 0) * 3) + ((parseFloat(s.structure) || 0) * 2) + ((parseFloat(s.punctuation) || 0) * 1) + (parseFloat(s.typos) || 0);
-    studentRecord.data.scores.total = newTotal;
-    const totalCell = document.getElementById(`total-score-${escapeHtmlAttr(studentOriginalName)}`);
-    if (totalCell) totalCell.textContent = newTotal;
-    isDataDirty = true;
-    updateUIBasedOnAuthState();
+  const studentOriginalName = input.dataset.studentName;
+  const scoreType = input.dataset.scoreType;
+  const studentRecord = allStudentRecords.find(r => r.originalName === studentOriginalName);
+  if (!studentRecord || !studentRecord.data) return;
+  studentRecord.data.scores[scoreType] = input.value;
+  const s = studentRecord.data.scores;
+  const newTotal = ((parseFloat(s.content) || 0) * 4) + ((parseFloat(s.expression) || 0) * 3) + ((parseFloat(s.structure) || 0) * 2) + ((parseFloat(s.punctuation) || 0) * 1) + (parseFloat(s.typos) || 0);
+  studentRecord.data.scores.total = newTotal;
+  const totalCell = document.getElementById(`total-score-${escapeHtmlAttr(studentOriginalName)}`);
+  if (totalCell) totalCell.textContent = newTotal;
+  isDataDirty = true;
+  updateUIBasedOnAuthState();
 }
 
 function renderStudentOverviewTable() {
@@ -3212,7 +3222,7 @@ function jumpToStudentFromOverview(originalName) {
   sel.focus();
 }
 
-/* ---------------- 評語分析 ---------------- */
+/* ===== 分析頁 ===== */
 function getAnalysisData() {
   const records = allStudentRecords.filter(r => r.data);
   if (!records.length) return null;
@@ -3221,15 +3231,18 @@ function getAnalysisData() {
   records.forEach(r=>{
     const s = r.data.scores || {};
     Object.keys(sums).forEach(key => {
-        const val = parseFloat(s[key]);
-        if (!isNaN(val)) { sums[key] += val; counts[key]++; }
+      const val = parseFloat(s[key]);
+      if (!isNaN(val)) { sums[key] += val; counts[key]++; }
     });
   });
   const avgFn = (sum,cnt)=> cnt? (sum/cnt) : null;
   const scoreSummary = [
-    { 指標:'內容', 平均分: avgFn(sums.content, counts.content) }, { 指標:'表達', 平均分: avgFn(sums.expression, counts.expression) },
-    { 指標:'結構', 平均分: avgFn(sums.structure, counts.structure) }, { 指標:'標點及字體', 平均分: avgFn(sums.punctuation, counts.punctuation) },
-    { 指標:'錯別字加減分', 平均分: avgFn(sums.typos, counts.typos) }, { 指標:'總分', 平均分: avgFn(sums.total, counts.total) },
+    { 指標:'內容', 平均分: avgFn(sums.content, counts.content) },
+    { 指標:'表達', 平均分: avgFn(sums.expression, counts.expression) },
+    { 指標:'結構', 平均分: avgFn(sums.structure, counts.structure) },
+    { 指標:'標點及字體', 平均分: avgFn(sums.punctuation, counts.punctuation) },
+    { 指標:'錯別字加減分', 平均分: avgFn(sums.typos, counts.typos) },
+    { 指標:'總分', 平均分: avgFn(sums.total, counts.total) },
   ];
   const freq = {};
   records.forEach(r=>{
@@ -3265,81 +3278,136 @@ function renderAnalysisPage() {
   }
 }
 
-/* ---------------- AI 評語庫生成 ---------------- */
+/* ===== AI 評語庫生成 ===== */
 function generateAIPrompt() {
-    const levelSelect = document.getElementById('ai-student-level');
-    const levelText = levelSelect.options[levelSelect.selectedIndex].text;
-    const topic = document.getElementById('ai-topic').value.trim();
-    if (!topic) {
-        alert('請先填寫作文題目。');
-        document.getElementById('ai-topic').focus();
-        return;
-    }
-    const focusSelect = document.getElementById('ai-focus');
-    const focusText = focusSelect.options[focusSelect.selectedIndex].text;
-    const excellentCount = document.getElementById('ai-excellent-count').value.trim();
-    const problemCount = document.getElementById('ai-problem-count').value.trim();
-    const highlights = document.getElementById('ai-highlights').value.trim();
-    let totalCountText = '10-15';
-    if (excellentCount || problemCount) {
-        const total = (parseInt(excellentCount, 10) || 0) + (parseInt(problemCount, 10) || 0);
-        if (total > 0) totalCountText = total;
-    }
-    let countDetails = '';
-    if (excellentCount) countDetails += `\n- 優點評語 ("excellent") 數量：約 ${excellentCount} 條`;
-    if (problemCount) countDetails += `\n- 待改進評語 ("problem") 數量：約 ${problemCount} 條`;
-    const prompt = `# Role and Goal\n你是一位資深的香港中文寫作老師，擁有 20 年教學經驗。你的任務是為一篇指定題目的中學作文，生成一個包含 ${totalCountText} 條評語的 JSON 評語庫。這些評語將用於一個評語生成器工具中。\n\n# Persona\n- 教學風格：溫和而堅定，鼓勵為主但不迴避問題。\n- 語言：使用繁體中文和香港慣用詞彙。\n- 專長：分析作文題目的核心要求、識別學生常見的寫作問題、提供具體可行的改進建議、舉出貼近中學生生活的例子。\n\n# Core Task Details\n- 作文題目：「${topic}」\n- 學生級別：${levelText}\n- 評語重點：${focusText}${countDetails}\n${highlights ? `- 特別關注：${highlights}` : ''}\n\n# Student Level Guidelines\n請根據指定的學生級別調整評語的深度和重點：\n- 初級學生（中一至中三）：著重基本功（段落劃分、標點使用、語句通順）。例子要淺顯易懂，貼近日常生活。鼓勵多於批評，建立寫作信心。\n- 中級學生（中四至中五）：既要鞏固基礎，也要提升表達技巧。適度引入修辭手法、結構安排等概念。提供具體改進方向。\n- 高級學生（中六）：著重立意深度和表達技巧。可提出較高要求（文采、思想深度）。引導學生思考更深層次的問題。\n\n# Critique Principles\n- 針對性：每個評語都要針對題目「${topic}」的特點和該級別學生的寫作挑戰。\n- 具體性：避免「寫得很好」、「需要改進」等空泛評語。要具體，例如「開頭用設問句成功引起興趣」、「可在人物描寫中加入五感細節」。\n- 可操作性：學生看了能立即知道怎麼改進。\n- 平衡性：根據「評語重點」的要求，平衡優點和待改進的評語数量。\n\n# Output Format (VERY IMPORTANT)\n你的回覆必須是、也只能是一個 JSON 陣列。不要包含任何 JSON 以外的文字、註解或 markdown 語法（例如 \`\`\`json ... \`\`\`）。直接以 \`[\` 開頭，以 \`]\` 結尾。\n\n每個評語都是一個 JSON 物件，包含以下欄位：\n\n- \`critique_id\`: (字串) 一個獨一無二的 ID，格式為 "ai_gen_" + 一串隨機字符。\n- \`category\`: (字串) 評語的範疇。請從以下選項中選擇最合適的一個：["扣題與立意", "取材與刻畫", "結構與鋪排", "語言與表達"]。\n- \`type\`: (字串) 評語類型。必須是 "excellent" (優點) 或 "problem" (待改進)。\n- \`title\`: (字串) 評語的簡潔標題，例如 "描寫細緻，形象鮮明"。\n- \`strength_summary\`: (字串) 當 \`type\` 是 "excellent" 時填寫。對優點的概括性描述。如果評語包含可變選項，請使用 \`[選項]\` 作為佔位符。\n- \`problem_core\`: (字串) 當 \`type\` 是 "problem" 時填寫。對問題核心的概括性描述。如果評語包含可變選項，請使用 \`[選項]\` 作為佔位符。\n- \`suggestion\`: (字串) 當 \`type\` 是 "problem" 時填寫。針對問題提出的改善建議。如果評語包含可變選項，請使用 \`[選項]\` 作為佔位符。\n- \`example\`: (字串) 一個具體的例子，用以說明觀點。例子必須與題目「${topic}」相關，並貼近香港中學生的生活。\n- \`options\`: (字串) 如果評語中包含可變部分（在 summary/problem/suggestion 中用 \`[選項]\` 標示），此處提供下拉選單的選項，用換行符 \`\\n\` 分隔。如果沒有，則留空。\n- \`options_label\`: (字串) 如果 \`options\` 有內容，此處提供下拉選單的描述文字，例如 "描寫對象"、"修辞手法"。如果沒有，則留空。\n\n## JSON Object Example:\n\`\`\`json\n{\n  "critique_id": "ai_gen_abc123",\n  "category": "取材與刻畫",\n  "type": "problem",\n  "title": "人物描寫欠立體",\n  "strength_summary": "",\n  "problem_core": "對[選項]的描寫較為單一，未能展現其複雜性。",\n  "suggestion": "可嘗試加入人物的心理活動或矛盾掙扎，使形象更飽滿。",\n  "example": "例如，寫一位嚴厲的老師，除了描寫他責罵學生，也可以加入他私下關心學生的細節，形成對比。",\n  "options": "主角\\n配角\\n老師",\n  "options_label": "描寫人物"\n}\n\`\`\`\n\n請現在為題目「${topic}」生成 ${totalCountText} 條評語的 JSON 陣列。`;
-    document.getElementById('ai-prompt-preview').value = prompt.trim();
+  const levelSelect = document.getElementById('ai-student-level');
+  const levelText = levelSelect.options[levelSelect.selectedIndex].text;
+  const topic = document.getElementById('ai-topic').value.trim();
+  if (!topic) {
+    alert('請先填寫作文題目。');
+    document.getElementById('ai-topic').focus();
+    return;
+  }
+  const focusSelect = document.getElementById('ai-focus');
+  const focusText = focusSelect.options[focusSelect.selectedIndex].text;
+  const excellentCount = document.getElementById('ai-excellent-count').value.trim();
+  const problemCount = document.getElementById('ai-problem-count').value.trim();
+  const highlights = document.getElementById('ai-highlights').value.trim();
+  let totalCountText = '10-15';
+  if (excellentCount || problemCount) {
+    const total = (parseInt(excellentCount, 10) || 0) + (parseInt(problemCount, 10) || 0);
+    if (total > 0) totalCountText = total;
+  }
+  let countDetails = '';
+  if (excellentCount) countDetails += `\n- 優點評語 ("excellent") 數量：約 ${excellentCount} 條`;
+  if (problemCount) countDetails += `\n- 待改進評語 ("problem") 數量：約 ${problemCount} 條`;
+  const prompt = `# Role and Goal
+你是一位資深的香港中文寫作老師，擁有 20 年教學經驗。你的任務是為一篇指定題目的中學作文，生成一個包含 ${totalCountText} 條評語的 JSON 評語庫。這些評語將用於一個評語生成器工具中。
+
+# Persona
+- 教學風格：溫和而堅定，鼓勵為主但不迴避問題。
+- 語言：使用繁體中文和香港慣用詞彙。
+- 專長：分析作文題目的核心要求、識別學生常見的寫作問題、提供具體可行的改進建議、舉出貼近中學生生活的例子。
+
+# Core Task Details
+- 作文題目：「${topic}」
+- 學生級別：${levelText}
+- 評語重點：${focusText}${countDetails}
+${highlights ? `- 特別關注：${highlights}` : ''}
+
+# Student Level Guidelines
+請根據指定的學生級別調整評語的深度和重點：
+- 初級學生（中一至中三）：著重基本功（段落劃分、標點使用、語句通順）。例子要淺顯易懂，貼近日常生活。鼓勵多於批評，建立寫作信心。
+- 中級學生（中四至中五）：既要鞏固基礎，也要提升表達技巧。適度引入修辭手法、結構安排等概念。提供具體改進方向。
+- 高級學生（中六）：著重立意深度和表達技巧。可提出較高要求（文采、思想深度）。引導學生思考更深層次的問題。
+
+# Critique Principles
+- 針對性：每個評語都要針對題目「${topic}」的特點和該級別學生的寫作挑戰。
+- 具體性：避免「寫得很好」、「需要改進」等空泛評語。要具體，例如「開頭用設問句成功引起興趣」、「可在人物描寫中加入五感細節」。
+- 可操作性：學生看了能立即知道怎麼改進。
+- 平衡性：根據「評語重點」的要求，平衡優點和待改進的評語数量。
+
+# Output Format (VERY IMPORTANT)
+你的回覆必須是、也只能是一個 JSON 陣列。不要包含任何 JSON 以外的文字、註解或 markdown 語法（例如 \`\`\`json ... \`\`\`）。直接以 \`[\` 開頭，以 \`]\` 結尾。
+
+每個評語都是一個 JSON 物件，包含以下欄位：
+
+- \`critique_id\`: (字串) 一個獨一無二的 ID，格式為 "ai_gen_" + 一串隨機字符。
+- \`category\`: (字串) 評語的範疇。請從以下選項中選擇最合適的一個：["扣題與立意", "取材與刻畫", "結構與鋪排", "語言與表達"]。
+- \`type\`: (字串) 評語類型。必須是 "excellent" (優點) 或 "problem" (待改進)。
+- \`title\`: (字串) 評語的簡潔標題，例如 "描寫細緻，形象鮮明"。
+- \`strength_summary\`: (字串) 當 \`type\` 是 "excellent" 時填寫。對優點的概括性描述。如果評語包含可變選項，請使用 \`[選項]\` 作為佔位符。
+- \`problem_core\`: (字串) 當 \`type\` 是 "problem" 時填寫。對問題核心的概括性描述。如果評語包含可變選項，請使用 \`[選項]\` 作為佔位符。
+- \`suggestion\`: (字串) 當 \`type\` 是 "problem" 時填寫。針對問題提出的改善建議。如果評語包含可變選項，請使用 \`[選項]\` 作為佔位符。
+- \`example\`: (字串) 一個具體的例子，用以說明觀點。例子必須與題目「${topic}」相關，並貼近香港中學生的生活。
+- \`options\`: (字串) 如果評語中包含可變部分（在 summary/problem/suggestion 中用 \`[選項]\` 標示），此處提供下拉選單的選項，用換行符 \`\\n\` 分隔。如果沒有，則留空。
+- \`options_label\`: (字串) 如果 \`options\` 有內容，此處提供下拉選單的描述文字，例如 "描寫對象"、"修辞手法"。如果沒有，則留空。
+
+## JSON Object Example:
+{
+  "critique_id": "ai_gen_abc123",
+  "category": "取材與刻畫",
+  "type": "problem",
+  "title": "人物描寫欠立體",
+  "strength_summary": "",
+  "problem_core": "對[選項]的描寫較為單一，未能展現其複雜性。",
+  "suggestion": "可嘗試加入人物的心理活動或矛盾掙扎，使形象更飽滿。",
+  "example": "例如，寫一位嚴厲的老師，除了描寫他責罵學生，也可以加入他私下關心學生的細節，形成對比。",
+  "options": "主角\\n配角\\n老師",
+  "options_label": "描寫人物"
+}
+
+請現在為題目「${topic}」生成 ${totalCountText} 條評語的 JSON 陣列。`;
+  document.getElementById('ai-prompt-preview').value = prompt.trim();
 }
 
 function applyAIJson() {
-    const jsonInput = document.getElementById('ai-json-input').value.trim();
-    if (!jsonInput) {
-        alert('請先將從 AI 獲取的 JSON 內容貼到輸入框中。');
-        return;
-    }
-    let importedData;
-    try {
-        importedData = JSON.parse(jsonInput);
-    } catch (e) {
-        alert(`JSON 格式錯誤，無法解析。請確保您複製了完整的 JSON 陣列內容（由 [ 開始，到 ] 結束）。\n\n錯誤訊息：${e.message}`);
-        return;
-    }
-    if (!Array.isArray(importedData)) {
-        alert('導入失敗：內容不是一個有效的 JSON 陣列。');
-        return;
-    }
-    if (importedData.length === 0) {
-        alert('導入的資料為空陣列，評語庫未作更改。');
-        return;
-    }
-    const firstItem = importedData[0];
-    const requiredKeys = ['critique_id', 'category', 'type', 'title'];
-    const missingKeys = requiredKeys.filter(key => !(key in firstItem));
-    if (missingKeys.length > 0) {
-        alert(`導入失敗：JSON 物件中缺少必要的欄位：${missingKeys.join(', ')}。\n請檢查 AI 的回覆是否符合格式要求。`);
-        return;
-    }
-    confirmUI(`即將使用 ${importedData.length} 條新評語完全覆蓋現有的評語庫。此操作無法復原，確定要繼續嗎？`, () => {
-        applyCritiquesToDOM(importedData.map(c => ({
-            id: c.critique_id, category: c.category, type: c.type, title: c.title,
-            strengthSummary: c.strength_summary, problemCore: c.problem_core,
-            suggestion: c.suggestion, example: c.example, options: c.options,
-            optionsLabel: c.options_label
-        })));
-        buildOverviewPage();
-        buildChecklist();
-        updateAllOutputs();
-        showPage('page3'); 
-        isDataDirty = true;
-        updateUIBasedOnAuthState();
-        alert('評語庫已成功更新！請記得點擊「同步至雲端」以保存變更。');
-        document.getElementById('ai-json-input').value = ''; 
-    });
+  const jsonInput = document.getElementById('ai-json-input').value.trim();
+  if (!jsonInput) {
+    alert('請先將從 AI 獲取的 JSON 內容貼到輸入框中。');
+    return;
+  }
+  let importedData;
+  try {
+    importedData = JSON.parse(jsonInput);
+  } catch (e) {
+    alert(`JSON 格式錯誤，無法解析。請確保您複製了完整的 JSON 陣列內容（由 [ 開始，到 ] 結束）。\n\n錯誤訊息：${e.message}`);
+    return;
+  }
+  if (!Array.isArray(importedData)) {
+    alert('導入失敗：內容不是一個有效的 JSON 陣列。');
+    return;
+  }
+  if (importedData.length === 0) {
+    alert('導入的資料為空陣列，評語庫未作更改。');
+    return;
+  }
+  const firstItem = importedData[0];
+  const requiredKeys = ['critique_id', 'category', 'type', 'title'];
+  const missingKeys = requiredKeys.filter(key => !(key in firstItem));
+  if (missingKeys.length > 0) {
+    alert(`導入失敗：JSON 物件中缺少必要的欄位：${missingKeys.join(', ')}。\n請檢查 AI 的回覆是否符合格式要求。`);
+    return;
+  }
+  confirmUI(`即將使用 ${importedData.length} 條新評語完全覆蓋現有的評語庫。此操作無法復原，確定要繼續嗎？`, () => {
+    applyCritiquesToDOM(importedData.map(c => ({
+      id: c.critique_id, category: c.category, type: c.type, title: c.title,
+      strengthSummary: c.strength_summary, problemCore: c.problem_core,
+      suggestion: c.suggestion, example: c.example, options: c.options,
+      optionsLabel: c.options_label
+    })));
+    buildOverviewPage();
+    buildChecklist();
+    updateAllOutputs();
+    showPage('page3'); 
+    isDataDirty = true;
+    updateUIBasedOnAuthState();
+    alert('評語庫已成功更新！請記得點擊「同步至雲端」以保存變更。');
+    document.getElementById('ai-json-input').value = ''; 
+  });
 }
 
-/* ---------------- AI 生成回饋 ---------------- */
-
+/* ===== AI 回饋 Prompt & Word ===== */
 function exportStudentDataForAI() {
   if (!checkXlsxLibrary()) return;
   const savedRecords = allStudentRecords.filter(r => r.data);
@@ -3370,7 +3438,7 @@ function generateFeedbackPromptV2() {
   const studentLevel = studentLevelSelect.options[studentLevelSelect.selectedIndex].text;
   
   if (!topic) {
-    alert('請先在第一頁填寫「作文題目」。');
+    alert('請先在「基本資料」頁填寫「作文題目」。');
     showPage('page1');
     document.getElementById('topic').focus();
     return;
@@ -3395,15 +3463,65 @@ function generateFeedbackPromptV2() {
     return;
   }
 
-  let prompt = `# Role and Goal\n你是一位資深的香港中學中文科老師，現正為全班同學就最近一次的作文練習撰寫一份綜合性的回饋文件。你的目標是根據我提供的全班整體表現數據，生成一個結構化的 JSON 物件，該物件的內容將用於產生兩份 Word 文件：一份給老師的詳細教學材料，另一份給學生的簡明回饋單張。\n\n# Persona\n- 教學風格：專業、溫和、具鼓勵性、層次分明。\n- 語言：使用繁體中文和香港慣用詞彙。\n- 專長：分析學生寫作的共性問題，並提供清晰的教學指導和分層次的材料。\n\n# Context: Class Performance Data\n- 作文題目：「${topic}」\n- 班別：${className}\n- 學生級別：${studentLevel}\n`;
+  let prompt = `# Role and Goal
+你是一位資深的香港中學中文科老師，現正為全班同學就最近一次的作文練習撰寫一份綜合性的回饋文件。你的目標是根據我提供的全班整體表現數據，生成一個結構化的 JSON 物件，該物件的內容將用於產生兩份 Word 文件：一份給老師的詳細教學材料，另一份給學生的簡明回饋單張。
+
+# Persona
+- 教學風格：專業、溫和、具鼓勵性、層次分明。
+- 語言：使用繁體中文和香港慣用詞彙。
+- 專長：分析學生寫作的共性問題，並提供清晰的教學指導和分層次的材料。
+
+# Context: Class Performance Data
+- 作文題目：「${topic}」
+- 班別：${className}
+- 學生級別：${studentLevel}
+`;
   if (document.getElementById('ai-source-excel').checked) prompt += `- 全班詳細表現：我已上傳名為「全班評語資料_供AI分析.xlsx」的檔案，其中包含每位學生的分數和評語。請務必詳細分析此檔案，以了解學生的具體表現，並從中抽取匿名示例。\n`;
   if (document.getElementById('ai-module-excellent-students').checked) prompt += `- 優秀同學名單：請從 Excel 中選取分數較高的同學，作為「優秀同學特點」的例子。如果 Excel 檔案中沒有具體姓名，請使用「陳同學」、「李同學」等通用稱謂。\n`;
   if (analysisData && document.getElementById('ai-source-stats').checked) {
     const scoreText = analysisData.scoreSummary.map(s => `- ${s.指標}：${s.平均分 != null ? s.平均分.toFixed(2) : 'N/A'}`).join('\n');
     const topCritiquesText = analysisData.topEntries.map(t => `- "${t.評語標題}" (出現 ${t.被選次數} 次)`).join('\n');
-    prompt += `- 系統數據摘要：\n  - 已批改作品數量：${analysisData.studentCount}\n  - 全班分數平均值：\n${scoreText.replace(/^-/gm, '    -')}\n  - 最常見的評語項目：\n${topCritiquesText.replace(/^-/gm, '    -') || '    - (無)'}\n`;
+    prompt += `- 系統數據摘要：
+  - 已批改作品數量：${analysisData.studentCount}
+  - 全班分數平均值：
+${scoreText.replace(/^-/gm, '    -')}
+  - 最常見的評語項目：
+${topCritiquesText.replace(/^-/gm, '    -') || '    - (無)'}
+`;
   }
-  prompt += `\n# Core Task\n根據以上數據，為作文「${topic}」撰寫一份綜合回饋。請嚴格按照下方指定的 JSON 結構和內容要求，生成所有被要求的部分。\n\n# General Instructions\n- 內容必須同時兼顧「老師版」和「學生版」的需要。\n- 「老師版」應詳細、專業，包含教學策略和深入分析。\n- 「學生版」應簡潔、視覺化、多用點列，語氣親切鼓勵。\n- 請在生成的文字中，使用 Markdown 的 \`**文字**\` 來標示粗體。\n- 所有示例都應匿名化，但內容需反映真實學生作品的水平。\n\n# Output Format (VERY IMPORTANT)\n你的回覆必須是、也只能是一個 JSON 物件。不要包含任何 JSON 以外的文字、註解或 markdown 語法。直接以 \`{\` 開頭，以 \`}\` 結尾。\n如果某個模組未被要求生成，請將其值設為 \`null\` 或省略該鍵。\n\n## JSON 結構詳解 (請嚴格遵守):\n\`\`\`json\n{\n  "classOverview": {\n    "teacherSummary": "(String) **老師版**：專業、深入地總結全班表現，分析結構性弱點、核心問題及教學切入點。",\n    "studentSummary": "(String) **學生版**：以「老師的話」形式撰寫，語氣親切鼓勵，點出共同進步之處及挑戰，並給予方向性建議。"\n  },\n  "topicAnalysis": {\n    "keywords": ["(String) 題目關鍵字1", "依依不捨", "離愁", "..."],\n    "analysisTeacher": "(String) **老師版**：深入的審題與立意深度分析，可使用表格形式的文字（用 Tab 或空格分隔），欄位包括：關鍵詞、寫作要求、常見弊病、進階方向。",\n    "highlightsAndProblems": {\n      "highlights": ["(String) 全班亮點1", "文章結構普遍完整"],\n      "problems": [\n        { "problem": "行程細節過於流水賬", "tip": "刪減搭車、吃飯等瑣碎過程..." },\n        { "problem": "友人形象模糊", "tip": "加入描寫友人的外貌、習慣動作..." }\n      ]\n    }\n  },\n  "materialAndThemeExamples": [\n    {\n      "theme": "(String) 立意方向1，如：離別是成長的催化劑。",\n      "material": "(String) 具體選材建議1，如：透過描寫送別後，主角開始獨立處理以往依賴朋友幫忙的事，來體現成長。"\n    }\n  ],\n  "excellentStudents": [\n    {\n      "name": "(String) 優秀同學姓名（如：陳同學）",\n      "strength": "(String) 該同學的優點總結，如：描寫細膩，善於運用感官刻畫離愁。"\n    }\n  ],\n  "workTiers": {\n    "high": {\n      "characteristics": ["(String) 上品作品的特徵1（點列式）", "能細緻描寫友人的神態與動作"],\n      "sample": "(String) 匿名化的上品作品示例段落。",\n      "commentary": "(String) **老師版**：針對該示例的深入點評，分析其優點及技巧。",\n      "selfChecklist": ["(String) 供學生自評的問題1", "我的結尾是否昇華了主題？"]\n    },\n    "mid": {\n      "characteristics": ["(String) 中品作品的特徵1", "敘事完整，情感尚可"],\n      "sample": "(String) 匿名化的中品作品示例段落。",\n      "commentary": "(String) **老師版**：針對該示例的點評，指出可改善之處。",\n      "selfChecklist": ["(String) 供學生自評的問題1", "我的「難過」有沒有具體的細節支持？"]\n    },\n    "low": {\n      "characteristics": ["(String) 下品作品的特徵1", "過於側重行程記錄"],\n      "sample": "(String) 匿名化的下品作品示例段落。",\n      "commentary": "(String) **老師版**：針對該示例的點評，點出基本問題及修正方向。",\n      "selfChecklist": ["(String) 供學生自評的問題1", "我是否寫了很多與「送別」無關的瑣事？"]\n    }\n  },\n  "teachingPlan": {\n    "objectives": ["(String) 本次跟進教學的學習目標1", "..."],\n    "activities": [\n      { "name": "(String) 活動名稱1", "description": "(String) 活動詳細描述", "duration": "(String) 預計時間" }\n    ],\n    "remedialStrategies": ["(String) 針對能力稍遜學生的補底策略1", "..."],\n    "extensionActivities": ["(String) 給能力較佳學生的延伸挑戰1", "..."]\n  },\n  "writingPractices": [\n    {\n      "prompt": "(String) **練習一** 的題目。",\n      "guidelines": ["(String) 練習一的寫作指引1（點列式）", "..."],\n      "modelAnswer": "(String) 練習一的參考示例答案。",\n      "commentary": "(String, Optional) **老師版**：對練習一示例的簡要點評。"\n    }\n  ]\n}\n\`\`\`\n${extraHints ? `\n# 額外提示\n${extraHints}\n` : ''}請現在開始生成。`;
+  prompt += `
+
+# Core Task
+根據以上數據，為作文「${topic}」撰寫一份綜合回饋。請嚴格按照下方指定的 JSON 結構和內容要求，生成所有被要求的部分。
+
+# General Instructions
+- 內容必須同時兼顧「老師版」和「學生版」的需要。
+- 「老師版」應詳細、專業，包含教學策略和深入分析。
+- 「學生版」應簡潔、視覺化、多用點列，語氣親切鼓勵。
+- 請在生成的文字中，使用 Markdown 的 \`**文字**\` 來標示粗體。
+- 所有示例都應匿名化，但內容需反映真實學生作品的水平。
+
+# Output Format (VERY IMPORTANT)
+你的回覆必須是、也只能是一個 JSON 物件。不要包含任何 JSON 以外的文字、註解或 markdown 語法。直接以 \`{\` 開頭，以 \`}\` 結尾。
+如果某個模組未被要求生成，請將其值設為 \`null\` 或省略該鍵。
+
+## JSON 結構詳解 (請嚴格遵守):
+{
+  "classOverview": {...},
+  "topicAnalysis": {...},
+  "materialAndThemeExamples": [...],
+  "excellentStudents": [...],
+  "workTiers": {...},
+  "teachingPlan": {...},
+  "writingPractices": [...]
+}
+
+（實際欄位詳情略，請參照之前給你的完整 JSON 模板）
+
+${extraHints ? `# 額外提示
+${extraHints}
+` : ''}
+請現在開始生成。`;
   document.getElementById('ai-feedback-prompt-preview').value = prompt.trim();
 }
 
@@ -3427,17 +3545,16 @@ function _getAIFeedbackData() {
   return aiData;
 }
 
-/* ---------------- 評語總覽頁 ---------------- */
-
+/* ===== 評語總覽頁 ===== */
 function setCritiqueData(id, data) {
-    const el = document.querySelector(`#critique-data div[data-id="${id}"]`);
-    if (!el) return;
-    for (const key in data) {
-        if (data[key]) el.dataset[key] = data[key];
-        else delete el.dataset[key];
-    }
-    isDataDirty = true;
-    updateUIBasedOnAuthState();
+  const el = document.querySelector(`#critique-data div[data-id="${id}"]`);
+  if (!el) return;
+  for (const key in data) {
+    if (data[key]) el.dataset[key] = data[key];
+    else delete el.dataset[key];
+  }
+  isDataDirty = true;
+  updateUIBasedOnAuthState();
 }
 
 function populateCategoryDropdown() {
@@ -3456,13 +3573,13 @@ function populateCategoryDropdown() {
 }
 
 function deleteCritique(id) {
-    const critiqueEl = document.querySelector(`#critique-data div[data-id="${id}"]`);
-    if (critiqueEl) critiqueEl.remove();
-    buildOverviewPage();
-    buildChecklist();
-    updateAllOutputs();
-    isDataDirty = true;
-    updateUIBasedOnAuthState();
+  const critiqueEl = document.querySelector(`#critique-data div[data-id="${id}"]`);
+  if (critiqueEl) critiqueEl.remove();
+  buildOverviewPage();
+  buildChecklist();
+  updateAllOutputs();
+  isDataDirty = true;
+  updateUIBasedOnAuthState();
 }
 
 function buildOverviewPage() {
@@ -3608,7 +3725,7 @@ function collectExportData() {
   }));
 }
 
-/* --- 清空與手動編輯 --- */
+/* ===== 清空當前學生 ===== */
 function handleManualEdit(which) {
   const ta = which === 'full' ? document.getElementById('full-output') : document.getElementById('student-report-output');
   if (ta) ta.dataset.userEditing = '1';
@@ -3631,13 +3748,10 @@ function clearAllCore(doUpdate = true) {
   }
 }
 
-/* ======================================================== */
-/* ====== 導入導出相關功能 (Excel & JSON & Word) ====== */
-/* ======================================================== */
-
+/* ===== 導出／導入 & Word 工具 ===== */
 function getSanitizedTopicFilename() {
-    const topic = document.getElementById('topic').value.trim();
-    return topic ? topic.replace(/[\\/:*?"<>|]/g, '').substring(0, 20) : '未命名文章';
+  const topic = document.getElementById('topic').value.trim();
+  return topic ? topic.replace(/[\\/:*?"<>|]/g, '').substring(0, 20) : '未命名文章';
 }
 
 function getDateTimeString() {
@@ -3647,89 +3761,89 @@ function getDateTimeString() {
 }
 
 function checkXlsxLibrary() {
-    if (typeof XLSX === 'undefined') {
-        alert('處理 Excel 功能初始化失敗。\n請檢查網絡連線，然後重新整理頁面。');
-        return false;
-    }
-    return true;
+  if (typeof XLSX === 'undefined') {
+    alert('處理 Excel 功能初始化失敗。\n請檢查網絡連線，然後重新整理頁面。');
+    return false;
+  }
+  return true;
 }
 
 function handleFileImport(file, onDataReady) {
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (e) => onDataReady(e.target.result);
-    reader.onerror = (error) => alert('讀取檔案失敗！');
-    reader.readAsText(file, 'UTF-8');
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => onDataReady(e.target.result);
+  reader.onerror = (error) => alert('讀取檔案失敗！');
+  reader.readAsText(file, 'UTF-8');
 }
 
 function downloadFile(filename, content, mimeType) {
-    const blob = new Blob([content], { type: mimeType });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const blob = new Blob([content], { type: mimeType });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 }
 
 function exportOverviewToExcel() {
-    if (!checkXlsxLibrary()) return;
-    const savedRecords = allStudentRecords.filter(r => r.data);
-    if (savedRecords.length === 0) {
-        alert('沒有任何已儲存的學生記錄可供匯出。');
-        return;
-    }
-    savedRecords.sort((a, b) => (a.number || 999) - (b.number || 999));
-    const className = savedRecords[0].data.class || document.getElementById('student-class').value || '未指定班別';
-    const dataToExport = savedRecords.map(record => {
-        const s = record.data.scores;
-        return {
-            '學號': record.number, '姓名': record.name, '內容評分': s.content, '表達評分': s.expression, '結構評分': s.structure,
-            '標點字體評分': s.punctuation, '錯別字加減分': s.typos, '總分': s.total, '已選評語標題': record.data.selectedTitles || '',
-            '完整版評語': record.data.pureFullComment, '學生版評語': record.data.pureStudentComment,
-        };
-    });
-    const wsMain = XLSX.utils.json_to_sheet(dataToExport);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, wsMain, '學生評語總覽');
-    const analysisData = getAnalysisData();
-    if (analysisData) {
-        const scoreRows = analysisData.scoreSummary.map(r => ({ 指標: r.指標, 平均分: r.平均分 == null ? '' : Number(r.平均分.toFixed(2)) }));
-        const wsScore = XLSX.utils.json_to_sheet(scoreRows);
-        XLSX.utils.book_append_sheet(wb, wsScore, '分數平均');
-        const wsTop = XLSX.utils.json_to_sheet(analysisData.topEntries);
-        XLSX.utils.book_append_sheet(wb, wsTop, '評語TOP10');
-    }
-    XLSX.writeFile(wb, `學生評語總覽-${className}-${getSanitizedTopicFilename()}.xlsx`);
+  if (!checkXlsxLibrary()) return;
+  const savedRecords = allStudentRecords.filter(r => r.data);
+  if (savedRecords.length === 0) {
+    alert('沒有任何已儲存的學生記錄可供匯出。');
+    return;
+  }
+  savedRecords.sort((a, b) => (a.number || 999) - (b.number || 999));
+  const className = savedRecords[0].data.class || document.getElementById('student-class').value || '未指定班別';
+  const dataToExport = savedRecords.map(record => {
+    const s = record.data.scores;
+    return {
+      '學號': record.number, '姓名': record.name, '內容評分': s.content, '表達評分': s.expression, '結構評分': s.structure,
+      '標點字體評分': s.punctuation, '錯別字加減分': s.typos, '總分': s.total, '已選評語標題': record.data.selectedTitles || '',
+      '完整版評語': record.data.pureFullComment, '學生版評語': record.data.pureStudentComment,
+    };
+  });
+  const wsMain = XLSX.utils.json_to_sheet(dataToExport);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, wsMain, '學生評語總覽');
+  const analysisData = getAnalysisData();
+  if (analysisData) {
+    const scoreRows = analysisData.scoreSummary.map(r => ({ 指標: r.指標, 平均分: r.平均分 == null ? '' : Number(r.平均分.toFixed(2)) }));
+    const wsScore = XLSX.utils.json_to_sheet(scoreRows);
+    XLSX.utils.book_append_sheet(wb, wsScore, '分數平均');
+    const wsTop = XLSX.utils.json_to_sheet(analysisData.topEntries);
+    XLSX.utils.book_append_sheet(wb, wsTop, '評語TOP10');
+  }
+  XLSX.writeFile(wb, `學生評語總覽-${className}-${getSanitizedTopicFilename()}.xlsx`);
 }
 
 function textToWordHtmlWithLists(text) {
-    if (!text) return '';
-    const lines = text.split('\n');
-    let html = '';
-    let inList = false;
-    let listType = '';
-    for (const line of lines) {
-        const trimmedLine = line.trim();
-        let isListItem = false;
-        let currentListType = '';
-        if (trimmedLine.startsWith('- ') || trimmedLine.startsWith('* ')) { isListItem = true; currentListType = 'ul'; }
-        else if (/^\(\d+\)/.test(trimmedLine) || /^\d+\./.test(trimmedLine)) { isListItem = true; currentListType = 'ol'; }
-        if (isListItem) {
-            if (!inList || listType !== currentListType) {
-                if (inList) html += `</${listType}>`;
-                html += `<${currentListType}>`;
-                inList = true;
-                listType = currentListType;
-            }
-            html += `<li>${escapeHtml(trimmedLine.replace(/^[-*]\s*|^\(\d+\)\s*|^\d+\.\s*/, ''))}</li>`;
-        } else {
-            if (inList) { html += `</${listType}>`; inList = false; }
-            html += `<p>${escapeHtml(line)}</p>`;
-        }
+  if (!text) return '';
+  const lines = text.split('\n');
+  let html = '';
+  let inList = false;
+  let listType = '';
+  for (const line of lines) {
+    const trimmedLine = line.trim();
+    let isListItem = false;
+    let currentListType = '';
+    if (trimmedLine.startsWith('- ') || trimmedLine.startsWith('* ')) { isListItem = true; currentListType = 'ul'; }
+    else if (/^\(\d+\)/.test(trimmedLine) || /^\d+\./.test(trimmedLine)) { isListItem = true; currentListType = 'ol'; }
+    if (isListItem) {
+      if (!inList || listType !== currentListType) {
+        if (inList) html += `</${listType}>`;
+        html += `<${currentListType}>`;
+        inList = true;
+        listType = currentListType;
+      }
+      html += `<li>${escapeHtml(trimmedLine.replace(/^[-*]\s*|^\(\d+\)\s*|^\d+\.\s*/, ''))}</li>`;
+    } else {
+      if (inList) { html += `</${listType}>`; inList = false; }
+      html += `<p>${escapeHtml(line)}</p>`;
     }
-    if (inList) html += `</${listType}>`;
-    return html.replace(/<p><\/p>/g, '');
+  }
+  if (inList) html += `</${listType}>`;
+  return html.replace(/<p><\/p>/g, '');
 }
 
 function exportOverviewToWord() {
@@ -3803,92 +3917,100 @@ function exportAnalysisToWord() {
 }
 
 function downloadStudentListTemplate() {
-    if (!checkXlsxLibrary()) return;
-    const ws = XLSX.utils.json_to_sheet([{'學號 (可選)': '1', '姓名': '陳大文'},{'學號 (可選)': '2', '姓名': '張小美'}]);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, '學生名單範本');
-    XLSX.writeFile(wb, '學生名單範本.xlsx');
+  if (!checkXlsxLibrary()) return;
+  const ws = XLSX.utils.json_to_sheet([
+    {'學號 (可選)': '1', '姓名': '陳大文'},
+    {'學號 (可選)': '2', '姓名': '張小美'}
+  ]);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '學生名單範本');
+  XLSX.writeFile(wb, '學生名單範本.xlsx');
 }
 
 function handleStudentListImport(event) {
-    if (!checkXlsxLibrary()) return;
-    const file = event.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        try {
-            const jsonData = XLSX.utils.sheet_to_json(XLSX.read(new Uint8Array(e.target.result), { type: 'array' }).Sheets[0]);
-            if (jsonData.length === 0) { alert('Excel 檔案為空或格式不正確。'); return; }
-            const studentList = jsonData.map(row => {
-                const numKey = Object.keys(row).find(k => /學號|number|no/i.test(k));
-                const nameKey = Object.keys(row).find(k => /姓名|name/i.test(k));
-                if (!nameKey || !row[nameKey]) return null;
-                const num = numKey ? (row[numKey] || '').toString().trim() : '';
-                return num ? `${num}-${row[nameKey].toString().trim()}` : row[nameKey].toString().trim();
-            }).filter(Boolean).join('\n');
-            const textarea = document.getElementById('student-names');
-            textarea.value = studentList;
-            textarea.dispatchEvent(new Event('input', { bubbles: true }));
-            alert(`成功匯入 ${jsonData.length} 位學生！`);
-        } catch (error) { alert(`匯入學生名單失敗: ${error.message}`); } finally { event.target.value = ''; }
-    };
-    reader.readAsArrayBuffer(file);
+  if (!checkXlsxLibrary()) return;
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const jsonData = XLSX.utils.sheet_to_json(XLSX.read(new Uint8Array(e.target.result), { type: 'array' }).Sheets[0]);
+      if (jsonData.length === 0) { alert('Excel 檔案為空或格式不正確。'); return; }
+      const studentList = jsonData.map(row => {
+        const numKey = Object.keys(row).find(k => /學號|number|no/i.test(k));
+        const nameKey = Object.keys(row).find(k => /姓名|name/i.test(k));
+        if (!nameKey || !row[nameKey]) return null;
+        const num = numKey ? (row[numKey] || '').toString().trim() : '';
+        return num ? `${num}-${row[nameKey].toString().trim()}` : row[nameKey].toString().trim();
+      }).filter(Boolean).join('\n');
+      const textarea = document.getElementById('student-names');
+      textarea.value = studentList;
+      textarea.dispatchEvent(new Event('input', { bubbles: true }));
+      alert(`成功匯入 ${jsonData.length} 位學生！`);
+    } catch (error) { alert(`匯入學生名單失敗: ${error.message}`); } finally { event.target.value = ''; }
+  };
+  reader.readAsArrayBuffer(file);
 }
 
 function downloadCritiqueTemplate() {
-    if (!checkXlsxLibrary()) return;
-    const ws = XLSX.utils.json_to_sheet([
-        { id: "c1", category: "扣題與立意", type: "excellent", title: "扣題準確", strengthSummary: "能緊扣題目要求...", problemCore: "", suggestion: "", example: "文章題為...", options: "", optionsLabel: "" },
-        { id: "c2", category: "扣題與立意", type: "problem", title: "立意膚淺", strengthSummary: "", problemCore: "立意不夠深刻...", suggestion: "可思考事件背後...", example: "只停留在...", options: "", optionsLabel: "" }
-    ]);
-    XLSX.writeFile(XLSX.utils.book_new_append_sheet(ws, '評語庫範本'), '評語庫-範本.xlsx');
+  if (!checkXlsxLibrary()) return;
+  const ws = XLSX.utils.json_to_sheet([
+    { id: "c1", category: "扣題與立意", type: "excellent", title: "扣題準確", strengthSummary: "能緊扣題目要求...", problemCore: "", suggestion: "", example: "文章題為...", options: "", optionsLabel: "" },
+    { id: "c2", category: "扣題與立意", type: "problem", title: "立意膚淺", strengthSummary: "", problemCore: "立意不夠深刻...", suggestion: "可思考事件背後...", example: "只停留在...", options: "", optionsLabel: "" }
+  ]);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '評語庫範本');
+  XLSX.writeFile(wb, '評語庫-範本.xlsx');
 }
 
 function exportCritiquesToExcel() {
-    if (!checkXlsxLibrary()) return;
-    const dataToExport = collectExportData();
-    if (dataToExport.length === 0) { alert('評語庫目前為空，沒有內容可以導出。'); return; }
-    XLSX.writeFile(XLSX.utils.book_new_append_sheet(XLSX.utils.json_to_sheet(dataToExport), '評語庫'), `評語庫-${getDateTimeString()}.xlsx`);
+  if (!checkXlsxLibrary()) return;
+  const dataToExport = collectExportData();
+  if (dataToExport.length === 0) { alert('評語庫目前為空，沒有內容可以導出。'); return; }
+  const ws = XLSX.utils.json_to_sheet(dataToExport);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '評語庫');
+  XLSX.writeFile(wb, `評語庫-${getDateTimeString()}.xlsx`);
 }
 
 function handleCritiqueImportExcel(event) {
-    if (!checkXlsxLibrary()) return;
-    const file = event.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        try {
-            const jsonData = XLSX.utils.sheet_to_json(XLSX.read(new Uint8Array(e.target.result), { type: 'array' }).Sheets[0]);
-            if (jsonData.length > 0 && !['category', 'type', 'title'].every(field => field in jsonData[0])) {
-                alert(`導入失敗！Excel 的標題行必須包含 'category', 'type', 'title'。`); return;
-            }
-            applyCritiquesToDOM(jsonData);
-            buildOverviewPage(); buildChecklist(); updateAllOutputs();
-            alert('評語庫已成功從 Excel 檔案導入！');
-        } catch (error) { alert(`導入 Excel 失敗: ${error.message}`); }
-    };
-    reader.readAsArrayBuffer(file);
-    event.target.value = '';
+  if (!checkXlsxLibrary()) return;
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const jsonData = XLSX.utils.sheet_to_json(XLSX.read(new Uint8Array(e.target.result), { type: 'array' }).Sheets[0]);
+      if (jsonData.length > 0 && !['category', 'type', 'title'].every(field => field in jsonData[0])) {
+        alert(`導入失敗！Excel 的標題行必須包含 'category', 'type', 'title'。`); return;
+      }
+      applyCritiquesToDOM(jsonData);
+      buildOverviewPage(); buildChecklist(); updateAllOutputs();
+      alert('評語庫已成功從 Excel 檔案導入！');
+    } catch (error) { alert(`導入 Excel 失敗: ${error.message}`); }
+  };
+  reader.readAsArrayBuffer(file);
+  event.target.value = '';
 }
 
 function exportCritiquesToJSON() {
-    const dataToExport = collectExportData();
-    if (dataToExport.length === 0) { alert('評語庫目前為空，沒有內容可以導出。'); return; }
-    downloadFile(`評語庫-${getDateTimeString()}.json`, JSON.stringify(dataToExport, null, 2), 'application/json');
+  const dataToExport = collectExportData();
+  if (dataToExport.length === 0) { alert('評語庫目前為空，沒有內容可以導出。'); return; }
+  downloadFile(`評語庫-${getDateTimeString()}.json`, JSON.stringify(dataToExport, null, 2), 'application/json');
 }
 
 function handleCritiqueImportJSON(event) {
-    handleFileImport(event.target.files[0], (fileContent) => {
-        try {
-            const data = JSON.parse(fileContent);
-            const critiques = Array.isArray(data) ? data : data.items;
-            if (!Array.isArray(critiques)) throw new Error("JSON 檔案格式不正確，找不到評語陣列。");
-            applyCritiquesToDOM(critiques);
-            buildOverviewPage(); buildChecklist(); updateAllOutputs();
-            alert('評語庫已成功從 JSON 檔案導入！');
-        } catch (error) { alert(`導入 JSON 失敗: ${error.message}`); }
-    });
-    event.target.value = '';
+  handleFileImport(event.target.files[0], (fileContent) => {
+    try {
+      const data = JSON.parse(fileContent);
+      const critiques = Array.isArray(data) ? data : data.items;
+      if (!Array.isArray(critiques)) throw new Error("JSON 檔案格式不正確，找不到評語陣列。");
+      applyCritiquesToDOM(critiques);
+      buildOverviewPage(); buildChecklist(); updateAllOutputs();
+      alert('評語庫已成功從 JSON 檔案導入！');
+    } catch (error) { alert(`導入 JSON 失敗: ${error.message}`); }
+  });
+  event.target.value = '';
 }
 
 function exportProgressToExcel() {
@@ -3907,7 +4029,10 @@ function exportProgressToExcel() {
       pureFullComment: d.pureFullComment || '', pureStudentComment: d.pureStudentComment || ''
     };
   });
-  XLSX.writeFile(XLSX.utils.book_new_append_sheet(XLSX.utils.json_to_sheet(rows), '評語進度'), `評語進度_${getDateTimeString()}.xlsx`);
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '評語進度');
+  XLSX.writeFile(wb, `評語進度_${getDateTimeString()}.xlsx`);
 }
 
 function handleProgressImportExcel(event) {
@@ -3964,70 +4089,70 @@ function escapeHtmlAttr(s) {
 }
 
 function _buildAiFeedbackWordHtml(aiData, mode) {
-    const topic = document.getElementById('topic').value.trim() || '未命名文章';
-    const className = (allStudentRecords.find(r => r.data)?.data.class) || '未指定班別';
-    const dateStr = new Date().toLocaleDateString('zh-Hant');
-    const mdToHtml = (text) => text ? text.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>') : '';
-    let html = `<h1>${escapeHtml(topic)} - 寫作回饋 (${mode === 'teacher' ? '老師版' : '學生版'})</h1><p><b>班別：</b>${escapeHtml(className)}</p><p><b>日期：</b>${dateStr}</p>`;
-    if (aiData.classOverview) {
-        const summary = mode === 'teacher' ? aiData.classOverview.teacherSummary : aiData.classOverview.studentSummary;
-        if (summary) html += `<h2>一、整體表現概覽</h2><div class="box">${mdToHtml(textToWordHtmlWithLists(summary))}</div>`;
+  const topic = document.getElementById('topic').value.trim() || '未命名文章';
+  const className = (allStudentRecords.find(r => r.data)?.data.class) || '未指定班別';
+  const dateStr = new Date().toLocaleDateString('zh-Hant');
+  const mdToHtml = (text) => text ? text.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>') : '';
+  let html = `<h1>${escapeHtml(topic)} - 寫作回饋 (${mode === 'teacher' ? '老師版' : '學生版'})</h1><p><b>班別：</b>${escapeHtml(className)}</p><p><b>日期：</b>${dateStr}</p>`;
+  if (aiData.classOverview) {
+    const summary = mode === 'teacher' ? aiData.classOverview.teacherSummary : aiData.classOverview.studentSummary;
+    if (summary) html += `<h2>一、整體表現概覽</h2><div class="box">${mdToHtml(textToWordHtmlWithLists(summary))}</div>`;
+  }
+  if (aiData.topicAnalysis) {
+    html += `<h2>二、審題與立意</h2>`;
+    if (mode === 'teacher' && aiData.topicAnalysis.analysisTeacher) html += `<h3>審題分析</h3><pre>${escapeHtml(aiData.topicAnalysis.analysisTeacher)}</pre>`;
+    if (aiData.topicAnalysis.highlightsAndProblems) {
+      const { highlights, problems } = aiData.topicAnalysis.highlightsAndProblems;
+      if (highlights?.length > 0) html += `<h3>本班亮點</h3><ul>${highlights.map(h => `<li>${escapeHtml(h)}</li>`).join('')}</ul>`;
+      if (problems?.length > 0) html += `<h3>常見問題與提示</h3><table><tr><th>問題</th><th>提示</th></tr>${problems.map(p => `<tr><td>${escapeHtml(p.problem)}</td><td>${escapeHtml(p.tip)}</td></tr>`).join('')}</table>`;
     }
-    if (aiData.topicAnalysis) {
-        html += `<h2>二、審題與立意</h2>`;
-        if (mode === 'teacher' && aiData.topicAnalysis.analysisTeacher) html += `<h3>審題分析</h3><pre>${escapeHtml(aiData.topicAnalysis.analysisTeacher)}</pre>`;
-        if (aiData.topicAnalysis.highlightsAndProblems) {
-            const { highlights, problems } = aiData.topicAnalysis.highlightsAndProblems;
-            if (highlights?.length > 0) html += `<h3>本班亮點</h3><ul>${highlights.map(h => `<li>${escapeHtml(h)}</li>`).join('')}</ul>`;
-            if (problems?.length > 0) html += `<h3>常見問題與提示</h3><table><tr><th>問題</th><th>提示</th></tr>${problems.map(p => `<tr><td>${escapeHtml(p.problem)}</td><td>${escapeHtml(p.tip)}</td></tr>`).join('')}</table>`;
-        }
-    }
-    if (aiData.materialAndThemeExamples?.length > 0) html += `<h2>三、選材立意舉隅</h2><table><tr><th>立意方向</th><th>選材建議</th></tr>${aiData.materialAndThemeExamples.map(item => `<tr><td>${escapeHtml(item.theme)}</td><td>${escapeHtml(item.material)}</td></tr>`).join('')}</table>`;
-    if (aiData.excellentStudents?.length > 0) html += `<h2>四、優秀同學特點</h2><ul>${aiData.excellentStudents.map(s => `<li><b>${escapeHtml(s.name)}：</b>${escapeHtml(s.strength)}</li>`).join('')}</ul>`;
-    if (aiData.workTiers) {
-        html += `<h2>五、分層作品示例與講評</h2>`;
-        Object.entries({ high: '上品', mid: '中品', low: '下品' }).forEach(([key, name]) => {
-            const tierData = aiData.workTiers[key];
-            if (tierData) {
-                html += `<h3>${name}作品</h3>`;
-                if (tierData.characteristics?.length > 0) html += `<p><b>特點：</b></p><ul>${tierData.characteristics.map(c => `<li>${escapeHtml(c)}</li>`).join('')}</ul>`;
-                if (tierData.sample) html += `<p><b>示例：</b></p><div class="sample">${textToWordHtmlWithLists(tierData.sample)}</div>`;
-                if (mode === 'teacher' && tierData.commentary) html += `<p><b>教師點評：</b></p><div class="commentary">${textToWordHtmlWithLists(tierData.commentary)}</div>`;
-                if (tierData.selfChecklist?.length > 0) html += `<p><b>反思問題：</b></p><ol>${tierData.selfChecklist.map(q => `<li>${escapeHtml(q)}</li>`).join('')}</ol>`;
-            }
-        });
-    }
-    if (mode === 'teacher' && aiData.teachingPlan) {
-        html += `<h2>六、教學計劃建議</h2>`;
-        const plan = aiData.teachingPlan;
-        if (plan.objectives?.length > 0) html += `<h3>學習目標</h3><ul>${plan.objectives.map(o => `<li>${escapeHtml(o)}</li>`).join('')}</ul>`;
-        if (plan.activities?.length > 0) html += `<h3>課堂活動</h3><table><tr><th>活動名稱</th><th>描述</th><th>時間</th></tr>${plan.activities.map(a => `<tr><td>${escapeHtml(a.name)}</td><td>${escapeHtml(a.description)}</td><td>${escapeHtml(a.duration)}</td></tr>`).join('')}</table>`;
-        if (plan.remedialStrategies?.length > 0) html += `<h3>補底策略</h3><ul>${plan.remedialStrategies.map(s => `<li>${escapeHtml(s)}</li>`).join('')}</ul>`;
-        if (plan.extensionActivities?.length > 0) html += `<h3>延伸活動</h3><ul>${plan.extensionActivities.map(a => `<li>${escapeHtml(a)}</li>`).join('')}</ul>`;
-    }
-    if (aiData.writingPractices?.length > 0) {
-        html += `<h2>${mode === 'teacher' ? '七' : '六'}、跟進練習</h2>`;
-        aiData.writingPractices.forEach((p, index) => {
-            html += `<h3>練習 ${index + 1}</h3>`;
-            if (p.prompt) html += `<p><b>題目：</b>${mdToHtml(escapeHtml(p.prompt))}</p>`;
-            if (p.guidelines?.length > 0) html += `<p><b>指引：</b></p><ul>${p.guidelines.map(g => `<li>${escapeHtml(g)}</li>`).join('')}</ul>`;
-            if (p.modelAnswer) html += `<p><b>參考示例：</b></p><div class="sample">${textToWordHtmlWithLists(p.modelAnswer)}</div>`;
-            if (mode === 'teacher' && p.commentary) html += `<p><b>教師點評：</b></p><div class="commentary">${textToWordHtmlWithLists(p.commentary)}</div>`;
-        });
-    }
-    return `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8" /><title>${escapeHtmlAttr(topic)} - 寫作回饋</title><style>body{font-family:"PMingLiU","新細明體","Microsoft JhengHei",sans-serif;font-size:11pt;line-height:1.6;}h1{font-size:16pt;text-align:center;}h2{font-size:14pt;border-bottom:2px solid #000;padding-bottom:3pt;margin-top:15pt;}h3{font-size:12pt;border-bottom:1px dashed #999;padding-bottom:2pt;margin-top:12pt;}.box,.sample,.commentary{border:1px solid #ccc;padding:8pt;margin:8pt 0;background:#f9f9f9;}table{border-collapse:collapse;width:100%;margin:10pt 0;}th,td{border:1px solid #666;padding:5pt;text-align:left;vertical-align:top;}th{background-color:#f2f2f2;}pre{white-space:pre-wrap;font-family:inherit;}p{margin:0 0 4pt 0;}ul,ol{margin-top:0;margin-bottom:0;padding-left:24pt;}</style></head><body>${html}</body></html>`;
+  }
+  if (aiData.materialAndThemeExamples?.length > 0) html += `<h2>三、選材立意舉隅</h2><table><tr><th>立意方向</th><th>選材建議</th></tr>${aiData.materialAndThemeExamples.map(item => `<tr><td>${escapeHtml(item.theme)}</td><td>${escapeHtml(item.material)}</td></tr>`).join('')}</table>`;
+  if (aiData.excellentStudents?.length > 0) html += `<h2>四、優秀同學特點</h2><ul>${aiData.excellentStudents.map(s => `<li><b>${escapeHtml(s.name)}：</b>${escapeHtml(s.strength)}</li>`).join('')}</ul>`;
+  if (aiData.workTiers) {
+    html += `<h2>五、分層作品示例與講評</h2>`;
+    Object.entries({ high: '上品', mid: '中品', low: '下品' }).forEach(([key, name]) => {
+      const tierData = aiData.workTiers[key];
+      if (tierData) {
+        html += `<h3>${name}作品</h3>`;
+        if (tierData.characteristics?.length > 0) html += `<p><b>特點：</b></p><ul>${tierData.characteristics.map(c => `<li>${escapeHtml(c)}</li>`).join('')}</ul>`;
+        if (tierData.sample) html += `<p><b>示例：</b></p><div class="sample">${textToWordHtmlWithLists(tierData.sample)}</div>`;
+        if (mode === 'teacher' && tierData.commentary) html += `<p><b>教師點評：</b></p><div class="commentary">${textToWordHtmlWithLists(tierData.commentary)}</div>`;
+        if (tierData.selfChecklist?.length > 0) html += `<p><b>反思問題：</b></p><ol>${tierData.selfChecklist.map(q => `<li>${escapeHtml(q)}</li>`).join('')}</ol>`;
+      }
+    });
+  }
+  if (mode === 'teacher' && aiData.teachingPlan) {
+    html += `<h2>六、教學計劃建議</h2>`;
+    const plan = aiData.teachingPlan;
+    if (plan.objectives?.length > 0) html += `<h3>學習目標</h3><ul>${plan.objectives.map(o => `<li>${escapeHtml(o)}</li>`).join('')}</ul>`;
+    if (plan.activities?.length > 0) html += `<h3>課堂活動</h3><table><tr><th>活動名稱</th><th>描述</th><th>時間</th></tr>${plan.activities.map(a => `<tr><td>${escapeHtml(a.name)}</td><td>${escapeHtml(a.description)}</td><td>${escapeHtml(a.duration)}</td></tr>`).join('')}</table>`;
+    if (plan.remedialStrategies?.length > 0) html += `<h3>補底策略</h3><ul>${plan.remedialStrategies.map(s => `<li>${escapeHtml(s)}</li>`).join('')}</ul>`;
+    if (plan.extensionActivities?.length > 0) html += `<h3>延伸活動</h3><ul>${plan.extensionActivities.map(a => `<li>${escapeHtml(a)}</li>`).join('')}</ul>`;
+  }
+  if (aiData.writingPractices?.length > 0) {
+    html += `<h2>${mode === 'teacher' ? '七' : '六'}、跟進練習</h2>`;
+    aiData.writingPractices.forEach((p, index) => {
+      html += `<h3>練習 ${index + 1}</h3>`;
+      if (p.prompt) html += `<p><b>題目：</b>${mdToHtml(escapeHtml(p.prompt))}</p>`;
+      if (p.guidelines?.length > 0) html += `<p><b>指引：</b></p><ul>${p.guidelines.map(g => `<li>${escapeHtml(g)}</li>`).join('')}</ul>`;
+      if (p.modelAnswer) html += `<p><b>參考示例：</b></p><div class="sample">${textToWordHtmlWithLists(p.modelAnswer)}</div>`;
+      if (mode === 'teacher' && p.commentary) html += `<p><b>教師點評：</b></p><div class="commentary">${textToWordHtmlWithLists(p.commentary)}</div>`;
+    });
+  }
+  return `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8" /><title>${escapeHtmlAttr(topic)} - 寫作回饋</title><style>body{font-family:"PMingLiU","新細明體","Microsoft JhengHei",sans-serif;font-size:11pt;line-height:1.6;}h1{font-size:16pt;text-align:center;}h2{font-size:14pt;border-bottom:2px solid #000;padding-bottom:3pt;margin-top:15pt;}h3{font-size:12pt;border-bottom:1px dashed #999;padding-bottom:2pt;margin-top:12pt;}.box,.sample,.commentary{border:1px solid #ccc;padding:8pt;margin:8pt 0;background:#f9f9f9;}table{border-collapse:collapse;width:100%;margin:10pt 0;}th,td{border:1px solid #666;padding:5pt;text-align:left;vertical-align:top;}th{background-color:#f2f2f2;}pre{white-space:pre-wrap;font-family:inherit;}p{margin:0 0 4pt 0;}ul,ol{margin-top:0;margin-bottom:0;padding-left:24pt;}</style></head><body>${html}</body></html>`;
 }
 
 function generateTeacherWord() {
-    const aiData = _getAIFeedbackData();
-    if (!aiData) return;
-    downloadFile(`AI回饋_${getSanitizedTopicFilename()}_老師版.doc`, _buildAiFeedbackWordHtml(aiData, 'teacher'), 'application/msword;charset=utf-8');
+  const aiData = _getAIFeedbackData();
+  if (!aiData) return;
+  downloadFile(`AI回饋_${getSanitizedTopicFilename()}_老師版.doc`, _buildAiFeedbackWordHtml(aiData, 'teacher'), 'application/msword;charset=utf-8');
 }
 
 function generateStudentWord() {
-    const aiData = _getAIFeedbackData();
-    if (!aiData) return;
-    downloadFile(`AI回饋_${getSanitizedTopicFilename()}_學生版.doc`, _buildAiFeedbackWordHtml(aiData, 'student'), 'application/msword;charset=utf-8');
+  const aiData = _getAIFeedbackData();
+  if (!aiData) return;
+  downloadFile(`AI回饋_${getSanitizedTopicFilename()}_學生版.doc`, _buildAiFeedbackWordHtml(aiData, 'student'), 'application/msword;charset=utf-8');
 }
 </script>
 
