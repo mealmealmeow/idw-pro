@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>我不想努力了</title>
+  <title>我不想努力了 (最終修正版)</title>
   <!-- 引入 xlsx.js 函式庫，用於處理 Excel 檔案 -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <!-- 引入 Supabase.js 函式庫 -->
@@ -71,7 +71,7 @@
   /* ===== 容器 & Header ===== */
 
   .main-container { 
-    max-width: 1200px; /* Increased max-width for wider layout */
+    max-width: 1200px;
     margin: 2rem auto 2.5rem; 
     background-color: var(--secondary-bg); 
     box-shadow: 0 18px 45px var(--shadow-color); 
@@ -81,12 +81,11 @@
     backdrop-filter: blur(10px);
   }
 
-  /* --- 修改 4: 新增置頂容器 --- */
   .sticky-top-bar {
     position: sticky;
     top: 0;
     z-index: 100;
-    background-color: var(--secondary-bg); /* 背景色確保內容不穿透 */
+    background-color: var(--secondary-bg);
     box-shadow: 0 2px 8px rgba(0,0,0,0.08);
   }
 
@@ -123,7 +122,6 @@
     letter-spacing: 0.16em;
   }
   
-  /* --- 用戶認證與同步區塊樣式 (新增) --- */
   .auth-container {
     display: flex;
     align-items: center;
@@ -230,7 +228,6 @@
     border-bottom: 1px solid var(--border-color); 
     flex-wrap:wrap; 
     overflow-x: auto;
-    /* --- 修改 4: 移除 sticky 屬性，交由父容器處理 --- */
   }
 
   .nav-btn { 
@@ -277,6 +274,37 @@
   .nav-btn.active::after {
     height: 4px;
     opacity: 1;
+  }
+  
+  /* --- 新增: 批改頁專屬快捷導航 --- */
+  #grading-sub-nav {
+    display: none; /* 預設隱藏 */
+    background-color: #f8f6f2;
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid var(--border-color);
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+  }
+
+  .sub-nav-link {
+    font-size: 0.9rem;
+    color: var(--text-color);
+    text-decoration: none;
+    padding: 0.35rem 1rem;
+    border-radius: 999px;
+    background-color: rgba(255,255,255,0.5);
+    border: 1px solid transparent;
+    transition: all var(--transition-fast);
+  }
+
+  .sub-nav-link:hover {
+    background-color: #fff;
+    border-color: var(--accent-color-soft);
+    color: var(--accent-color);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    transform: translateY(-1px);
   }
 
   .page-content { 
@@ -1279,10 +1307,9 @@
   }
 
   /* ===== 新增：批改頁佈局與樣式調整 ===== */
-  /* 移除舊的兩欄佈局 */
   .grading-page-grid {
-    display: block; /* 改為單欄塊級佈局 */
-    padding: 0; /* 移除外層 padding，交由 section-box 處理 */
+    display: block;
+    padding: 0;
   }
   .grading-page-grid .section-box {
       padding: 1.5rem;
@@ -1296,15 +1323,13 @@
       min-height: 250px;
   }
 
-  /* 評語項目選擇的佈局 */
   #checklist-container {
     display: grid;
-    grid-template-columns: repeat(2, 1fr); /* 桌面版維持兩欄 */
+    grid-template-columns: repeat(2, 1fr);
     gap: 1.25rem;
     margin-top: 1rem;
   }
 
-  /* 錯別字與評分區塊的卡片化樣式 */
   .sub-section-card {
     background: #fdfaf5;
     border: 1px solid var(--border-color);
@@ -1324,10 +1349,9 @@
     padding: 1.25rem;
   }
 
-  /* 響應式調整 */
   @media (max-width: 900px) {
     #checklist-container {
-        grid-template-columns: 1fr; /* 手機版改為單欄 */
+        grid-template-columns: 1fr;
     }
   }
 
@@ -1336,12 +1360,10 @@
 <body>
 
   <div class="main-container">
-    <!-- 修改 4: 將 header 和 nav 包在一個置頂容器中 -->
     <div class="sticky-top-bar">
       <header>
         <div style="display: flex; flex-direction: column; gap: 0.5rem;">
           <h1>我不想努力了</h1>
-          <!-- 用戶認證區塊 -->
           <div class="auth-container">
             <span id="auth-status">未連接</span>
             <div id="auth-buttons">
@@ -1367,6 +1389,15 @@
         <button id="nav-page6" class="nav-btn" onclick="showPage('page6')">AI 評語庫生成</button>
         <button id="nav-page7" class="nav-btn" onclick="showPage('page7')">AI 生成回饋</button>
       </nav>
+
+      <!-- 新增：批改頁專屬快捷導航 -->
+      <div id="grading-sub-nav">
+        <a href="#grading-section-student" class="sub-nav-link" onclick="scrollToSection(event, 'grading-section-student')">學生</a>
+        <a href="#grading-section-checklist" class="sub-nav-link" onclick="scrollToSection(event, 'grading-section-checklist')">評語項目</a>
+        <a href="#grading-section-typo-score" class="sub-nav-link" onclick="scrollToSection(event, 'grading-section-typo-score')">錯別字/評分</a>
+        <a href="#grading-section-feedback" class="sub-nav-link" onclick="scrollToSection(event, 'grading-section-feedback')">學生評語</a>
+        <a href="#grading-section-save" class="sub-nav-link" onclick="scrollToSection(event, 'grading-section-save')">儲存</a>
+      </div>
     </div>
 
     <main>
@@ -1400,7 +1431,6 @@
                         <label><input type="checkbox" name="genre" value="argumentative"> 議論</label>
                     </div>
                     <div class="btn-group" style="margin-top: 1rem;">
-                        <!-- 修改 1: 調整 onclick 事件 -->
                         <button class="action-btn" onclick="loadCannedCritiquesAndFocus()">確定並載入預設評語</button>
                     </div>
                 </div>
@@ -1412,9 +1442,7 @@
                     <p>您可以從雲端讀取之前儲存的整個專案（包含學生名單及進度），或跳至其他頁面手動建立/導入評語庫。</p>
                     <div class="btn-group">
                         <button id="select-project-btn" class="secondary-btn" style="display: none;">從雲端選取專案</button>
-                        <!-- 修改 2: 調整 onclick 事件 -->
                         <button class="light-btn brown" onclick="showPage('page6', 'ai-student-level')">前往 AI 評語庫生成</button>
-                        <!-- 修改 3: 調整 onclick 事件 -->
                         <button class="light-btn" onclick="showPage('page3', 'overview-controls')">前往手動修訂評語庫</button>
                     </div>
                 </div>
@@ -1426,7 +1454,8 @@
       <div id="page2" class="page-content">
         <div class="grading-page-grid">
             
-            <div class="section-box">
+            <!-- 新增：為 section-box 添加 ID -->
+            <div id="grading-section-student" class="section-box">
                 <h2>一、選擇學生</h2>
                 <div class="input-group">
                     <label for="student-names">學生名單（每行一位，可包含學號）</label>
@@ -1447,7 +1476,7 @@
                 </div>
             </div>
 
-            <div class="section-box">
+            <div id="grading-section-checklist" class="section-box">
                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
                     <h2>二、評語項目選擇</h2>
                     <div class="btn-group">
@@ -1460,7 +1489,7 @@
                 </div>
             </div>
 
-            <div class="section-box">
+            <div id="grading-section-typo-score" class="section-box">
                 <h2>三、錯別字及評分</h2>
                 <details class="sub-section-card">
                     <summary><h3>錯別字記錄與常見庫</h3></summary>
@@ -1503,7 +1532,7 @@
                 </details>
             </div>
 
-            <div class="section-box">
+            <div id="grading-section-feedback" class="section-box">
                 <h2>四、學生評語</h2>
                 <div class="input-group">
                     <label for="unique-comment">特別留言（只給此學生）</label>
@@ -1531,7 +1560,7 @@
                 </div>
             </div>
 
-            <div class="section-box" style="background: transparent; border-top: none; text-align: center; padding-top: 1rem; padding-bottom: 2rem;">
+            <div id="grading-section-save" class="section-box" style="background: transparent; border-top: none; text-align: center; padding-top: 1rem; padding-bottom: 2rem;">
                 <div class="btn-group" style="justify-content: center;">
                     <button class="action-btn" onclick="saveCurrentStudentData()">💾 儲存當前學生</button>
                     <button class="action-btn clear-all" onclick="confirmUI('確定清空當前所有輸入？', () => clearAllCore())">清空當前</button>
@@ -1623,7 +1652,6 @@
             </div>
           </details>
 
-          <!-- 修改 3: 為按鈕組添加 ID -->
           <div id="overview-controls" class="btn-group" style="margin-top: 1.5rem; margin-bottom: 1rem;">
             <button class="light-btn" onclick="toggleAllDetails('overview-list', true)">全部展開</button>
             <button class="light-btn brown" onclick="toggleAllDetails('overview-list', false)">全部收合</button>
@@ -1897,9 +1925,9 @@ const CATEGORY_ORDER = ['扣題與立意', '取材與刻畫', '結構與鋪排',
 
 // --- 程式入口 ---
 document.addEventListener('DOMContentLoaded', () => {
-  loadDefaultCritiques(); // 載入預設評語到 JS 變數
-  buildChecklist(); // 初始建立空的 checklist
-  buildOverviewPage(); // 初始建立空的總覽頁
+  loadDefaultCritiques();
+  buildChecklist();
+  buildOverviewPage();
   attachGlobalListeners();
   updateStudentDropdown(); 
   updateAllOutputs();
@@ -1955,7 +1983,7 @@ async function checkUser() {
       sessionStorage.removeItem('projectPromptShownThisSession');
       commonTypos = [];
       allStudentRecords = [];
-      resetToDefaultCritiques(false); // 登出時重設為預設評語，不顯示確認框
+      resetToDefaultCritiques(false);
       buildChecklist();
       buildOverviewPage();
       renderCommonTypoList();
@@ -2005,7 +2033,7 @@ async function loadDataFromCloud() {
         optionsLabel: c.options_label
       })));
     } else {
-      resetToDefaultCritiques(false); // 如果雲端為空，載入預設
+      resetToDefaultCritiques(false);
     }
     buildChecklist();
     buildOverviewPage();
@@ -2188,7 +2216,25 @@ function saveFontSize(scale) { try { localStorage.setItem(FONT_SCALE_KEY, scale)
 function loadFontSize() { try { const savedScale = localStorage.getItem(FONT_SCALE_KEY); const scale = parseFloat(savedScale) || DEFAULT_FONT_SCALE; const root = document.documentElement; root.style.setProperty('--font-scale', scale); root.style.fontSize = `calc(16px * ${scale})`; } catch (e) { console.warn("無法讀取字體大小設定:", e); } }
 
 /* ---------------- 頁面切換與通用功能 ---------------- */
-// **修改 1, 2, 3**: 更新 showPage 函數以處理焦點和捲動
+
+// 新增：快捷導航捲動功能
+function scrollToSection(event, targetId) {
+  event.preventDefault();
+  const targetElement = document.getElementById(targetId);
+  if (!targetElement) return;
+
+  const stickyBar = document.querySelector('.sticky-top-bar');
+  const stickyBarHeight = stickyBar ? stickyBar.offsetHeight : 0;
+  
+  const elementPosition = targetElement.getBoundingClientRect().top;
+  const offsetPosition = elementPosition + window.pageYOffset - stickyBarHeight - 15; // 15px 的額外間距
+
+  window.scrollTo({
+      top: offsetPosition,
+      behavior: 'smooth'
+  });
+}
+
 function showPage(pageId, focusElementId = null) {
   document.querySelectorAll('.page-content').forEach(p => p.classList.remove('active'));
   const page = document.getElementById(pageId);
@@ -2198,7 +2244,12 @@ function showPage(pageId, focusElementId = null) {
   const nav = document.getElementById('nav-' + pageId);
   if(nav) nav.classList.add('active');
   
-  // 根據頁面 ID 執行特定更新
+  // 新增：控制快捷導航的顯示/隱藏
+  const gradingSubNav = document.getElementById('grading-sub-nav');
+  if (gradingSubNav) {
+      gradingSubNav.style.display = (pageId === 'page2') ? 'flex' : 'none';
+  }
+
   if (pageId === 'page3') buildOverviewPage();
   else if (pageId === 'page4') renderStudentOverviewTable(); 
   else if (pageId === 'page5') renderAnalysisPage();
@@ -2212,15 +2263,16 @@ function showPage(pageId, focusElementId = null) {
     }
   }
 
-  // 處理捲動和焦點
   if (focusElementId) {
     setTimeout(() => {
       const targetElement = document.getElementById(focusElementId);
       if (targetElement) {
-        targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        targetElement.focus({ preventScroll: true });
+          scrollToSection(new Event('dummy'), focusElementId); // 使用新函數來捲動
+          if(document.activeElement !== targetElement) {
+              targetElement.focus({ preventScroll: true });
+          }
       }
-    }, 150); // 延遲以確保頁面已渲染
+    }, 150);
   }
 }
 
@@ -2273,7 +2325,6 @@ function loadDefaultCritiques() {
     };
 }
 
-// **修改 1**: 建立一個新函數來處理載入和焦點
 function loadCannedCritiquesAndFocus() {
     const selectedGenres = Array.from(document.querySelectorAll('#genre-selection input:checked')).map(cb => cb.value);
     if (selectedGenres.length === 0) {
@@ -2304,7 +2355,6 @@ function loadCannedCritiquesAndFocus() {
     updateUIBasedOnAuthState();
     alert(`已成功載入 ${finalCritiques.length} 條預設評語！`);
     
-    // 調用 showPage 並傳遞目標 ID
     showPage('page2', 'student-select');
 }
 
@@ -2329,7 +2379,7 @@ function resetToDefaultCritiques(showConfirm = true) {
 
 function applyCritiquesToDOM(critiques) {
     const dataContainer = document.getElementById('critique-data');
-    dataContainer.innerHTML = ''; // 清空現有
+    dataContainer.innerHTML = '';
     critiques.forEach(c => {
         const div = document.createElement('div');
         div.dataset.id = c.id || c.critique_id;
@@ -2430,7 +2480,6 @@ function attachGlobalListeners() {
       if (topicInput.value !== aiTopicInput.value) topicInput.value = aiTopicInput.value;
   });
 
-  // 綁定導入/導出事件
   document.getElementById('import-student-list').addEventListener('change', handleStudentListImport);
   document.getElementById('import-progress-excel').addEventListener('change', handleProgressImportExcel);
   document.getElementById('import-critique-excel').addEventListener('change', handleCritiqueImportExcel);
@@ -2486,7 +2535,6 @@ function buildChecklist() {
     currentCategories[category].push(el);
   });
   
-  // **修改 4**: 排序 category
   const sortedCategoryNames = Object.keys(currentCategories).sort((a, b) => {
     const indexA = CATEGORY_ORDER.indexOf(a);
     const indexB = CATEGORY_ORDER.indexOf(b);
@@ -2548,7 +2596,6 @@ function buildChecklist() {
   }
 }
 
-// **修改 5**: 更新 createInteractiveModule 以支援多個下拉選單
 function createInteractiveModule(id) {
   const moduleDiv = document.createElement('div');
   moduleDiv.id = `module-${id}`;
@@ -2592,7 +2639,6 @@ function getCritiqueOptions(id) {
   const el = document.querySelector(`#critique-data div[data-id="${id}"]`);
   const raw = el?.dataset.options || '';
   if (!raw) return null;
-  // 只返回第一組選項以保持舊功能相容性
   return raw.split('|')[0].split('\n').map(s=>s.trim()).filter(Boolean);
 }
 
@@ -2715,7 +2761,6 @@ function getConciseData(id) {
   };
 }
 
-// **修改 5**: 建立新的文字替換函式
 function performInteractiveReplacements(text, critiqueId) {
     let replacedText = text;
     const module = document.getElementById(`module-${critiqueId}`);
@@ -2732,7 +2777,6 @@ function performInteractiveReplacements(text, critiqueId) {
         if (value) {
             replacedText = replacedText.replace(placeholder, `「${value}」`);
         } else {
-             // 如果沒有選擇，可以選擇保留佔位符或用通用文字代替
             const label = select.previousElementSibling?.textContent || `選項${index + 1}`;
             replacedText = replacedText.replace(placeholder, `[${label}]`);
         }
@@ -3552,7 +3596,6 @@ function buildOverviewPage() {
     critiquesByCategory[category].push(critiqueEl);
   });
   
-  // **修改 4**: 排序 category
   const sortedCategoryNames = Object.keys(critiquesByCategory).sort((a, b) => {
     const indexA = CATEGORY_ORDER.indexOf(a);
     const indexB = CATEGORY_ORDER.indexOf(b);
@@ -3595,7 +3638,6 @@ function buildOverviewPage() {
       titleGroup.style.marginBottom = '0';
       titleGroup.innerHTML = `<label>項目標題</label><input type="text" value="${escapeHtmlAttr(title)}" />`;
       
-      // **修改 6**: 新增分類選擇器
       const categoryGroup = document.createElement('div');
       categoryGroup.className = 'overview-row';
       categoryGroup.style.marginBottom = '0';
@@ -3630,15 +3672,15 @@ function buildOverviewPage() {
                   critiqueEl.dataset.category = newCategory;
                   isDataDirty = true;
                   updateUIBasedOnAuthState();
-                  buildOverviewPage(); // 重建以更新所有下拉選單
+                  buildOverviewPage();
               } else {
-                  categorySelect.value = critiqueEl.dataset.category; // 取消則還原
+                  categorySelect.value = critiqueEl.dataset.category;
               }
           } else {
               critiqueEl.dataset.category = newCategory;
               isDataDirty = true;
               updateUIBasedOnAuthState();
-              buildOverviewPage(); // 重建以移動項目
+              buildOverviewPage();
           }
       });
 
@@ -3936,7 +3978,6 @@ function downloadStudentListTemplate() {
     XLSX.writeFile(wb, '學生名單範本.xlsx');
 }
 
-// **修改 1**: 修正 Excel 導入邏輯
 function handleStudentListImport(event) {
     if (!checkXlsxLibrary()) return;
     const file = event.target.files[0];
@@ -3945,7 +3986,7 @@ function handleStudentListImport(event) {
     reader.onload = (e) => {
         try {
             const wb = XLSX.read(e.target.result, { type: 'array' });
-            const wsname = wb.SheetNames[0]; // 使用 SheetNames[0] 獲取第一個工作表的名稱
+            const wsname = wb.SheetNames[0];
             const ws = wb.Sheets[wsname];
             const jsonData = XLSX.utils.sheet_to_json(ws);
 
