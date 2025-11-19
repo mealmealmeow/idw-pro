@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>我不想努力了 (最終修正版)</title>
+  <title>我不想努力了yest</title>
   <!-- 引入 xlsx.js 函式庫，用於處理 Excel 檔案 -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <!-- 引入 Supabase.js 函式庫 -->
@@ -227,7 +227,7 @@
     background-color: var(--nav-bg); 
     border-bottom: 1px solid var(--border-color); 
     flex-wrap:wrap; 
-   
+    /* overflow-x: auto;  <-- 此處為問題來源，已移除 */
   }
 
   .nav-btn { 
@@ -276,8 +276,9 @@
     opacity: 1;
   }
   
+  /* --- 新增: 批改頁專屬快捷導航 --- */
   #grading-sub-nav {
-    display: none; 
+    display: none; /* 預設隱藏 */
     background-color: #f8f6f2;
     padding: 0.5rem 1rem;
     border-bottom: 1px solid var(--border-color);
@@ -1053,7 +1054,7 @@
   }
 
   #student-overview-table-wrapper {
-   
+    overflow-x: auto;
     margin-top: 1.25rem;
     background-color: #fdfbf8;
     border-radius: 12px;
