@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>我不想努力了 (懸浮導覽版)</title>
+  <title>我不想努力了 (懸浮導覽優化版)</title>
   <!-- 引入 xlsx.js 函式庫，用於處理 Excel 檔案 -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <!-- 引入 Supabase.js 函式庫 -->
@@ -13,12 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC&display=swap" rel="stylesheet">
-<link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96" />
-<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-<link rel="shortcut icon" href="/favicon.ico" />
-<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-<meta name="apple-mobile-web-app-title" content="我不想努力了" />
-<link rel="manifest" href="/site.webmanifest" />
+
 <style>
   /* --- 文青風色彩與字體定義 --- */
   :root {
@@ -1366,7 +1361,6 @@
     align-items: center;
     justify-content: center;
     text-decoration: none;
-    font-size: 1.5rem;
     transition: all var(--transition-normal);
     box-shadow: 0 4px 8px rgba(0,0,0,0.1);
     position: relative;
@@ -1383,6 +1377,18 @@
     background-color: var(--accent-color);
     color: white;
     box-shadow: 0 0 0 3px var(--secondary-bg), 0 0 0 5px var(--accent-color);
+  }
+
+  /* SVG 圖示樣式 */
+  #floating-nav svg {
+    width: 24px;
+    height: 24px;
+    stroke: currentColor; /* 關鍵：讓圖示顏色跟隨父元素(<a>)的 color 變化 */
+    stroke-width: 1.5;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transition: all var(--transition-fast);
   }
 
   /* Tooltip 提示文字 */
@@ -1431,7 +1437,10 @@
     .floating-nav-btn {
       width: 44px;
       height: 44px;
-      font-size: 1.3rem;
+    }
+    #floating-nav svg {
+      width: 22px;
+      height: 22px;
     }
     .floating-nav-btn::before {
       /* 在手機上，提示文字改到按鈕上方 */
@@ -1439,6 +1448,11 @@
       top: auto;
       bottom: 120%;
       transform: translateX(50%);
+    }
+
+    /* 解決手機版底部按鈕被遮擋的問題 */
+    #page2 #grading-section-save {
+        padding-bottom: 90px;
     }
   }
 
@@ -1477,7 +1491,6 @@
         <button id="nav-page7" class="nav-btn" onclick="showPage('page7')">AI 生成回饋</button>
       </nav>
 
-      <!-- 舊的快捷導覽列已被移除 -->
     </div>
 
     <main>
@@ -1986,13 +1999,23 @@
     <!-- 預設評語會由 JS 載入 -->
   </div>
 
-  <!-- 新增：右側懸浮導覽列 -->
+  <!-- 新增：右側懸浮導覽列 (使用 SVG 圖示) -->
   <nav id="floating-nav">
-    <a href="#grading-section-student" class="floating-nav-btn" onclick="scrollToSection(event, 'grading-section-student')" data-tooltip="學生">🧑</a>
-    <a href="#grading-section-checklist" class="floating-nav-btn" onclick="scrollToSection(event, 'grading-section-checklist')" data-tooltip="評語項目">✅</a>
-    <a href="#grading-section-typo-score" class="floating-nav-btn" onclick="scrollToSection(event, 'grading-section-typo-score')" data-tooltip="錯別字/評分">📝</a>
-    <a href="#grading-section-feedback" class="floating-nav-btn" onclick="scrollToSection(event, 'grading-section-feedback')" data-tooltip="學生評語">📄</a>
-    <a href="#grading-section-save" class="floating-nav-btn" onclick="scrollToSection(event, 'grading-section-save')" data-tooltip="儲存">💾</a>
+    <a href="#grading-section-student" class="floating-nav-btn" onclick="scrollToSection(event, 'grading-section-student')" data-tooltip="學生">
+      <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+    </a>
+    <a href="#grading-section-checklist" class="floating-nav-btn" onclick="scrollToSection(event, 'grading-section-checklist')" data-tooltip="評語項目">
+      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="9" y1="15" x2="15" y2="15"></line><line x1="9" y1="11" x2="15" y2="11"></line></svg>
+    </a>
+    <a href="#grading-section-typo-score" class="floating-nav-btn" onclick="scrollToSection(event, 'grading-section-typo-score')" data-tooltip="錯別字/評分">
+      <svg viewBox="0 0 24 24"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+    </a>
+    <a href="#grading-section-feedback" class="floating-nav-btn" onclick="scrollToSection(event, 'grading-section-feedback')" data-tooltip="學生評語">
+      <svg viewBox="0 0 24 24"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>
+    </a>
+    <a href="#grading-section-save" class="floating-nav-btn" onclick="scrollToSection(event, 'grading-section-save')" data-tooltip="儲存">
+      <svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+    </a>
   </nav>
 
 <script>
@@ -2377,11 +2400,14 @@ function initFloatingNavObserver() {
 
     const observer = new IntersectionObserver(entries => {
         let lastVisibleSectionId = null;
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                lastVisibleSectionId = entry.target.getAttribute('id');
-            }
-        });
+        
+        // 找到目前視窗中最頂部的可見區塊
+        const visibleEntries = entries.filter(entry => entry.isIntersecting);
+        if (visibleEntries.length > 0) {
+            // 按頂部位置排序
+            visibleEntries.sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+            lastVisibleSectionId = visibleEntries[0].target.id;
+        }
 
         if (lastVisibleSectionId) {
              navLinks.forEach(link => {
@@ -2394,8 +2420,8 @@ function initFloatingNavObserver() {
             });
         }
     }, {
-        rootMargin: '-150px 0px -40% 0px', // 頂部預留給 sticky header，底部-40%讓下一個區塊進入視野40%就觸發
-        threshold: 0.1 // 區塊有10%可見就觸發
+        rootMargin: `-${(document.querySelector('.sticky-top-bar')?.offsetHeight || 60) + 20}px 0px -50% 0px`,
+        threshold: 0
     });
 
     sections.forEach(section => {
@@ -4009,7 +4035,7 @@ function textToWordHtmlWithLists(text) {
         let isListItem = false;
         let currentListType = '';
         if (trimmedLine.startsWith('- ') || trimmedLine.startsWith('* ')) { isListItem = true; currentListType = 'ul'; }
-        else if (/^\(\d+\)/.test(trimmedLine) || /^\d+\./.test(trimmedLine)) { isListItem = true; currentListType = 'ol'; }
+        else if (/^\(\d+\)/.test(trimmedLine) || /^\d+\.\s*/.test(trimmedLine)) { isListItem = true; currentListType = 'ol'; }
         if (isListItem) {
             if (!inList || listType !== currentListType) {
                 if (inList) html += `</${listType}>`;
