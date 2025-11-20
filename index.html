@@ -6,8 +6,6 @@
   <title>我不想努力了</title>
   <!-- 引入 xlsx.js 函式庫，用於處理 Excel 檔案 -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  <!-- 引入 Supabase.js 函式庫 -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   
   <!-- 引入 Google Fonts 的 LXGW WenKai TC (霞鶩文楷 TC) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -112,50 +110,6 @@
     font-size: 2.25rem; 
     font-weight: 500; 
     letter-spacing: 0.16em;
-  }
-  
-  /* --- 用戶認證與同步區塊樣式 (新增) --- */
-  .auth-container {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    background-color: rgba(255, 255, 255, 0.1);
-    padding: 0.4rem 0.6rem;
-    border-radius: 999px;
-    box-shadow: 0 0 0 1px rgba(255,255,255,0.25);
-    flex-shrink: 0;
-  }
-
-  #auth-status {
-    font-size: 0.8rem;
-    padding: 0.3rem 0.8rem;
-    background-color: rgba(0,0,0,0.15);
-    border-radius: 999px;
-    white-space: nowrap;
-  }
-
-  #auth-buttons {
-    display: flex;
-    gap: 0.5rem;
-  }
-
-  #auth-buttons .btn {
-    padding: 0.4rem 1rem;
-    font-size: 0.85rem;
-    border: 1px solid rgba(255,255,255,0.7);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-  }
-  #auth-buttons .btn:hover {
-    background-color: rgba(255,255,255,0.2);
-  }
-  #sync-btn.dirty {
-    animation: pulse 1.5s infinite;
-  }
-
-  @keyframes pulse {
-    0% { box-shadow: 0 4px 8px rgba(41,81,64,0.3), 0 0 0 0 rgba(255, 255, 255, 0.7); }
-    70% { box-shadow: 0 4px 12px rgba(41,81,64,0.4), 0 0 0 10px rgba(255, 255, 255, 0); }
-    100% { box-shadow: 0 4px 8px rgba(41,81,64,0.3), 0 0 0 0 rgba(255, 255, 255, 0); }
   }
 
   /* ===== 字體控制 ===== */
@@ -665,10 +619,6 @@
   }
 
   @media (max-width: 980px) { 
-    header {
-      flex-direction: column;
-      align-items: flex-start;
-    }
     .paired-grid { grid-template-columns: 1fr; } 
   }
 
@@ -1200,7 +1150,7 @@
     margin-bottom: 0;
   }
 
-  /* ===== 第四頁：分析 ===== */
+  /* ===== 第四、六頁：分析 ===== */
 
   .analysis-grid {
     display: grid;
@@ -1317,18 +1267,7 @@
 
   <div class="main-container">
     <header>
-      <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-        <h1>我不想努力了</h1>
-        <!-- 用戶認證區塊 (新增) -->
-        <div class="auth-container">
-          <span id="auth-status">未連接</span>
-          <div id="auth-buttons">
-            <button id="login-btn" class="btn light-btn">登入/註冊</button>
-            <button id="logout-btn" class="btn danger-btn" style="display: none;">登出</button>
-            <button id="sync-btn" class="btn action-btn" style="display: none;" disabled>同步至雲端</button>
-          </div>
-        </div>
-      </div>
+      <h1>我不想努力了</h1>
       <div class="font-controls">
         <button class="font-control-btn" onclick="adjustFontSize('decrease')" title="縮小字體">A-</button>
         <button class="font-control-btn" onclick="adjustFontSize('reset')" title="重設字體大小">重設</button>
@@ -1358,7 +1297,6 @@
                 <textarea id="student-names" rows="8" placeholder="01-陳大文&#10;02 張小美&#10;李偉明"></textarea>
               </div>
               <div class="btn-group" style="margin-top: 0.5rem;">
-                <button id="select-project-btn" class="secondary-btn" style="display: none;">從雲端選取專案</button>
                 <button class="light-btn" onclick="downloadStudentListTemplate()">下載範本</button>
                 <label class="light-btn brown" for="import-student-list" style="cursor: pointer;">匯入學生名單 (Excel)</label>
                 <input type="file" id="import-student-list" accept=".xlsx, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" style="display:none;">
@@ -1567,7 +1505,7 @@
             </div>
           </details>
 
-          <p style="margin-top:1.5rem;">此頁為評語庫的來源。您可在此處編輯、新增或刪除評語項目。所有修改將自動保存至雲端（需登入）。</p>
+          <p style="margin-top:1.5rem;">此頁為評語庫的來源。您可在此處編輯、新增或刪除評語項目。所有修改將自動保存。</p>
 
           <details class="io-details">
             <summary><h3>評語庫管理 (導入/導出)</h3></summary>
@@ -1773,10 +1711,8 @@
                   <span class="header-tag">AI 必須輸出的 JSON 欄位</span>
                 </div>
                 <div id="ai-feedback-modules" class="checkbox-group" style="margin-top: 0.75rem;">
-                  <label><input type="checkbox" id="ai-module-overview" checked> 總結與概覽 (老師的話)</label>
+                  <label><input type="checkbox" id="ai-module-overview" checked> 總結與概覽</label>
                   <label><input type="checkbox" id="ai-module-topic" checked> 審題與立意分析</label>
-                  <label><input type="checkbox" id="ai-module-material-theme" checked> 選材立意舉隅</label>
-                  <label><input type="checkbox" id="ai-module-excellent-students" checked> 優秀同學特點 (學生版)</label>
                   <label><input type="checkbox" id="ai-module-tiers" checked> 分層作品示例與講評</label>
                   <label><input type="checkbox" id="ai-module-practice" checked> 跟進練習與示例</label>
                   <label><input type="checkbox" id="ai-module-plan" checked> 教學計劃與建議 (僅老師版)</label>
@@ -1857,34 +1793,16 @@
   </div>
 
 <script>
-// --- Supabase 初始化與設定 ---
-// **請將此處的 URL 和 KEY 換成你自己的！** (在您的 Supabase 專案設定 > API 頁面找到)
-const SUPABASE_URL = 'https://wtcegbkfuklnkurrouka.supabase.co'; 
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind0Y2VnYmtmdWtsbmt1cnJvdWthIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM0MTU5MjgsImV4cCI6MjA3ODk5MTkyOH0.mQT2TXLR6m41D1WzmqH35mKdoGDGqHaHhZm-sTpPmpQ';
-
-// 從全域的 `supabase` 物件中，解構出 `createClient` 這個函式。
-const { createClient } = supabase;
-// 執行 `createClient` 函式，並將回傳的「客戶端實例」儲存在一個新的變數 `supabaseClient` 中。
-const supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY);
-
-
-// 全域變數
-let currentUser = null;
-let isDataDirty = false; 
 let allStudentRecords = [];
-let currentTypos = [];
-let commonTypos = [];
-let localCritiques = []; // 用於儲存從 critique-data div 解析的評語
 
 document.addEventListener('DOMContentLoaded', () => {
   loadFontSize();
-  parseLocalCritiques(); // 先解析本地的評語庫
+  loadCommonTypos();
   buildChecklist();
   buildOverviewPage();
   attachGlobalListeners();
   updateStudentDropdown(); 
   updateAllOutputs();
-  checkUser(); // 檢查用戶登入狀態
 });
 
 /* ====== 小型 Confirm UI ====== */
@@ -1914,331 +1832,6 @@ const modal = {
 function confirmUI(message, onOk) {
   modal.show(message).then(ok => { if (ok && typeof onOk === 'function') onOk(); });
 }
-
-// --- Supabase 核心功能 ---
-
-/**
- * 檢查當前用戶登入狀態，並更新 UI
- */
-async function checkUser() {
-  const { data: { session } } = await supabaseClient.auth.getSession();
-  currentUser = session ? session.user : null;
-  updateUIBasedOnAuthState();
-
-  if (currentUser) {
-    loadDataFromCloud();
-  } else {
-    // 未登入，使用本地預設資料
-    renderCommonTypoList();
-    buildChecklist();
-  }
-
-  supabaseClient.auth.onAuthStateChange((event, session) => {
-    currentUser = session ? session.user : null;
-    updateUIBasedOnAuthState();
-    if (event === 'SIGNED_IN') {
-      loadDataFromCloud();
-    } else if (event === 'SIGNED_OUT') {
-      // 登出後，清空雲端資料，還原到初始狀態
-      sessionStorage.removeItem('projectPromptShownThisSession'); // 清除 session 標記
-      commonTypos = [];
-      allStudentRecords = [];
-      parseLocalCritiques(); // 重新載入預設評語
-      buildChecklist();
-      buildOverviewPage();
-      renderCommonTypoList();
-      renderStudentOverviewTable();
-      clearAllCore();
-      alert("已登出，所有雲端資料已清除。");
-    }
-  });
-}
-
-/**
- * 處理用戶登入
- */
-async function handleLogin() {
-  const email = prompt("請輸入你的電郵地址：");
-  if (!email) return;
-  try {
-    const { error } = await supabaseClient.auth.signInWithOtp({ email });
-    if (error) throw error;
-    alert("一封登入連結已經發送到你的郵箱，請點擊連結登入。\n（如果收不到，請檢查垃圾郵件箱）");
-  } catch (error) {
-    alert(`登入失敗：${error.message}`);
-  }
-}
-
-/**
- * 處理用戶登出
- */
-function handleLogout() {
-  confirmUI("確定要登出嗎？所有未同步的變更將會遺失。", async () => {
-    try {
-      const { error } = await supabaseClient.auth.signOut();
-      if (error) throw error;
-      // onAuthStateChange 會自動處理後續 UI 更新和資料清理
-    } catch (error) {
-      alert(`登出失敗: ${error.message}`);
-    }
-  });
-}
-
-/**
- * 從雲端載入所有數據
- */
-async function loadDataFromCloud() {
-  if (!currentUser) return;
-  
-  const authStatus = document.getElementById('auth-status');
-  authStatus.textContent = '正在從雲端讀取資料...';
-
-  try {
-    // 1. 載入評語庫
-    const { data: critiquesData, error: critiquesError } = await supabaseClient
-      .from('critiques')
-      .select('*')
-      .eq('user_id', currentUser.id);
-    if (critiquesError) throw critiquesError;
-
-    if (critiquesData.length > 0) {
-      // 將數據庫格式轉換為前端使用的 div[data-*] 格式
-      const dataContainer = document.getElementById('critique-data');
-      dataContainer.innerHTML = ''; // 清空預設
-      critiquesData.forEach(c => {
-        const div = document.createElement('div');
-        div.dataset.id = c.critique_id;
-        div.dataset.category = c.category;
-        div.dataset.type = c.type;
-        div.dataset.strengthSummary = c.strength_summary || '';
-        div.dataset.problemCore = c.problem_core || '';
-        div.dataset.suggestion = c.suggestion || '';
-        div.dataset.example = c.example || '';
-        div.dataset.options = c.options || '';
-        div.dataset.optionsLabel = c.options_label || '';
-        div.innerHTML = `<h4>${c.title}</h4>`;
-        dataContainer.appendChild(div);
-      });
-    }
-    parseLocalCritiques(); // 重新解析 critique-data
-    buildChecklist();
-    buildOverviewPage();
-
-    // 2. 載入常見錯別字
-    const { data: typosData, error: typosError } = await supabaseClient
-      .from('common_typos')
-      .select('*')
-      .eq('user_id', currentUser.id);
-    if (typosError) throw typosError;
-    commonTypos = typosData.map(t => ({ id: t.typo_id, wrong: t.wrong, correct: t.correct }));
-    renderCommonTypoList();
-
-    // 3. 載入學生專案進度 (只在 session 第一次載入時詢問)
-    if (!sessionStorage.getItem('projectPromptShownThisSession')) {
-        await promptAndLoadCloudProject();
-        sessionStorage.setItem('projectPromptShownThisSession', 'true');
-    }
-    
-    isDataDirty = false;
-    updateUIBasedOnAuthState();
-    authStatus.textContent = `已登入: ${currentUser.email}`;
-    
-  } catch (error) {
-    alert(`從雲端讀取資料時發生錯誤: ${error.message}`);
-    authStatus.textContent = `讀取錯誤`;
-  }
-}
-
-/**
- * [新增] 提取並顯示雲端專案列表供用戶選擇
- */
-async function promptAndLoadCloudProject() {
-    if (!currentUser) {
-        alert("請先登入以使用雲端專案功能。");
-        return;
-    }
-
-    const { data: projectsData, error: projectsError } = await supabaseClient
-        .from('student_projects')
-        .select('id, class_name, topic, updated_at')
-        .eq('user_id', currentUser.id);
-
-    if (projectsError) {
-        alert(`讀取雲端專案列表時出錯：${projectsError.message}`);
-        return;
-    }
-
-    if (!projectsData || projectsData.length === 0) {
-        alert("雲端上沒有找到任何專案。");
-        return;
-    }
-
-    let projectChoices = projectsData
-        .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))
-        .map((p, i) => `${i + 1}. 班別: ${p.class_name || '未命名'}, 題目: ${p.topic || '未命名'} (更新於: ${new Date(p.updated_at).toLocaleString()})`)
-        .join('\n');
-    
-    const choice = prompt(`在雲端找到 ${projectsData.length} 個專案，你想載入哪一個？\n請輸入數字，或按「取消」以繼續使用目前資料。\n\n${projectChoices}`);
-    const choiceIndex = parseInt(choice, 10) - 1;
-
-    if (!isNaN(choiceIndex) && choiceIndex >= 0 && choiceIndex < projectsData.length) {
-        const projectId = projectsData[choiceIndex].id;
-        try {
-            const { data: fullProject, error: fullProjectError } = await supabaseClient
-                .from('student_projects')
-                .select('project_data, class_name, topic')
-                .eq('id', projectId)
-                .single();
-
-            if (fullProjectError) throw fullProjectError;
-
-            // 清空當前狀態以載入新專案
-            clearAllCore(false);
-            allStudentRecords = [];
-            document.getElementById('student-names').value = '';
-
-            // 載入新專案資料
-            allStudentRecords = fullProject.project_data || [];
-            document.getElementById('student-class').value = fullProject.class_name || '';
-            document.getElementById('topic').value = fullProject.topic || '';
-            document.getElementById('student-names').value = allStudentRecords.map(r => r.originalName).join('\n');
-            
-            updateStudentDropdown();
-            renderStudentOverviewTable();
-            
-            // 自動載入第一位學生資料
-            const studentSelect = document.getElementById('student-select');
-            if (studentSelect.options.length > 0) {
-                studentSelect.selectedIndex = 0;
-                loadStudentData(studentSelect.value);
-            }
-            alert(`專案「${fullProject.class_name || '未命名'} - ${fullProject.topic || '未命名'}」已成功載入。`);
-
-        } catch (error) {
-            alert(`載入專案時發生錯誤：${error.message}`);
-        }
-    }
-}
-
-
-/**
- * 將本地所有修改同步到雲端
- */
-async function syncDataToCloud() {
-  if (!currentUser || !isDataDirty) return;
-
-  const syncBtn = document.getElementById('sync-btn');
-  const originalText = syncBtn.textContent;
-  syncBtn.textContent = '同步中...';
-  syncBtn.disabled = true;
-
-  try {
-    // 1. 同步評語庫
-    const dataContainer = document.getElementById('critique-data');
-    const critiquesToUpsert = Array.from(dataContainer.children).map(div => ({
-      user_id: currentUser.id,
-      critique_id: div.dataset.id,
-      category: div.dataset.category,
-      type: div.dataset.type,
-      title: div.querySelector('h4').textContent,
-      strength_summary: div.dataset.strengthSummary,
-      problem_core: div.dataset.problemCore,
-      suggestion: div.dataset.suggestion,
-      example: div.dataset.example,
-      options: div.dataset.options,
-      options_label: div.dataset.optionsLabel,
-      updated_at: new Date().toISOString()
-    }));
-    // 先刪除所有舊的，再插入新的，以處理刪除操作
-    await supabaseClient.from('critiques').delete().eq('user_id', currentUser.id);
-    const { error: critiquesError } = await supabaseClient.from('critiques').upsert(critiquesToUpsert);
-    if (critiquesError) throw critiquesError;
-
-    // 2. 同步常見錯別字
-    const typosToUpsert = commonTypos.map(t => ({
-      user_id: currentUser.id,
-      typo_id: t.id,
-      wrong: t.wrong,
-      correct: t.correct
-    }));
-    await supabaseClient.from('common_typos').delete().eq('user_id', currentUser.id);
-    const { error: typosError } = await supabaseClient.from('common_typos').upsert(typosToUpsert);
-    if (typosError) throw typosError;
-
-    // 3. 同步學生專案進度
-    const className = document.getElementById('student-class').value.trim();
-    const topic = document.getElementById('topic').value.trim();
-    if (allStudentRecords.length > 0 && (className || topic)) {
-        const { data: existingProject, error: findError } = await supabaseClient
-            .from('student_projects')
-            .select('id')
-            .eq('user_id', currentUser.id)
-            .eq('class_name', className)
-            .eq('topic', topic)
-            .maybeSingle();
-
-        if(findError) throw findError;
-
-        const projectToUpsert = {
-            id: existingProject ? existingProject.id : undefined,
-            user_id: currentUser.id,
-            class_name: className,
-            topic: topic,
-            project_data: allStudentRecords,
-            updated_at: new Date().toISOString()
-        };
-        
-        const { error: projectError } = await supabaseClient.from('student_projects').upsert(projectToUpsert);
-        if (projectError) throw projectError;
-    }
-
-    isDataDirty = false;
-    alert("同步成功！所有變更已儲存到雲端。");
-
-  } catch (error) {
-    alert(`同步失敗: ${error.message}`);
-  } finally {
-    syncBtn.textContent = originalText;
-    updateUIBasedOnAuthState();
-  }
-}
-
-
-/**
- * 根據登入狀態更新 UI 元素
- */
-function updateUIBasedOnAuthState() {
-    const authStatus = document.getElementById('auth-status');
-    const loginBtn = document.getElementById('login-btn');
-    const logoutBtn = document.getElementById('logout-btn');
-    const syncBtn = document.getElementById('sync-btn');
-    const selectProjectBtn = document.getElementById('select-project-btn');
-
-    if (currentUser) {
-        authStatus.textContent = `已登入: ${currentUser.email}`;
-        loginBtn.style.display = 'none';
-        logoutBtn.style.display = 'inline-flex';
-        syncBtn.style.display = 'inline-flex';
-        if (selectProjectBtn) selectProjectBtn.style.display = 'inline-flex';
-        
-        if (isDataDirty) {
-            syncBtn.disabled = false;
-            syncBtn.classList.add('dirty');
-            syncBtn.textContent = '儲存變更到雲端';
-        } else {
-            syncBtn.disabled = true;
-            syncBtn.classList.remove('dirty');
-            syncBtn.textContent = '數據已同步';
-        }
-    } else {
-        authStatus.textContent = '離線模式';
-        loginBtn.style.display = 'inline-flex';
-        logoutBtn.style.display = 'none';
-        syncBtn.style.display = 'none';
-        if (selectProjectBtn) selectProjectBtn.style.display = 'none';
-    }
-}
-
 
 /* ====== 字體大小調整功能 ====== */
 const FONT_SCALE_KEY = 'globalFontScale';
@@ -2287,6 +1880,9 @@ function loadFontSize() {
 /* ---------------- 頁面切換與通用功能 ---------------- */
 const CATEGORIES = { "扣題與立意": [], "取材與刻畫": [], "結構與鋪排": [], "語言與表達": [] };
 
+let currentTypos = [];
+let commonTypos = [];
+
 function showPage(pageId) {
   document.querySelectorAll('.page-content').forEach(p => p.classList.remove('active'));
   document.getElementById(pageId).classList.add('active');
@@ -2309,6 +1905,7 @@ function showPage(pageId) {
   }
 }
 
+// 新增：全部展開/收合功能
 function toggleAllDetails(containerId, openState) {
   const container = document.getElementById(containerId);
   if (container) {
@@ -2319,25 +1916,6 @@ function toggleAllDetails(containerId, openState) {
 }
 
 /* ---------------- 第一頁：評語生成器 ---------------- */
-function parseLocalCritiques() {
-    localCritiques = [];
-    const dataContainer = document.getElementById('critique-data');
-    dataContainer.querySelectorAll('div[data-id]').forEach(el => {
-        localCritiques.push({
-            id: el.dataset.id,
-            category: el.dataset.category,
-            type: el.dataset.type,
-            title: el.querySelector('h4')?.textContent || '',
-            strengthSummary: el.dataset.strengthSummary || '',
-            problemCore: el.dataset.problemCore || '',
-            suggestion: el.dataset.suggestion || '',
-            example: el.dataset.example || '',
-            options: el.dataset.options || '',
-            optionsLabel: el.dataset.optionsLabel || ''
-        });
-    });
-}
-
 
 function buildChecklist() {
   const dataContainer = document.getElementById('critique-data');
@@ -2354,31 +1932,29 @@ function buildChecklist() {
   });
 
   checklistContainer.innerHTML = '';
-  const currentCategories = {};
+  Object.keys(CATEGORIES).forEach(key => { CATEGORIES[key] = []; });
 
   dataContainer.querySelectorAll('div[data-id]').forEach(el => {
     const category = el.dataset.category;
-    if (!currentCategories[category]) {
-      currentCategories[category] = []; 
+    if (!CATEGORIES[category]) {
+      CATEGORIES[category] = []; 
     }
-    currentCategories[category].push(el);
+    CATEGORIES[category].push(el);
   });
 
   let hasContent = false;
-  for (const categoryName in currentCategories) {
-    if (currentCategories[categoryName].length === 0) continue;
+  for (const categoryName in CATEGORIES) {
+    if (CATEGORIES[categoryName].length === 0) continue;
     hasContent = true;
-    const categoryDetails = document.createElement('details');
-    categoryDetails.className = 'category-group';
-    categoryDetails.open = true;
-    categoryDetails.innerHTML = `<summary><h3>${categoryName}</h3></summary>`;
+    const details = document.createElement('details');
+    details.innerHTML = `<summary>${categoryName}</summary>`;
     const itemsContainer = document.createElement('div');
-    itemsContainer.className = 'category-content';
+    itemsContainer.className = 'critique-items-container';
 
-    currentCategories[categoryName].forEach(critiqueEl => {
+    CATEGORIES[categoryName].forEach(critiqueEl => {
       const id = critiqueEl.dataset.id;
       const type = critiqueEl.dataset.type;
-      const title = critiqueEl.querySelector('h4').textContent;
+      const title = getCritiqueData(id, 'title');
       const hasOptions = (critiqueEl.dataset.options || '').trim() !== '';
 
       const itemDiv = document.createElement('div');
@@ -2386,7 +1962,6 @@ function buildChecklist() {
 
       const headerDiv = document.createElement('div');
       headerDiv.className = 'check-item-header';
-      headerDiv.setAttribute('onclick', `document.getElementById('${id}').click()`);
       headerDiv.innerHTML = `<input type="checkbox" id="${id}"><label for="${id}">${title}</label>`;
       itemDiv.appendChild(headerDiv);
 
@@ -2399,21 +1974,21 @@ function buildChecklist() {
 
       itemsContainer.appendChild(itemDiv);
 
-      const checkbox = headerDiv.querySelector(`#${id}`);
+      const checkbox = document.getElementById(id);
       if (checkedStates[id]) {
         checkbox.checked = true;
         handleCheckboxChange(checkbox, false);
-        const textarea = itemDiv.querySelector(`#text-${id}`);
+        const textarea = document.getElementById(`text-${id}`);
         if (textarea && editedTexts[id]) textarea.value = editedTexts[id];
       }
     });
 
-    categoryDetails.appendChild(itemsContainer);
-    checklistContainer.appendChild(categoryDetails);
+    details.appendChild(itemsContainer);
+    checklistContainer.appendChild(details);
   }
 
   if (!hasContent) {
-    checklistContainer.innerHTML = `<div class="empty-state-message">評語庫目前為空。<br>請登入並同步雲端資料，或前往「評語總覽與修訂」分頁新增或導入評語項目。</div>`;
+    checklistContainer.innerHTML = `<div class="empty-state-message">評語庫目前為空。<br>請前往「評語總覽與修訂」分頁新增或導入評語項目。</div>`;
   }
 }
 
@@ -2456,7 +2031,16 @@ function populateEditableTextarea(id) {
 
 function concretizeExample(id, rawExample) {
   const trimmed = (rawExample || '').trim();
-  if (!trimmed) return [];
+  if (!trimmed) {
+    const critiqueEl = document.querySelector(`#critique-data div[data-id="${id}"]`);
+    if (critiqueEl) {
+        const pTags = critiqueEl.querySelectorAll('p');
+        if (pTags.length > 0) {
+            return Array.from(pTags).map(p => p.textContent.trim()).filter(Boolean).slice(0, 2);
+        }
+    }
+    return [];
+  }
   let lines = trimmed.split('\n').map(s=>s.trim()).filter(Boolean);
   return lines.slice(0, 2);
 }
@@ -2511,26 +2095,14 @@ function updateStudentDropdown() {
 }
 
 function attachGlobalListeners() {
-  document.getElementById('login-btn').addEventListener('click', handleLogin);
-  document.getElementById('logout-btn').addEventListener('click', handleLogout);
-  document.getElementById('sync-btn').addEventListener('click', syncDataToCloud);
-  document.getElementById('select-project-btn').addEventListener('click', promptAndLoadCloudProject);
-
-  document.getElementById('student-names').addEventListener('input', () => {
-    updateStudentDropdown();
-    isDataDirty = true;
-    updateUIBasedOnAuthState();
-  });
+  document.getElementById('student-names').addEventListener('input', updateStudentDropdown);
 
   document.getElementById('student-select').addEventListener('change', (e) => {
     loadStudentData(e.target.value);
   });
 
   document.body.addEventListener('input', (e) => {
-    const targetPage = e.target.closest('.page-content');
-    if (!targetPage) return;
-
-    if (targetPage.id === 'page1' && e.target.matches('input, textarea, select')) {
+    if (e.target.matches('#page1 input, #page1 textarea, #page1 select')) {
       if (e.target.closest('.interactive-module')) {
         const checkItem = e.target.closest('.check-item');
         if (checkItem) {
@@ -2540,22 +2112,12 @@ function attachGlobalListeners() {
       }
       if (e.target.closest('.score-layout-grid')) calculateTotalScore();
       updateAllOutputs();
-      isDataDirty = true; 
-      updateUIBasedOnAuthState();
-    } else if (targetPage.id === 'page2') {
-        isDataDirty = true;
-        updateUIBasedOnAuthState();
-    } else if (targetPage.id === 'page3') {
-        isDataDirty = true;
-        updateUIBasedOnAuthState();
     }
   });
 
   document.body.addEventListener('change', (e) => {
     if (e.target.type === 'checkbox' && e.target.closest('#checklist-container')) {
       handleCheckboxChange(e.target);
-      isDataDirty = true;
-      updateUIBasedOnAuthState();
     }
     if (e.target.tagName === 'SELECT' && e.target.closest('.interactive-module')) {
       const idPrefix = e.target.id.replace('-select', '');
@@ -2567,8 +2129,6 @@ function attachGlobalListeners() {
         if (cb && cb.checked) populateEditableTextarea(cb.id);
       }
       updateAllOutputs();
-      isDataDirty = true;
-      updateUIBasedOnAuthState();
     }
   });
 
@@ -2578,12 +2138,10 @@ function attachGlobalListeners() {
       if (aiTopicInput.value !== topicInput.value) {
           aiTopicInput.value = topicInput.value;
       }
-      isDataDirty = true;
-      updateUIBasedOnAuthState();
   });
   aiTopicInput.addEventListener('input', () => {
       if (topicInput.value !== aiTopicInput.value) {
-          topicInput.value = topicInput.value;
+          topicInput.value = aiTopicInput.value;
       }
   });
 
@@ -2591,8 +2149,6 @@ function attachGlobalListeners() {
   document.getElementById('import-common-json').addEventListener('change', handleTypoImportJSON);
   document.getElementById('import-student-list').addEventListener('change', handleStudentListImport);
   document.getElementById('import-progress-excel').addEventListener('change', handleProgressImportExcel);
-  document.getElementById('import-critique-excel').addEventListener('change', handleCritiqueImportExcel);
-  document.getElementById('import-critique-json').addEventListener('change', handleCritiqueImportJSON);
   
   bindOverviewEvents();
 
@@ -2600,22 +2156,6 @@ function attachGlobalListeners() {
     const ta = document.getElementById(id);
     ta?.addEventListener('focus', ()=> { ta.dataset.userEditing = '1'; });
     ta?.addEventListener('blur', ()=> { delete ta.dataset.userEditing; updateAllOutputs(); });
-  });
-
-  const scoreInputOrder = ['score-content', 'score-expression', 'score-structure', 'score-punctuation', 'score-typos'];
-  scoreInputOrder.forEach(id => {
-      const input = document.getElementById(id);
-      if (input) {
-          input.addEventListener('keydown', (e) => {
-              if (e.key === 'Enter') {
-                  e.preventDefault();
-                  const currentIndex = scoreInputOrder.indexOf(id);
-                  if (currentIndex > -1 && currentIndex < scoreInputOrder.length - 1) {
-                      document.getElementById(scoreInputOrder[currentIndex + 1]).focus();
-                  }
-              }
-          });
-      }
   });
 }
 
@@ -2662,6 +2202,12 @@ function getCritiqueData(id, type) {
   switch (type) {
     case 'title': return critiqueEl.querySelector('h4')?.textContent || critiqueEl.dataset.title || '';
     case 'fullText': return Array.from(critiqueEl.querySelectorAll('p')).map(p => p.textContent).join('\n\n');
+    case 'concise': return {
+      problemCore: critiqueEl.dataset.problemCore || '',
+      suggestion: critiqueEl.dataset.suggestion || '',
+      strengthSummary: critiqueEl.dataset.strengthSummary || '',
+      example: critiqueEl.dataset.example || ''
+    };
     default: return '';
   }
 }
@@ -2827,7 +2373,7 @@ function generatePureStudentReport(excellents, problems) {
   }
 
   if (problems.length > 0) {
-    out.push('', '【😥待改進】');
+    out.push('', '【待改進❗】');
     problems.forEach((c, index) => {
       const ta = document.getElementById(`text-${c.id}`);
       let text = ta && ta.value ? ta.value : composeStudentFromConcise(c.id);
@@ -2938,8 +2484,6 @@ function addTypo() {
   renderTypoList();
   renderCommonTyposCheckedState();
   updateAllOutputs();
-  isDataDirty = true;
-  updateUIBasedOnAuthState();
 }
 
 function removeTypo(idx) {
@@ -2947,8 +2491,6 @@ function removeTypo(idx) {
   renderTypoList();
   renderCommonTyposCheckedState();
   updateAllOutputs();
-  isDataDirty = true;
-  updateUIBasedOnAuthState();
 }
 
 function renderTypoList() {
@@ -2974,8 +2516,7 @@ function savePairIfNotInCommon(idx) {
   const exists = commonTypos.some(t => t.wrong === pair.wrong && t.correct === pair.correct);
   if (!exists && pair.correct) {
     commonTypos.push({ id: `c_${Date.now()}_${Math.random().toString(36).slice(2,7)}`, wrong: pair.wrong, correct: pair.correct });
-    isDataDirty = true;
-    updateUIBasedOnAuthState();
+    persistCommonTypos(true);
     renderCommonTypoList();
   } else {
     renderCommonTyposCheckedState();
@@ -2991,8 +2532,7 @@ function saveTypoToCommon() {
   if (!item) {
     item = { id: `c_${Date.now()}_${Math.random().toString(36).slice(2,7)}`, wrong, correct };
     commonTypos.push(item);
-    isDataDirty = true;
-    updateUIBasedOnAuthState();
+    persistCommonTypos(true);
   }
 
   const existsInCurrent = currentTypos.some(t => t.wrong === wrong && t.correct === correct);
@@ -3014,6 +2554,7 @@ function renderCommonTypoList() {
   if (!ul) return;
   ul.innerHTML = '';
   commonTypos = commonTypos.filter(t => (t.correct||'').trim());
+  persistCommonTypos(true);
 
   commonTypos.forEach(t => {
     const isInCurrent = currentTypos.findIndex(x => x.wrong === t.wrong && x.correct === t.correct) >= 0;
@@ -3057,8 +2598,6 @@ function toggleCommonToCurrent(id, checked) {
   renderTypoList();
   renderCommonTyposCheckedState();
   updateAllOutputs();
-  isDataDirty = true;
-  updateUIBasedOnAuthState();
 }
 
 function deleteCommonTypo(id) {
@@ -3068,14 +2607,39 @@ function deleteCommonTypo(id) {
     const idxCur = currentTypos.findIndex(x => x.wrong === wrong && x.correct === correct);
     if (idxCur >= 0) currentTypos.splice(idxCur, 1);
     commonTypos.splice(idx, 1);
-    isDataDirty = true;
-    updateUIBasedOnAuthState();
+    persistCommonTypos(true);
     renderCommonTypoList();
     renderTypoList();
     updateAllOutputs();
   }
 }
 
+function persistCommonTypos(writeStorage=false) {
+  try {
+    if (writeStorage) {
+      localStorage.setItem('commonTypos', JSON.stringify(commonTypos));
+    }
+  } catch (e) {
+    console.warn("無法儲存常見錯別字到 localStorage:", e.message);
+  }
+}
+
+function loadCommonTypos() {
+  try {
+    const raw = localStorage.getItem('commonTypos');
+    if (raw) {
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) {
+        commonTypos = arr
+          .map((t, idx) => ({ id: t.id || `c_${Date.now()}_${idx}`, wrong: (t.wrong||'').trim(), correct: (t.correct||'').trim() }))
+          .filter(t => t.correct);
+      }
+    }
+  } catch (e) {
+     console.warn("無法從 localStorage 載入常見錯別字:", e.message);
+  }
+  renderCommonTypoList();
+}
 
 /* -------------------------------------------------------- */
 /* --- 學生資料儲存、讀取與總覽相關功能 --- */
@@ -3174,8 +2738,6 @@ function saveCurrentStudentData() {
   };
 
   renderStudentOverviewTable();
-  isDataDirty = true;
-  updateUIBasedOnAuthState();
 
   confirmUI(
     `已成功儲存 ${studentOriginalName} 的評語資料！\n\n是否要清空當前內容，以準備輸入下一位學生？`,
@@ -3252,8 +2814,6 @@ function handleTableEdit(textarea) {
     
     if (studentRecord && studentRecord.data) {
         studentRecord.data[field] = textarea.value;
-        isDataDirty = true;
-        updateUIBasedOnAuthState();
     }
 }
 
@@ -3284,8 +2844,6 @@ function handleOverviewScoreChange(input) {
     if (totalCell) {
         totalCell.textContent = newTotal;
     }
-    isDataDirty = true;
-    updateUIBasedOnAuthState();
 }
 
 function renderStudentOverviewTable() {
@@ -3315,7 +2873,7 @@ function renderStudentOverviewTable() {
   withoutData.sort(sorter);
 
   const firstWithData = withData[0];
-  const className = firstWithData && firstWithData.data ? (firstWithData.data.class || '未指定班別') : (document.getElementById('student-class').value || '未指定班別');
+  const className = firstWithData && firstWithData.data ? (firstWithData.data.class || '未指定班別') : '未指定班別';
   classDisplay.textContent = `班別：${className}`;
 
   const renderRow = (record, hasData) => {
@@ -3372,54 +2930,6 @@ function jumpToStudentFromOverview(originalName) {
 }
 
 /* ---------------- 第四頁：評語分析 ---------------- */
-function getAnalysisData() {
-  const records = allStudentRecords.filter(r => r.data);
-  if (!records.length) return null;
-
-  let sumContent=0,sumExpr=0,sumStruct=0,sumPunc=0,sumTypos=0,sumTotal=0;
-  let cntContent=0,cntExpr=0,cntStruct=0,cntPunc=0,cntTypos=0,cntTotal=0;
-  records.forEach(r=>{
-    const s = r.data.scores || {};
-    const c = parseFloat(s.content); 
-    const e = parseFloat(s.expression);
-    const st = parseFloat(s.structure);
-    const p = parseFloat(s.punctuation);
-    const t = parseFloat(s.typos);
-    const tot = parseFloat(s.total);
-    if (!isNaN(c)) { sumContent+=c; cntContent++; }
-    if (!isNaN(e)) { sumExpr+=e; cntExpr++; }
-    if (!isNaN(st)) { sumStruct+=st; cntStruct++; }
-    if (!isNaN(p)) { sumPunc+=p; cntPunc++; }
-    if (!isNaN(t)) { sumTypos+=t; cntTypos++; }
-    if (!isNaN(tot)) { sumTotal+=tot; cntTotal++; }
-  });
-  const avgFn = (sum,cnt)=> cnt? (sum/cnt) : null;
-
-  const scoreSummary = [
-    { 指標:'內容', 平均分: avgFn(sumContent,cntContent) },
-    { 指標:'表達', 平均分: avgFn(sumExpr,cntExpr) },
-    { 指標:'結構', 平均分: avgFn(sumStruct,cntStruct) },
-    { 指標:'標點及字體', 平均分: avgFn(sumPunc,cntPunc) },
-    { 指標:'錯別字加減分', 平均分: avgFn(sumTypos,cntTypos) },
-    { 指標:'總分', 平均分: avgFn(sumTotal,cntTotal) },
-  ];
-
-  const freq = {};
-  records.forEach(r=>{
-    const checked = r.data.checkedCritiques || [];
-    const seen = new Set();
-    checked.forEach(item=>{
-      const title = getCritiqueData(item.id,'title');
-      if (!title || seen.has(title)) return;
-      seen.add(title);
-      freq[title]=(freq[title]||0)+1;
-    });
-  });
-  const topEntries = Object.entries(freq).sort((a,b)=>b[1]-a[1]).slice(0,10)
-                      .map(([title,count],idx)=>({ 排名: idx+1, 評語標題: title, 被選次數: count }));
-
-  return { scoreSummary, topEntries, studentCount: records.length };
-}
 
 function renderAnalysisPage() {
   const scoreDiv = document.getElementById('analysis-score-summary');
@@ -3548,30 +3058,30 @@ ${highlights ? `- 特別關注：${highlights}` : ''}
 
 每個評語都是一個 JSON 物件，包含以下欄位：
 
-- \`critique_id\`: (字串) 一個獨一無二的 ID，格式為 "ai_gen_" + 一串隨機字符。
+- \`id\`: (字串) 一個獨一無二的 ID，格式為 "ai_gen_" + 一串隨機字符。
 - \`category\`: (字串) 評語的範疇。請從以下選項中選擇最合適的一個：["扣題與立意", "取材與刻畫", "結構與鋪排", "語言與表達"]。
 - \`type\`: (字串) 評語類型。必須是 "excellent" (優點) 或 "problem" (待改進)。
 - \`title\`: (字串) 評語的簡潔標題，例如 "描寫細緻，形象鮮明"。
-- \`strength_summary\`: (字串) 當 \`type\` 是 "excellent" 時填寫。對優點的概括性描述。如果評語包含可變選項，請使用 \`[選項]\` 作為佔位符。
-- \`problem_core\`: (字串) 當 \`type\` 是 "problem" 時填寫。對問題核心的概括性描述。如果評語包含可變選項，請使用 \`[選項]\` 作為佔位符。
+- \`strengthSummary\`: (字串) 當 \`type\` 是 "excellent" 時填寫。對優點的概括性描述。如果評語包含可變選項，請使用 \`[選項]\` 作為佔位符。
+- \`problemCore\`: (字串) 當 \`type\` 是 "problem" 時填寫。對問題核心的概括性描述。如果評語包含可變選項，請使用 \`[選項]\` 作為佔位符。
 - \`suggestion\`: (字串) 當 \`type\` 是 "problem" 時填寫。針對問題提出的改善建議。如果評語包含可變選項，請使用 \`[選項]\` 作為佔位符。
 - \`example\`: (字串) 一個具體的例子，用以說明觀點。例子必須與題目「${topic}」相關，並貼近香港中學生的生活。
 - \`options\`: (字串) 如果評語中包含可變部分（在 summary/problem/suggestion 中用 \`[選項]\` 標示），此處提供下拉選單的選項，用換行符 \`\\n\` 分隔。如果沒有，則留空。
-- \`options_label\`: (字串) 如果 \`options\` 有內容，此處提供下拉選單的描述文字，例如 "描寫對象"、"修辭手法"。如果沒有，則留空。
+- \`optionsLabel\`: (字串) 如果 \`options\` 有內容，此處提供下拉選單的描述文字，例如 "描寫對象"、"修辭手法"。如果沒有，則留空。
 
 ## JSON Object Example:
 \`\`\`json
 {
-  "critique_id": "ai_gen_abc123",
+  "id": "ai_gen_abc123",
   "category": "取材與刻畫",
   "type": "problem",
   "title": "人物描寫欠立體",
-  "strength_summary": "",
-  "problem_core": "對[選項]的描寫較為單一，未能展現其複雜性。",
+  "strengthSummary": "",
+  "problemCore": "對[選項]的描寫較為單一，未能展現其複雜性。",
   "suggestion": "可嘗試加入人物的心理活動或矛盾掙扎，使形象更飽滿。",
   "example": "例如，寫一位嚴厲的老師，除了描寫他責罵學生，也可以加入他私下關心學生的細節，形成對比。",
   "options": "主角\\n配角\\n老師",
-  "options_label": "描寫人物"
+  "optionsLabel": "描寫人物"
 }
 \`\`\`
 
@@ -3595,17 +3105,21 @@ function applyAIJson() {
         return;
     }
 
-    if (!Array.isArray(importedData)) {
+    let critiquesToImport = [];
+    if (Array.isArray(importedData)) {
+        critiquesToImport = importedData;
+    } else {
         alert('導入失敗：內容不是一個有效的 JSON 陣列。');
         return;
     }
-    if (importedData.length === 0) {
+
+    if (critiquesToImport.length === 0) {
         alert('導入的資料為空陣列，評語庫未作更改。');
         return;
     }
 
-    const firstItem = importedData[0];
-    const requiredKeys = ['critique_id', 'category', 'type', 'title'];
+    const firstItem = critiquesToImport[0];
+    const requiredKeys = ['id', 'category', 'type', 'title'];
     const missingKeys = requiredKeys.filter(key => !(key in firstItem));
 
     if (missingKeys.length > 0) {
@@ -3613,31 +3127,13 @@ function applyAIJson() {
         return;
     }
 
-    confirmUI(`即將使用 ${importedData.length} 條新評語完全覆蓋現有的評語庫。此操作無法復原，確定要繼續嗎？`, () => {
-        const dataContainer = document.getElementById('critique-data');
-        dataContainer.innerHTML = '';
-        importedData.forEach(c => {
-            const div = document.createElement('div');
-            div.dataset.id = c.critique_id;
-            div.dataset.category = c.category;
-            div.dataset.type = c.type;
-            div.dataset.strengthSummary = c.strength_summary || '';
-            div.dataset.problemCore = c.problem_core || '';
-            div.dataset.suggestion = c.suggestion || '';
-            div.dataset.example = c.example || '';
-            div.dataset.options = c.options || '';
-            div.dataset.optionsLabel = c.options_label || '';
-            div.innerHTML = `<h4>${c.title}</h4>`;
-            dataContainer.appendChild(div);
-        });
-        parseLocalCritiques();
+    confirmUI(`即將使用 ${critiquesToImport.length} 條新評語完全覆蓋現有的評語庫。此操作無法復原，確定要繼續嗎？`, () => {
+        applyImportedData({ items: critiquesToImport });
         buildOverviewPage();
         buildChecklist();
         updateAllOutputs();
         showPage('page2'); 
-        isDataDirty = true;
-        updateUIBasedOnAuthState();
-        alert('評語庫已成功更新！請記得點擊「同步至雲端」以保存變更。');
+        alert('評語庫已成功更新！');
         document.getElementById('ai-json-input').value = ''; 
     });
 }
@@ -3670,6 +3166,7 @@ function exportStudentDataForAI() {
   XLSX.utils.book_append_sheet(wb, ws, '學生評語資料');
   const filename = `全班評語資料_供AI分析_${getDateTimeString()}.xlsx`;
   XLSX.writeFile(wb, filename);
+  alert(`供 AI 分析的 Excel 檔案已成功導出為 ${filename}！`);
 }
 
 function generateFeedbackPromptV2() {
@@ -3690,13 +3187,16 @@ function generateFeedbackPromptV2() {
     return;
   }
 
+  const sources = {
+    excel: document.getElementById('ai-source-excel').checked,
+    stats: document.getElementById('ai-source-stats').checked,
+    basic: document.getElementById('ai-source-basic').checked,
+  };
   const modules = {
     classOverview: document.getElementById('ai-module-overview').checked,
     topicAnalysis: document.getElementById('ai-module-topic').checked,
-    materialAndThemeExamples: document.getElementById('ai-module-material-theme').checked,
-    excellentStudents: document.getElementById('ai-module-excellent-students').checked,
     workTiers: document.getElementById('ai-module-tiers').checked,
-    writingPractices: document.getElementById('ai-module-practice').checked,
+    writingPractice: document.getElementById('ai-module-practice').checked,
     teachingPlan: document.getElementById('ai-module-plan').checked,
   };
   const extraHints = document.getElementById('ai-feedback-extra-hints').value.trim();
@@ -3707,7 +3207,7 @@ function generateFeedbackPromptV2() {
   }
 
   let prompt = `# Role and Goal
-你是一位資深的香港中學中文科老師，現正為全班同學就最近一次的作文練習撰寫一份綜合性的回饋文件。你的目標是根據我提供的全班整體表現數據，生成一個結構化的 JSON 物件，該物件的內容將用於產生兩份 Word 文件：一份給老師的詳細教學材料，另一份給學生的簡明回饋單張。
+你是一位資深的香港中學中文科老師，現正為全班同學就最近一次的作文練習撰寫一份綜合性的回饋文件。你的目標是根據我提供的全班整體表現數據，生成一個結構化的 JSON 物件，其中同時包含給老師的詳細教學材料，以及給學生的簡明回饋單張內容。
 
 # Persona
 - 教學風格：專業、溫和、具鼓勵性、層次分明。
@@ -3715,18 +3215,16 @@ function generateFeedbackPromptV2() {
 - 專長：分析學生寫作的共性問題，並提供清晰的教學指導和分層次的材料。
 
 # Context: Class Performance Data
-- 作文題目：「${topic}」
-- 班別：${className}
-- 學生級別：${studentLevel}
 `;
-
-  if (document.getElementById('ai-source-excel').checked) {
+  if (sources.basic) {
+    prompt += `- 作文題目：「${topic}」\n`;
+    prompt += `- 班別：${className}\n`;
+    prompt += `- 學生級別：${studentLevel}\n`;
+  }
+  if (sources.excel) {
     prompt += `- 全班詳細表現：我已上傳名為「全班評語資料_供AI分析.xlsx」的檔案，其中包含每位學生的分數和評語。請務必詳細分析此檔案，以了解學生的具體表現，並從中抽取匿名示例。\n`;
   }
-  if (document.getElementById('ai-module-excellent-students').checked) {
-    prompt += `- 優秀同學名單：請從 Excel 中選取分數較高的同學，作為「優秀同學特點」的例子。如果 Excel 檔案中沒有具體姓名，請使用「陳同學」、「李同學」等通用稱謂。\n`;
-  }
-  if (analysisData && document.getElementById('ai-source-stats').checked) {
+  if (sources.stats && analysisData) {
     const scoreText = analysisData.scoreSummary.map(s => `- ${s.指標}：${s.平均分 != null ? s.平均分.toFixed(2) : 'N/A'}`).join('\n');
     const topCritiquesText = analysisData.topEntries.map(t => `- "${t.評語標題}" (出現 ${t.被選次數} 次)`).join('\n');
     prompt += `- 系統數據摘要：\n`;
@@ -3736,67 +3234,48 @@ function generateFeedbackPromptV2() {
   }
 
   prompt += `\n# Core Task
-根據以上數據，為作文「${topic}」撰寫一份綜合回饋。請嚴格按照下方指定的 JSON 結構和內容要求，生成所有被要求的部分。
+根據以上數據，為作文「${topic}」撰寫一份綜合回饋。請生成以下被要求的部分：**${requestedModules.join(', ')}**。
 
-# General Instructions
-- 內容必須同時兼顧「老師版」和「學生版」的需要。
+# Additional Instructions
+${extraHints ? `- ${extraHints}\n` : ''}- 內容必須同時兼顧「老師版」和「學生版」的需要，並按下方指定的 JSON 格式輸出。
 - 「老師版」應詳細、專業，包含教學策略和深入分析。
 - 「學生版」應簡潔、視覺化、多用點列，語氣親切鼓勵。
-- 請在生成的文字中，使用 Markdown 的 \`**文字**\` 來標示粗體。
-- 所有示例都應匿名化，但內容需反映真實學生作品的水平。
 
 # Output Format (VERY IMPORTANT)
 你的回覆必須是、也只能是一個 JSON 物件。不要包含任何 JSON 以外的文字、註解或 markdown 語法。直接以 \`{\` 開頭，以 \`}\` 結尾。
 如果某個模組未被要求生成，請將其值設為 \`null\` 或省略該鍵。
 
-## JSON 結構詳解 (請嚴格遵守):
+## JSON 結構詳解:
 \`\`\`json
 {
   "classOverview": {
-    "teacherSummary": "(String) **老師版**：專業、深入地總結全班表現，分析結構性弱點、核心問題及教學切入點。",
-    "studentSummary": "(String) **學生版**：以「老師的話」形式撰寫，語氣親切鼓勵，點出共同進步之處及挑戰，並給予方向性建議。"
+    "teacherSummary": "(String) 供老師參考的詳細總結，使用專業術語分析普遍優點與核心問題。",
+    "studentSummary": "(String) 給學生的簡明總結，語氣鼓勵，點出共同進步之處及未來方向。"
   },
   "topicAnalysis": {
-    "keywords": ["(String) 題目關鍵字1", "依依不捨", "離愁", "..."],
-    "analysisTeacher": "(String) **老師版**：深入的審題與立意深度分析，可使用表格形式的文字（用 Tab 或空格分隔），欄位包括：關鍵詞、寫作要求、常見弊病、進階方向。",
-    "highlightsAndProblems": {
-      "highlights": ["(String) 全班亮點1", "文章結構普遍完整"],
-      "problems": [
-        { "problem": "行程細節過於流水賬", "tip": "刪減搭車、吃飯等瑣碎過程..." },
-        { "problem": "友人形象模糊", "tip": "加入描寫友人的外貌、習慣動作..." }
-      ]
-    }
+    "keywords": ["(String) 題目關鍵字1", "(String) 題目關鍵字2"],
+    "analysisTeacher": "(String) 深入的審題分析，探討不同層次的立意和可能的寫作陷阱，供老師備課用。",
+    "analysisStudent": "(String) 點列式審題指引，清晰易懂，幫助學生掌握題目要求。",
+    "exampleParagraph": "(String) 一段約 80-120 字的立意示範段落，展示如何緊扣題旨展開。"
   },
-  "materialAndThemeExamples": [
-    {
-      "theme": "(String) 立意方向1，如：離別是成長的催化劑。",
-      "material": "(String) 具體選材建議1，如：透過描寫送別後，主角開始獨立處理以往依賴朋友幫忙的事，來體現成長。"
-    }
-  ],
-  "excellentStudents": [
-    {
-      "name": "(String) 優秀同學姓名（如：陳同學）",
-      "strength": "(String) 該同學的優點總結，如：描寫細膩，善於運用感官刻畫離愁。"
-    }
-  ],
   "workTiers": {
     "high": {
-      "characteristics": ["(String) 上品作品的特徵1（點列式）", "能細緻描寫友人的神態與動作"],
+      "characteristics": ["(String) 上品作品的特徵1（點列式）", "..."],
       "sample": "(String) 匿名化的上品作品示例段落。",
-      "commentary": "(String) **老師版**：針對該示例的深入點評，分析其優點及技巧。",
-      "selfChecklist": ["(String) 供學生自評的問題1", "我的結尾是否昇華了主題？"]
+      "commentary": "(String) 針對該示例的深入點評，分析其優點及技巧運用，供老師講解用。",
+      "selfChecklist": ["(String) 供學生自評的問題1", "..."]
     },
     "mid": {
-      "characteristics": ["(String) 中品作品的特徵1", "敘事完整，情感尚可"],
+      "characteristics": ["(String) 中品作品的特徵1（點列式）", "..."],
       "sample": "(String) 匿名化的中品作品示例段落。",
-      "commentary": "(String) **老師版**：針對該示例的點評，指出可改善之處。",
-      "selfChecklist": ["(String) 供學生自評的問題1", "我的「難過」有沒有具體的細節支持？"]
+      "commentary": "(String) 針對該示例的點評，指出可改善之處，供老師講解用。",
+      "selfChecklist": ["(String) 供學生自評的問題1", "..."]
     },
     "low": {
-      "characteristics": ["(String) 下品作品的特徵1", "過於側重行程記錄"],
+      "characteristics": ["(String) 下品作品的特徵1（點列式）", "..."],
       "sample": "(String) 匿名化的下品作品示例段落。",
-      "commentary": "(String) **老師版**：針對該示例的點評，點出基本問題及修正方向。",
-      "selfChecklist": ["(String) 供學生自評的問題1", "我是否寫了很多與「送別」無關的瑣事？"]
+      "commentary": "(String) 針對該示例的點評，點出基本問題及修正方向，供老師講解用。",
+      "selfChecklist": ["(String) 供學生自評的問題1", "..."]
     }
   },
   "teachingPlan": {
@@ -3807,23 +3286,14 @@ function generateFeedbackPromptV2() {
     "remedialStrategies": ["(String) 針對能力稍遜學生的補底策略1", "..."],
     "extensionActivities": ["(String) 給能力較佳學生的延伸挑戰1", "..."]
   },
-  "writingPractices": [
-    {
-      "prompt": "(String) **練習一** 的題目。",
-      "guidelines": ["(String) 練習一的寫作指引1（點列式）", "..."],
-      "modelAnswer": "(String) 練習一的參考示例答案。",
-      "commentary": "(String, Optional) **老師版**：對練習一示例的簡要點評。"
-    },
-    {
-      "prompt": "(String) **練習二** 的題目。",
-      "guidelines": ["(String) 練習二的寫作指引1（點列式）", "..."],
-      "modelAnswer": "(String) 練習二的參考示例答案。",
-      "commentary": "(String, Optional) **老師版**：對練習二示例的簡要點評。"
-    }
-  ]
+  "writingPractice": {
+    "prompt": "(String) 一個與本次題目相關的短寫練習題目。",
+    "guidelines": ["(String) 清晰的寫作指引1（點列式）", "..."],
+    "modelAnswer": "(String) 短寫練習的參考示例答案。"
+  }
 }
 \`\`\`
-${extraHints ? `\n# 額外提示\n${extraHints}\n` : ''}
+
 請現在開始生成。`;
   
   document.getElementById('ai-feedback-prompt-preview').value = prompt.trim();
@@ -3852,6 +3322,217 @@ function _getAIFeedbackData() {
   return aiData;
 }
 
+function generateTeacherWord() {
+    const aiData = _getAIFeedbackData();
+    if (!aiData) return;
+
+    const analysisData = getAnalysisData();
+    const topic = document.getElementById('topic').value.trim() || '未命名文章';
+    const className = (allStudentRecords.find(r => r.data)?.data.class) || '未指定班別';
+    const today = new Date();
+    const dateStr = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
+
+    let content = `
+        <html xmlns:o="urn:schemas-microsoft-com:office:office"
+              xmlns:w="urn:schemas-microsoft-com:office:word"
+              xmlns="http://www.w3.org/TR/REC-html40">
+        <head>
+          <meta charset="utf-8" />
+          <title>作文回饋 (老師版) - ${escapeHtmlAttr(topic)}</title>
+          <style>
+            body { font-family: "PMingLiU", "新細明體", "Microsoft JhengHei", sans-serif; font-size: 12pt; line-height: 1.7; }
+            h1 { font-size: 18pt; text-align: center; }
+            h2 { font-size: 16pt; border-bottom: 2px solid #000; padding-bottom: 4pt; margin-top: 24pt; color: #000080; }
+            h3 { font-size: 14pt; margin-top: 18pt; color: #005050; border-left: 4px solid #005050; padding-left: 8pt;}
+            h4 { font-size: 12pt; font-weight: bold; color: #333; }
+            .meta-info { text-align: center; margin-bottom: 20pt; font-size: 11pt; color: #555; }
+            .sample-box { border: 1px solid #ccc; background: #f9f9f9; padding: 10pt; margin: 10pt 0; }
+            .commentary-box { border: 1px dashed #800000; background: #fff5f5; padding: 10pt; margin-top: 5pt; }
+            table { border-collapse: collapse; width: 100%; margin: 10pt 0; }
+            th, td { border: 1px solid #666; padding: 5pt; text-align: left; }
+            th { background-color: #f2f2f2; }
+            ul, ol { padding-left: 24pt; }
+            p { margin-top: 0; margin-bottom: 6pt; }
+          </style>
+        </head>
+        <body>
+          <h1>作文練習綜合回饋 (老師版)</h1>
+          <div class="meta-info">
+            題目：${escapeHtml(topic)}<br>
+            班別：${escapeHtml(className)}<br>
+            日期：${dateStr}
+          </div>
+    `;
+
+    // 1. 數據分析
+    if (analysisData) {
+        content += buildAnalysisWordHtmlSection(analysisData);
+    }
+
+    // 2. 總體概覽
+    if (aiData.classOverview && aiData.classOverview.teacherSummary) {
+        content += `<h2>二、全班概況總結 (教師視角)</h2>${textToWordHtmlWithLists(aiData.classOverview.teacherSummary)}`;
+    }
+
+    // 3. 審題立意
+    if (aiData.topicAnalysis) {
+        content += `<h2>三、審題與立意分析</h2>`;
+        if (aiData.topicAnalysis.analysisTeacher) {
+            content += `<h3>審題重點與教學備忘</h3>${textToWordHtmlWithLists(aiData.topicAnalysis.analysisTeacher)}`;
+        }
+        if (aiData.topicAnalysis.exampleParagraph) {
+            content += `<h3>立意示範段落</h3><div class="sample-box">${textToWordHtmlWithLists(aiData.topicAnalysis.exampleParagraph)}</div>`;
+        }
+    }
+
+    // 4. 分層作品講評
+    if (aiData.workTiers) {
+        content += `<h2>四、分層作品示例與講評</h2>`;
+        const tiers = { high: '上品', mid: '中品', low: '下品' };
+        for (const key in tiers) {
+            if (aiData.workTiers[key]) {
+                const tierData = aiData.workTiers[key];
+                content += `<h3>${tiers[key]}作品分析</h3>`;
+                if (tierData.characteristics) content += `<h4>主要特徵：</h4>${arrayToWordHtmlList(tierData.characteristics)}`;
+                if (tierData.sample) content += `<h4>示例段落：</h4><div class="sample-box">${textToWordHtmlWithLists(tierData.sample)}</div>`;
+                if (tierData.commentary) content += `<h4>教學點評：</h4><div class="commentary-box">${textToWordHtmlWithLists(tierData.commentary)}</div>`;
+            }
+        }
+    }
+
+    // 5. 教學計劃
+    if (aiData.teachingPlan) {
+        content += `<h2>五、跟進教學計劃建議</h2>`;
+        if (aiData.teachingPlan.objectives) content += `<h3>教學目標</h3>${arrayToWordHtmlList(aiData.teachingPlan.objectives)}`;
+        if (aiData.teachingPlan.activities) {
+            content += `<h3>課堂活動</h3><table><tr><th>活動名稱</th><th>描述</th><th>預計時間</th></tr>`;
+            aiData.teachingPlan.activities.forEach(act => {
+                content += `<tr><td>${escapeHtml(act.name)}</td><td>${textToWordHtmlWithLists(act.description)}</td><td>${escapeHtml(act.duration)}</td></tr>`;
+            });
+            content += `</table>`;
+        }
+        if (aiData.teachingPlan.remedialStrategies) content += `<h3>補底策略</h3>${arrayToWordHtmlList(aiData.teachingPlan.remedialStrategies)}`;
+        if (aiData.teachingPlan.extensionActivities) content += `<h3>拔尖活動</h3>${arrayToWordHtmlList(aiData.teachingPlan.extensionActivities)}`;
+    }
+    
+    // 6. 短寫練習
+    if (aiData.writingPractice) {
+        content += `<h2>六、跟進練習設計</h2>`;
+        if (aiData.writingPractice.prompt) content += `<h3>練習題目</h3><p>${textToWordHtmlWithLists(aiData.writingPractice.prompt)}</p>`;
+        if (aiData.writingPractice.guidelines) content += `<h3>寫作指引</h3>${arrayToWordHtmlList(aiData.writingPractice.guidelines)}`;
+        if (aiData.writingPractice.modelAnswer) content += `<h3>參考示例</h3><div class="sample-box">${textToWordHtmlWithLists(aiData.writingPractice.modelAnswer)}</div>`;
+    }
+
+    content += `</body></html>`;
+
+    const fileName = `作文綜合回饋_老師版_${getSanitizedTopicFilename()}_${getDateTimeString()}.doc`;
+    downloadFile(fileName, content, 'application/msword;charset=utf-8');
+    alert(`老師版 Word 文件已成功匯出：${fileName}`);
+}
+
+function generateStudentWord() {
+    const aiData = _getAIFeedbackData();
+    if (!aiData) return;
+
+    const topic = document.getElementById('topic').value.trim() || '未命名文章';
+    const className = (allStudentRecords.find(r => r.data)?.data.class) || '未指定班別';
+    const today = new Date();
+    const dateStr = `${today.getFullYear()}年${(today.getMonth() + 1)}月${today.getDate()}日`;
+
+    let content = `
+        <html xmlns:o="urn:schemas-microsoft-com:office:office"
+              xmlns:w="urn:schemas-microsoft-com:office:word"
+              xmlns="http://www.w3.org/TR/REC-html40">
+        <head>
+          <meta charset="utf-8" />
+          <title>作文回饋 (學生版) - ${escapeHtmlAttr(topic)}</title>
+          <style>
+            body { font-family: "Microsoft JhengHei", "微軟正黑體", sans-serif; font-size: 11pt; line-height: 1.8; }
+            h1 { font-size: 16pt; text-align: center; color: #4A708B; }
+            h2 { font-size: 14pt; border-bottom: 2px solid #6CA6CD; padding-bottom: 4pt; margin-top: 20pt; color: #104E8B; }
+            h3 { font-size: 12pt; margin-top: 16pt; color: #36648B; background-color: #F0F8FF; padding: 4pt; border-left: 5px solid #6CA6CD;}
+            .meta-info { text-align: center; margin-bottom: 20pt; font-size: 10pt; color: #555; }
+            .box { border: 1px solid #B0C4DE; background: #F8F8FF; padding: 8pt; margin: 8pt 0; border-radius: 8px; }
+            .keyword-box { text-align: center; margin: 10pt 0; }
+            .keyword { display: inline-block; background: #E0FFFF; border: 1px solid #ADD8E6; padding: 4pt 8pt; margin: 2pt; border-radius: 15px; font-weight: bold; }
+            table { border-collapse: collapse; width: 100%; margin: 10pt 0; }
+            th, td { border: 1px solid #B0C4DE; padding: 6pt; text-align: left; }
+            th { background-color: #E6E6FA; }
+            ul, ol { padding-left: 20pt; }
+            li { margin-bottom: 5pt; }
+            p { margin-top: 0; margin-bottom: 5pt; }
+          </style>
+        </head>
+        <body>
+          <h1>📝 作文練習回饋單張 📝</h1>
+          <div class="meta-info">
+            題目：${escapeHtml(topic)}<br>
+            班別：${escapeHtml(className)}<br>
+            日期：${dateStr}
+          </div>
+    `;
+
+    // 1. 總體概覽
+    if (aiData.classOverview && aiData.classOverview.studentSummary) {
+        content += `<h2>一、各位同學好！</h2><div class="box">${textToWordHtmlWithLists(aiData.classOverview.studentSummary)}</div>`;
+    }
+
+    // 2. 審題立意
+    if (aiData.topicAnalysis) {
+        content += `<h2>二、💡 審題小貼士</h2>`;
+        if (aiData.topicAnalysis.keywords && aiData.topicAnalysis.keywords.length > 0) {
+            content += `<div class="keyword-box">${aiData.topicAnalysis.keywords.map(k => `<span class="keyword">${escapeHtml(k)}</span>`).join(' ')}</div>`;
+        }
+        if (aiData.topicAnalysis.analysisStudent) {
+            content += `<h3>我們可以從這些角度思考：</h3>${textToWordHtmlWithLists(aiData.topicAnalysis.analysisStudent)}`;
+        }
+        if (aiData.topicAnalysis.exampleParagraph) {
+            content += `<h3>立意示範：</h3><div class="box">${textToWordHtmlWithLists(aiData.topicAnalysis.exampleParagraph)}</div>`;
+        }
+    }
+
+    // 3. 分層作品
+    if (aiData.workTiers) {
+        content += `<h2>三、🧐 作品齊齊睇</h2><p>我們來看看不同層次的作品示例，思考一下可以如何學習和改進：</p>`;
+        const tiers = { high: '👍 上品', mid: '🤔 中品', low: '💪 下品' };
+        content += `<table><tr><th>層級</th><th>特點</th><th>自我檢查清單</th></tr>`;
+        for (const key in tiers) {
+            if (aiData.workTiers[key]) {
+                const tierData = aiData.workTiers[key];
+                content += `<tr>
+                    <td><b>${tiers[key]}</b></td>
+                    <td>${tierData.characteristics ? arrayToWordHtmlList(tierData.characteristics) : ''}</td>
+                    <td>${tierData.selfChecklist ? arrayToWordHtmlList(tierData.selfChecklist) : ''}</td>
+                </tr>`;
+                if(tierData.sample) {
+                    content += `<tr><td colspan="3"><b>示例：</b><div class="box" style="background:#fff;">${textToWordHtmlWithLists(tierData.sample)}</div></td></tr>`;
+                }
+            }
+        }
+        content += `</table>`;
+    }
+    
+    // 4. 短寫練習
+    if (aiData.writingPractice) {
+        content += `<h2>四、✍️ 動筆試一試</h2>`;
+        if (aiData.writingPractice.prompt) content += `<h3>練習題目：</h3><div class="box" style="font-weight:bold;">${textToWordHtmlWithLists(aiData.writingPractice.prompt)}</div>`;
+        if (aiData.writingPractice.guidelines) content += `<h3>寫作指引：</h3>${arrayToWordHtmlList(aiData.writingPractice.guidelines)}`;
+        if (aiData.writingPractice.modelAnswer) content += `<h3>參考示例：</h3><div class="box">${textToWordHtmlWithLists(aiData.writingPractice.modelAnswer)}</div>`;
+    }
+
+    content += `</body></html>`;
+
+    const fileName = `作文綜合回饋_學生版_${getSanitizedTopicFilename()}_${getDateTimeString()}.doc`;
+    downloadFile(fileName, content, 'application/msword;charset=utf-8');
+    alert(`學生版 Word 文件已成功匯出：${fileName}`);
+}
+
+function arrayToWordHtmlList(arr, ordered = false) {
+    if (!arr || !Array.isArray(arr) || arr.length === 0) return '';
+    const tag = ordered ? 'ol' : 'ul';
+    return `<${tag}>${arr.map(item => `<li>${escapeHtml(item)}</li>`).join('')}</${tag}>`;
+}
+
 /* ---------------- 總覽頁 ---------------- */
 
 function setCritiqueData(id, data) {
@@ -3864,8 +3545,6 @@ function setCritiqueData(id, data) {
             delete el.dataset[key];
         }
     }
-    isDataDirty = true;
-    updateUIBasedOnAuthState();
 }
 
 function populateCategoryDropdown() {
@@ -3894,8 +3573,6 @@ function deleteCritique(id) {
     buildOverviewPage();
     buildChecklist();
     updateAllOutputs();
-    isDataDirty = true;
-    updateUIBasedOnAuthState();
 }
 
 function buildOverviewPage() {
@@ -3969,8 +3646,6 @@ function buildOverviewPage() {
         else critiqueEl.dataset.title = inputTitle.value;
         rebuildChecklistAndOutputsDebounced();
         header.innerHTML = `${inputTitle.value} <span class="badge">${critiqueEl.dataset.category}</span>`;
-        isDataDirty = true;
-        updateUIBasedOnAuthState();
       });
       deleteBtn.onclick = () => confirmUI(`確定要永久刪除「${title}」這個評語項目嗎？此操作無法復原。`, () => deleteCritique(id));
 
@@ -4030,6 +3705,10 @@ function buildOverviewPage() {
     categoryGroup.appendChild(categoryContent);
     overviewList.appendChild(categoryGroup);
   });
+}
+
+function escapeHtmlAttr(s) {
+  return (s || '').toString().replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
 let rebuildTimer = null;
@@ -4107,8 +3786,6 @@ function addNewCritique() {
   buildChecklist();
   updateAllOutputs();
 
-  isDataDirty = true;
-  updateUIBasedOnAuthState();
   alert('新評語項目已成功新增！');
 }
 
@@ -4157,8 +3834,6 @@ function applyImportedData(data) {
 
         dataContainer.appendChild(div);
     });
-    isDataDirty = true;
-    updateUIBasedOnAuthState();
   }
 }
 
@@ -4230,23 +3905,20 @@ function handleFileImport(file, onDataReady) {
     reader.readAsText(file, 'UTF-8');
 }
 
+// 新增：通用下載函數，使用 data:URI 提升手機兼容性
 function downloadFile(filename, content, mimeType) {
-    const blob = new Blob([content], { type: mimeType });
-    if (navigator.msSaveBlob) { // IE 10+
-        navigator.msSaveBlob(blob, filename);
-    } else {
-        const link = document.createElement('a');
-        if (link.download !== undefined) {
-            const url = URL.createObjectURL(blob);
-            link.setAttribute('href', url);
-            link.setAttribute('download', filename);
-            link.style.visibility = 'hidden';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
-    }
+    // btoa() can't handle unicode, so we need to escape it first
+    const base64 = btoa(unescape(encodeURIComponent(content)));
+    const dataUri = `data:${mimeType};charset=utf-8;base64,${base64}`;
+
+    const a = document.createElement('a');
+    a.href = dataUri;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
 }
+
 
 function exportOverviewToExcel() {
     if (!checkXlsxLibrary()) return;
@@ -4257,10 +3929,15 @@ function exportOverviewToExcel() {
         return;
     }
     
-    savedRecords.sort((a, b) => (a.number || 999) - (b.number || 999));
+    savedRecords.sort((a, b) => {
+        if (a.number !== null && b.number !== null) return a.number - b.number;
+        if (a.number !== null) return -1;
+        if (b.number !== null) return 1;
+        return a.name.localeCompare(b.name, 'zh-Hant');
+    });
 
     const firstRecord = savedRecords[0];
-    const className = firstRecord.data.class || document.getElementById('student-class').value || '未指定班別';
+    const className = firstRecord.data.class || '未指定班別';
 
     const dataToExport = savedRecords.map(record => {
         const s = record.data.scores;
@@ -4299,51 +3976,57 @@ function exportOverviewToExcel() {
 
     const filename = `學生評語總覽-${className}-${getSanitizedTopicFilename()}.xlsx`;
     XLSX.writeFile(wb, filename);
+    alert(`學生評語總覽已成功導出為 ${filename}！`);
 }
 
 function textToWordHtmlWithLists(text) {
-    if (!text) return '';
-    const lines = text.split('\n');
-    let html = '';
-    let inList = false;
-    let listType = '';
+  if (!text) return '';
+  
+  text = escapeHtml(text);
+  const lines = text.split(/\r?\n/);
+  let html = '';
+  let inUl = false;
+  let inOl = false;
 
-    for (const line of lines) {
-        const trimmedLine = line.trim();
-        let isListItem = false;
-        let currentListType = '';
+  const flushLists = () => {
+    if (inUl) { html += '</ul>'; inUl=false; }
+    if (inOl) { html += '</ol>'; inOl=false; }
+  };
 
-        if (trimmedLine.startsWith('- ') || trimmedLine.startsWith('* ')) {
-            isListItem = true;
-            currentListType = 'ul';
-        } else if (/^\(\d+\)/.test(trimmedLine) || /^\d+\./.test(trimmedLine)) {
-            isListItem = true;
-            currentListType = 'ol';
-        }
-
-        if (isListItem) {
-            if (!inList || listType !== currentListType) {
-                if (inList) html += `</${listType}>`;
-                html += `<${currentListType}>`;
-                inList = true;
-                listType = currentListType;
-            }
-            const itemContent = trimmedLine.replace(/^[-*]\s*|^\(\d+\)\s*|^\d+\.\s*/, '');
-            html += `<li>${escapeHtml(itemContent)}</li>`;
-        } else {
-            if (inList) {
-                html += `</${listType}>`;
-                inList = false;
-            }
-            html += `<p>${escapeHtml(line)}</p>`;
-        }
+  for (let line of lines) {
+    line = line.trim();
+    if (!line) {
+      flushLists();
+      html += '<p>&nbsp;</p>';
+      continue;
     }
 
-    if (inList) {
-        html += `</${listType}>`;
+    const isBullet = /^[-•*．]\s+/.test(line);
+    const isNumbered = /^\d+[\.\)]\s+/.test(line);
+    const isHeader = /【(.*?)】/.test(line);
+
+    if (isHeader) {
+      flushLists();
+      html += `<p><b>${line}</b></p>`;
+    } else if (isBullet) {
+      if (inOl) flushLists();
+      if (!inUl) { html += '<ul>'; inUl=true; }
+      html += `<li>${line.replace(/^[-•*．]\s+/, '')}</li>`;
+    } else if (isNumbered) {
+      if (inUl) flushLists();
+      if (!inOl) { html += '<ol>'; inOl=true; }
+      html += `<li>${line.replace(/^\d+[\.\)]\s+/, '')}</li>`;
+    } else {
+      flushLists();
+      html += `<p>${line}</p>`;
     }
-    return html.replace(/<p><\/p>/g, '');
+  }
+  flushLists();
+  // Replace standalone bracketed headers with bolded paragraphs for better formatting
+  html = html.replace(/<p>【(.*?)】<\/p>/g, '<p><b>【$1】</b></p>');
+  return html.replace(/<p>&nbsp;<\/p>/g, ''); // Clean up empty paragraphs
 }
+
 
 function exportOverviewToWord() {
   const records = allStudentRecords.filter(r => r.data);
@@ -4352,10 +4035,15 @@ function exportOverviewToWord() {
     return;
   }
 
-  records.sort((a, b) => (a.number || 999) - (b.number || 999));
+  records.sort((a, b) => {
+    if (a.number !== null && b.number !== null) return a.number - b.number;
+    if (a.number !== null) return -1;
+    if (b.number !== null) return 1;
+    return a.name.localeCompare(b.name, 'zh-Hant');
+  });
 
   const topic = document.getElementById('topic').value.trim() || '未命名文章';
-  const className = records[0].data.class || document.getElementById('student-class').value || '未指定班別';
+  const className = records[0].data.class || '未指定班別';
 
   let content = `
   <html xmlns:o="urn:schemas-microsoft-com:office:office"
@@ -4372,9 +4060,10 @@ function exportOverviewToWord() {
       table.score { border-collapse: collapse; margin: 4pt 0; width: 100%; font-size: 10.5pt; }
       table.score th, table.score td { border: 1px solid #000; padding: 3pt 6pt; text-align: center; }
       .box { border: 1px solid #000; padding: 4pt 6pt; margin: 4pt 0; font-size: 11pt; }
+      .student-page { page-break-after: always; }
+      ul, ol { margin-top: 0; margin-bottom: 0; padding-left: 24pt; }
       p { margin: 0 0 4pt 0; }
       b, strong { font-weight: bold; }
-      ul, ol { margin-top: 0; margin-bottom: 0; padding-left: 24pt; }
     </style>
   </head>
   <body>
@@ -4385,8 +4074,9 @@ function exportOverviewToWord() {
     const typos = record.data.typos || [];
     const typoLines = buildTypoSectionRaw(typos);
     const pureStudent = record.data.pureStudentComment || '';
-    const num = record.number != null ? String(record.number) : '';
+    const num = record.number !== null ? String(record.number) : '';
 
+    // This is the key fix: Insert a hard page break before every student except the first one.
     if (idx > 0) {
       content += `<br style="page-break-before:always" />`;
     }
@@ -4418,7 +4108,7 @@ function exportOverviewToWord() {
     } else {
       content += '<ul>';
       typoLines.forEach(line => {
-        content += `<li>${escapeHtml(line.replace(/^\d+\.\s/,''))}</li>`;
+        content += `<li>${escapeHtml(line)}</li>`;
       });
       content += '</ul>';
     }
@@ -4437,7 +4127,84 @@ function exportOverviewToWord() {
   
   const fileName = `學生評語_學生版_${getDateTimeString()}.doc`;
   downloadFile(fileName, content, 'application/msword;charset=utf-8');
+  alert(`Word 檔已成功匯出：${fileName}`);
 }
+
+
+function getAnalysisData() {
+  const records = allStudentRecords.filter(r => r.data);
+  if (!records.length) return null;
+
+  let sumContent=0,sumExpr=0,sumStruct=0,sumPunc=0,sumTypos=0,sumTotal=0;
+  let cntContent=0,cntExpr=0,cntStruct=0,cntPunc=0,cntTypos=0,cntTotal=0;
+  records.forEach(r=>{
+    const s = r.data.scores || {};
+    const c = parseFloat(s.content); 
+    const e = parseFloat(s.expression);
+    const st = parseFloat(s.structure);
+    const p = parseFloat(s.punctuation);
+    const t = parseFloat(s.typos);
+    const tot = parseFloat(s.total);
+    if (!isNaN(c)) { sumContent+=c; cntContent++; }
+    if (!isNaN(e)) { sumExpr+=e; cntExpr++; }
+    if (!isNaN(st)) { sumStruct+=st; cntStruct++; }
+    if (!isNaN(p)) { sumPunc+=p; cntPunc++; }
+    if (!isNaN(t)) { sumTypos+=t; cntTypos++; }
+    if (!isNaN(tot)) { sumTotal+=tot; cntTotal++; }
+  });
+  const avgFn = (sum,cnt)=> cnt? (sum/cnt) : null;
+
+  const scoreSummary = [
+    { 指標:'內容', 平均分: avgFn(sumContent,cntContent) },
+    { 指標:'表達', 平均分: avgFn(sumExpr,cntExpr) },
+    { 指標:'結構', 平均分: avgFn(sumStruct,cntStruct) },
+    { 指標:'標點及字體', 平均分: avgFn(sumPunc,cntPunc) },
+    { 指標:'錯別字加減分', 平均分: avgFn(sumTypos,cntTypos) },
+    { 指標:'總分', 平均分: avgFn(sumTotal,cntTotal) },
+  ];
+
+  const freq = {};
+  records.forEach(r=>{
+    const checked = r.data.checkedCritiques || [];
+    const seen = new Set();
+    checked.forEach(item=>{
+      const title = getCritiqueData(item.id,'title');
+      if (!title || seen.has(title)) return;
+      seen.add(title);
+      freq[title]=(freq[title]||0)+1;
+    });
+  });
+  const topEntries = Object.entries(freq).sort((a,b)=>b[1]-a[1]).slice(0,10)
+                      .map(([title,count],idx)=>({ 排名: idx+1, 評語標題: title, 被選次數: count }));
+
+  return { scoreSummary, topEntries, studentCount: records.length };
+}
+
+function buildAnalysisWordHtmlSection(analysisData) {
+    if (!analysisData) return '';
+    const { scoreSummary, topEntries } = analysisData;
+
+    let html = `<h2>一、數據分析 (全班概況)</h2>`;
+    
+    html += `<h3>分數概覽（平均值）</h3><table><tr><th>指標</th><th>平均分</th></tr>`;
+    scoreSummary.forEach(row => {
+        html += `<tr><td>${escapeHtml(row.指標)}</td><td style="text-align:center;">${row.平均分 != null ? row.平均分.toFixed(2) : '-'}</td></tr>`;
+    });
+    html += `</table>`;
+
+    html += `<h3>最常見評語項目 TOP 10</h3>`;
+    if (topEntries.length > 0) {
+        html += `<table><tr><th>排名</th><th>評語標題</th><th style="text-align:center;">被選次數</th></tr>`;
+        topEntries.forEach(row => {
+            html += `<tr><td style="text-align:center;">${row.排名}</td><td>${escapeHtml(row.評語標題)}</td><td style="text-align:center;">${row.被選次數}</td></tr>`;
+        });
+        html += `</table>`;
+    } else {
+        html += `<p>（暫無數據）</p>`;
+    }
+    return html;
+}
+
 
 function exportAnalysisToExcel() {
   if (!checkXlsxLibrary()) return;
@@ -4457,9 +4224,10 @@ function exportAnalysisToExcel() {
   const wsTop = XLSX.utils.json_to_sheet(data.topEntries);
   XLSX.utils.book_append_sheet(wb, wsTop, '評語TOP10');
 
-  const className = (allStudentRecords.find(r=>r.data)?.data.class) || document.getElementById('student-class').value || '未指定班別';
+  const className = (allStudentRecords.find(r=>r.data)?.data.class) || '未指定班別';
   const filename = `評語分析-${className}-${getSanitizedTopicFilename()}.xlsx`;
   XLSX.writeFile(wb, filename);
+  alert(`評語分析已成功匯出為 ${filename}！`);
 }
 
 function buildTeachingHintFromAnalysis(data) {
@@ -4484,23 +4252,6 @@ function buildTeachingHintFromAnalysis(data) {
   return lines.join('\n');
 }
 
-function buildAnalysisWordHtmlSection(data) {
-    let html = '<h2>一、分數概覽</h2><table><tr><th>指標</th><th>平均分</th></tr>';
-    data.scoreSummary.forEach(row => {
-        html += `<tr><td>${escapeHtml(row.指標)}</td><td>${row.平均分 != null ? row.平均分.toFixed(2) : '-'}</td></tr>`;
-    });
-    html += '</table>';
-
-    if (data.topEntries.length > 0) {
-        html += '<h2>二、最常見評語項目 TOP 10</h2><table><tr><th>排名</th><th>評語標題</th><th>被選次數</th></tr>';
-        data.topEntries.forEach(row => {
-            html += `<tr><td>${row.排名}</td><td>${escapeHtml(row.評語標題)}</td><td>${row.被選次數}</td></tr>`;
-        });
-        html += '</table>';
-    }
-    return html;
-}
-
 function exportAnalysisToWord() {
   const data = getAnalysisData();
   if (!data) {
@@ -4508,7 +4259,7 @@ function exportAnalysisToWord() {
     return;
   }
   const topic = document.getElementById('topic').value.trim() || '未命名文章';
-  const className = (allStudentRecords.find(r=>r.data)?.data.class) || document.getElementById('student-class').value || '未指定班別';
+  const className = (allStudentRecords.find(r=>r.data)?.data.class) || '未指定班別';
   const hint = buildTeachingHintFromAnalysis(data);
 
   const today = new Date();
@@ -4539,7 +4290,7 @@ function exportAnalysisToWord() {
     <div class="meta-line">題目：${escapeHtml(topic)}</div>
     <div class="meta-line">日期：${escapeHtml(dateStr)}</div>
     <div class="meta-line">已批改作品數：${data.studentCount}</div>
-    ${buildAnalysisWordHtmlSection(data)}
+    ${buildAnalysisWordHtmlSection(data).replace(/<h2>/g, '<h2>').replace(/<h3>/g, '<h3>')}
     <h2>三、教學提示（草稿）</h2>
     <pre>${escapeHtml(hint)}</pre>
   </body>
@@ -4548,6 +4299,7 @@ function exportAnalysisToWord() {
 
   const filename = `評語分析_${getDateTimeString()}.doc`;
   downloadFile(filename, content, 'application/msword;charset=utf-8');
+  alert(`評語分析 Word 檔已成功匯出：${filename}`);
 }
 
 function downloadStudentListTemplate() {
@@ -4622,8 +4374,9 @@ function exportCritiquesToExcel() {
     const ws = XLSX.utils.json_to_sheet(dataToExport);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, '評語庫');
-    const filename = `評語庫-${getDateTimeString()}.xlsx`;
+    const filename = `評語庫-${getSanitizedTopicFilename()}.xlsx`;
     XLSX.writeFile(wb, filename);
+    alert(`評語庫已成功導出為 ${filename}！`);
 }
 
 function handleCritiqueImportExcel(event) {
@@ -4664,7 +4417,16 @@ function exportCritiquesToJSON() {
         return;
     }
     const jsonString = JSON.stringify({ items: dataToExport }, null, 2);
-    downloadFile(`評語庫-${getDateTimeString()}.json`, jsonString, 'application/json');
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `評語庫-${getSanitizedTopicFilename()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    alert(`評語庫已成功導出為 JSON 檔案！`);
 }
 
 function handleCritiqueImportJSON(event) {
@@ -4702,8 +4464,9 @@ function exportCommonTyposToExcel() {
     const ws = XLSX.utils.json_to_sheet(dataToExport);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, '錯別字庫');
-    const filename = `常見錯別字庫-${getDateTimeString()}.xlsx`;
+    const filename = `常見錯別字庫-${getSanitizedTopicFilename()}.xlsx`;
     XLSX.writeFile(wb, filename);
+    alert(`常見錯別字庫已成功導出為 ${filename}！`);
 }
 
 function handleTypoImportExcel(event) {
@@ -4728,8 +4491,7 @@ function handleTypoImportExcel(event) {
                     correct: (item.correct || '').toString().trim()
                 }))
                 .filter(item => item.correct);
-            isDataDirty = true;
-            updateUIBasedOnAuthState();
+            persistCommonTypos(true);
             renderCommonTypoList();
             alert(`常見錯別字庫已成功導入！共導入 ${commonTypos.length} 條記錄。`);
         } catch (error) {
@@ -4746,7 +4508,16 @@ function exportCommonTyposToJSON() {
         return;
     }
     const jsonString = JSON.stringify(commonTypos, null, 2);
-    downloadFile(`常見錯別字庫-${getDateTimeString()}.json`, jsonString, 'application/json');
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `常見錯別字庫-${getSanitizedTopicFilename()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    alert(`常見錯別字庫已成功導出為 JSON 檔案！`);
 }
 
 function handleTypoImportJSON(event) {
@@ -4761,8 +4532,7 @@ function handleTypoImportJSON(event) {
                         correct: (item.correct || '').toString().trim()
                     }))
                     .filter(item => item.correct);
-                isDataDirty = true;
-                updateUIBasedOnAuthState();
+                persistCommonTypos(true);
                 renderCommonTypoList();
                 alert(`常見錯別字庫已成功導入！共導入 ${commonTypos.length} 條記錄。`);
             } else {
@@ -4814,6 +4584,7 @@ function exportProgressToExcel() {
   XLSX.utils.book_append_sheet(wb, ws, '評語進度');
   const filename = `評語進度_${getDateTimeString()}.xlsx`;
   XLSX.writeFile(wb, filename);
+  alert(`評語進度已匯出為 ${filename}`);
 }
 
 function handleProgressImportExcel(event) {
@@ -4880,8 +4651,6 @@ function handleProgressImportExcel(event) {
 
       renderStudentOverviewTable();
       updateAllOutputs();
-      isDataDirty = true;
-      updateUIBasedOnAuthState();
       alert('評語進度已成功匯入。');
 
     } catch (err) {
@@ -4911,161 +4680,6 @@ function escapeHtml(text) {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
-}
-function escapeHtmlAttr(s) {
-  return (s || '').toString().replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-
-function _buildAiFeedbackWordHtml(aiData, mode) {
-    const topic = document.getElementById('topic').value.trim() || '未命名文章';
-    const className = (allStudentRecords.find(r => r.data)?.data.class) || '未指定班別';
-    const today = new Date();
-    const dateStr = `${today.getFullYear()}年${(today.getMonth() + 1)}月${today.getDate()}日`;
-
-    const mdToHtml = (text) => {
-        if (!text) return '';
-        return text.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
-    };
-
-    let html = `<h1>${escapeHtml(topic)} - 寫作回饋 (${mode === 'teacher' ? '老師版' : '學生版'})</h1>
-                <p><b>班別：</b>${escapeHtml(className)}</p>
-                <p><b>日期：</b>${dateStr}</p>`;
-
-    if (aiData.classOverview) {
-        html += `<h2>一、整體表現概覽</h2>`;
-        const summary = mode === 'teacher' ? aiData.classOverview.teacherSummary : aiData.classOverview.studentSummary;
-        if (summary) {
-            html += `<div class="box">${mdToHtml(textToWordHtmlWithLists(summary))}</div>`;
-        }
-    }
-
-    if (aiData.topicAnalysis) {
-        html += `<h2>二、審題與立意</h2>`;
-        if (mode === 'teacher' && aiData.topicAnalysis.analysisTeacher) {
-            html += `<h3>審題分析</h3><pre>${escapeHtml(aiData.topicAnalysis.analysisTeacher)}</pre>`;
-        }
-        if (aiData.topicAnalysis.highlightsAndProblems) {
-            const { highlights, problems } = aiData.topicAnalysis.highlightsAndProblems;
-            if (highlights && highlights.length > 0) {
-                html += `<h3>本班亮點</h3><ul>${highlights.map(h => `<li>${escapeHtml(h)}</li>`).join('')}</ul>`;
-            }
-            if (problems && problems.length > 0) {
-                html += `<h3>常見問題與提示</h3><table><tr><th>問題</th><th>提示</th></tr>${problems.map(p => `<tr><td>${escapeHtml(p.problem)}</td><td>${escapeHtml(p.tip)}</td></tr>`).join('')}</table>`;
-            }
-        }
-    }
-    
-    if (aiData.materialAndThemeExamples && aiData.materialAndThemeExamples.length > 0) {
-        html += `<h2>三、選材立意舉隅</h2><table><tr><th>立意方向</th><th>選材建議</th></tr>`;
-        aiData.materialAndThemeExamples.forEach(item => {
-            html += `<tr><td>${escapeHtml(item.theme)}</td><td>${escapeHtml(item.material)}</td></tr>`;
-        });
-        html += `</table>`;
-    }
-
-    if (aiData.excellentStudents && aiData.excellentStudents.length > 0) {
-        html += `<h2>四、優秀同學特點</h2><ul>`;
-        aiData.excellentStudents.forEach(s => {
-            html += `<li><b>${escapeHtml(s.name)}：</b>${escapeHtml(s.strength)}</li>`;
-        });
-        html += `</ul>`;
-    }
-
-    if (aiData.workTiers) {
-        html += `<h2>五、分層作品示例與講評</h2>`;
-        const tiers = ['high', 'mid', 'low'];
-        const tierNames = { high: '上品', mid: '中品', low: '下品' };
-        tiers.forEach(tierKey => {
-            const tierData = aiData.workTiers[tierKey];
-            if (tierData) {
-                html += `<h3>${tierNames[tierKey]}作品</h3>`;
-                if (tierData.characteristics && tierData.characteristics.length > 0) {
-                    html += `<p><b>特點：</b></p><ul>${tierData.characteristics.map(c => `<li>${escapeHtml(c)}</li>`).join('')}</ul>`;
-                }
-                if (tierData.sample) {
-                    html += `<p><b>示例：</b></p><div class="sample">${textToWordHtmlWithLists(tierData.sample)}</div>`;
-                }
-                if (mode === 'teacher' && tierData.commentary) {
-                    html += `<p><b>教師點評：</b></p><div class="commentary">${textToWordHtmlWithLists(tierData.commentary)}</div>`;
-                }
-                if (tierData.selfChecklist && tierData.selfChecklist.length > 0) {
-                    html += `<p><b>反思問題：</b></p><ol>${tierData.selfChecklist.map(q => `<li>${escapeHtml(q)}</li>`).join('')}</ol>`;
-                }
-            }
-        });
-    }
-
-    if (mode === 'teacher' && aiData.teachingPlan) {
-        html += `<h2>六、教學計劃建議</h2>`;
-        const plan = aiData.teachingPlan;
-        if (plan.objectives && plan.objectives.length > 0) {
-            html += `<h3>學習目標</h3><ul>${plan.objectives.map(o => `<li>${escapeHtml(o)}</li>`).join('')}</ul>`;
-        }
-        if (plan.activities && plan.activities.length > 0) {
-            html += `<h3>課堂活動</h3><table><tr><th>活動名稱</th><th>描述</th><th>時間</th></tr>${plan.activities.map(a => `<tr><td>${escapeHtml(a.name)}</td><td>${escapeHtml(a.description)}</td><td>${escapeHtml(a.duration)}</td></tr>`).join('')}</table>`;
-        }
-        if (plan.remedialStrategies && plan.remedialStrategies.length > 0) {
-            html += `<h3>補底策略</h3><ul>${plan.remedialStrategies.map(s => `<li>${escapeHtml(s)}</li>`).join('')}</ul>`;
-        }
-        if (plan.extensionActivities && plan.extensionActivities.length > 0) {
-            html += `<h3>延伸活動</h3><ul>${plan.extensionActivities.map(a => `<li>${escapeHtml(a)}</li>`).join('')}</ul>`;
-        }
-    }
-
-    if (aiData.writingPractices && aiData.writingPractices.length > 0) {
-        html += `<h2>${mode === 'teacher' ? '七' : '六'}、跟進練習</h2>`;
-        aiData.writingPractices.forEach((p, index) => {
-            html += `<h3>練習 ${index + 1}</h3>`;
-            if (p.prompt) html += `<p><b>題目：</b>${mdToHtml(escapeHtml(p.prompt))}</p>`;
-            if (p.guidelines && p.guidelines.length > 0) {
-                html += `<p><b>指引：</b></p><ul>${p.guidelines.map(g => `<li>${escapeHtml(g)}</li>`).join('')}</ul>`;
-            }
-            if (p.modelAnswer) {
-                html += `<p><b>參考示例：</b></p><div class="sample">${textToWordHtmlWithLists(p.modelAnswer)}</div>`;
-            }
-            if (mode === 'teacher' && p.commentary) {
-                html += `<p><b>教師點評：</b></p><div class="commentary">${textToWordHtmlWithLists(p.commentary)}</div>`;
-            }
-        });
-    }
-
-    const fullHtml = `
-      <html xmlns:o="urn:schemas-microsoft-com:office:office"
-            xmlns:w="urn:schemas-microsoft-com:office:word"
-            xmlns="http://www.w3.org/TR/REC-html40">
-      <head>
-        <meta charset="utf-8" />
-        <title>${escapeHtmlAttr(topic)} - 寫作回饋</title>
-        <style>
-          body { font-family: "PMingLiU","新細明體","Microsoft JhengHei",sans-serif; font-size: 11pt; line-height: 1.6; }
-          h1 { font-size: 16pt; text-align: center; } h2 { font-size: 14pt; border-bottom: 2px solid #000; padding-bottom: 3pt; margin-top: 15pt; } h3 { font-size: 12pt; border-bottom: 1px dashed #999; padding-bottom: 2pt; margin-top: 12pt; }
-          .box, .sample, .commentary { border: 1px solid #ccc; padding: 8pt; margin: 8pt 0; background: #f9f9f9; }
-          table { border-collapse: collapse; width: 100%; margin: 10pt 0; }
-          th, td { border: 1px solid #666; padding: 5pt; text-align: left; vertical-align: top; }
-          th { background-color: #f2f2f2; }
-          pre { white-space: pre-wrap; font-family: inherit; }
-          p { margin: 0 0 4pt 0; }
-          ul, ol { margin-top: 0; margin-bottom: 0; padding-left: 24pt; }
-        </style>
-      </head>
-      <body>${html}</body></html>`;
-    return fullHtml;
-}
-
-function generateTeacherWord() {
-    const aiData = _getAIFeedbackData();
-    if (!aiData) return;
-    const content = _buildAiFeedbackWordHtml(aiData, 'teacher');
-    const filename = `AI回饋_${getSanitizedTopicFilename()}_老師版.doc`;
-    downloadFile(filename, content, 'application/msword;charset=utf-8');
-}
-
-function generateStudentWord() {
-    const aiData = _getAIFeedbackData();
-    if (!aiData) return;
-    const content = _buildAiFeedbackWordHtml(aiData, 'student');
-    const filename = `AI回饋_${getSanitizedTopicFilename()}_學生版.doc`;
-    downloadFile(filename, content, 'application/msword;charset=utf-8');
 }
 </script>
 
