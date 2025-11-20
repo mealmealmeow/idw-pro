@@ -1711,8 +1711,10 @@
                   <span class="header-tag">AI 必須輸出的 JSON 欄位</span>
                 </div>
                 <div id="ai-feedback-modules" class="checkbox-group" style="margin-top: 0.75rem;">
-                  <label><input type="checkbox" id="ai-module-overview" checked> 總結與概覽</label>
+                  <label><input type="checkbox" id="ai-module-overview" checked> 總結與概覽 (老師的話)</label>
                   <label><input type="checkbox" id="ai-module-topic" checked> 審題與立意分析</label>
+                  <label><input type="checkbox" id="ai-module-material-theme" checked> 選材立意舉隅</label>
+                  <label><input type="checkbox" id="ai-module-excellent-students" checked> 優秀同學特點 (學生版)</label>
                   <label><input type="checkbox" id="ai-module-tiers" checked> 分層作品示例與講評</label>
                   <label><input type="checkbox" id="ai-module-practice" checked> 跟進練習與示例</label>
                   <label><input type="checkbox" id="ai-module-plan" checked> 教學計劃與建議 (僅老師版)</label>
@@ -2157,6 +2159,23 @@ function attachGlobalListeners() {
     ta?.addEventListener('focus', ()=> { ta.dataset.userEditing = '1'; });
     ta?.addEventListener('blur', ()=> { delete ta.dataset.userEditing; updateAllOutputs(); });
   });
+
+  // **NEW**: Add auto-jump for score inputs
+  const scoreInputOrder = ['score-content', 'score-expression', 'score-structure', 'score-punctuation', 'score-typos'];
+  scoreInputOrder.forEach(id => {
+      const input = document.getElementById(id);
+      if (input) {
+          input.addEventListener('keydown', (e) => {
+              if (e.key === 'Enter') {
+                  e.preventDefault();
+                  const currentIndex = scoreInputOrder.indexOf(id);
+                  if (currentIndex > -1 && currentIndex < scoreInputOrder.length - 1) {
+                      document.getElementById(scoreInputOrder[currentIndex + 1]).focus();
+                  }
+              }
+          });
+      }
+  });
 }
 
 function toggleOtherBlock(idPrefix, value) {
@@ -2331,7 +2350,7 @@ function generatePureFullVersion(excellents, problems) {
       const seg = [];
       seg.push(`（${i+1}）${title}`);
       let strengthSummary = concise.strengthSummary || '';
-      if (v) strengthSummary = strengthSummary.replace(/[選項]/g, `「${v}」`);
+      if (v) strengthSummary = strengthSummary.replace(/\[選項\]/g, `「${v}」`);
       if (strengthSummary) seg.push(`${strengthSummary}`);
       if (examples.length) seg.push(`例如：${examples.join(' ')}`);
       parts.push(seg.join('\n'));
@@ -2349,10 +2368,10 @@ function generatePureFullVersion(excellents, problems) {
       const seg = [];
       seg.push(`（${i+1}）`);
       let problemText = concise.problemCore || '';
-      if (v) problemText = problemText.replace(/[選項]/g, `「${v}」`);
+      if (v) problemText = problemText.replace(/\[選項\]/g, `「${v}」`);
       if (problemText) seg.push(`問題：${problemText}`);
       let suggestion = concise.suggestion || '';
-      if (v) suggestion = suggestion.replace(/[選項]/g, `「${v}」`);
+      if (v) suggestion = suggestion.replace(/\[選項\]/g, `「${v}」`);
       if (suggestion) seg.push(`宜：${suggestion}`);
       if (examples.length) seg.push(`例如，${examples.join(' ')}`);
       parts.push(seg.join(' '));
@@ -2435,16 +2454,16 @@ function composeStudentFromConcise(id) {
 
   if (isExcellent) {
     let strengthSummary = c.strengthSummary || '';
-    if (v) strengthSummary = strengthSummary.replace(/[選項]/g, `「${v}」`);
+    if (v) strengthSummary = strengthSummary.replace(/\[選項\]/g, `「${v}」`);
     if (strengthSummary) parts.push(`- 優點：${strengthSummary}`);
     if (exampleLines.length > 0) exampleLines.forEach(line => parts.push(`- ${line}`));
   } else {
     let problemText = c.problemCore || '';
-    if (v) problemText = problemText.replace(/[選項]/g, `「${v}」`);
+    if (v) problemText = problemText.replace(/\[選項\]/g, `「${v}」`);
     if (problemText) parts.push(`- 問題：${problemText}`);
 
     let suggestion = c.suggestion || '';
-    if (v) suggestion = suggestion.replace(/[選項]/g, `「${v}」`);
+    if (v) suggestion = suggestion.replace(/\[選項\]/g, `「${v}」`);
     if (suggestion) parts.push(`- 宜：${suggestion}`);
     
     if (exampleLines.length > 0) exampleLines.forEach(line => parts.push(`- 例：${line}`));
@@ -3187,16 +3206,13 @@ function generateFeedbackPromptV2() {
     return;
   }
 
-  const sources = {
-    excel: document.getElementById('ai-source-excel').checked,
-    stats: document.getElementById('ai-source-stats').checked,
-    basic: document.getElementById('ai-source-basic').checked,
-  };
   const modules = {
     classOverview: document.getElementById('ai-module-overview').checked,
     topicAnalysis: document.getElementById('ai-module-topic').checked,
+    materialAndThemeExamples: document.getElementById('ai-module-material-theme').checked,
+    excellentStudents: document.getElementById('ai-module-excellent-students').checked,
     workTiers: document.getElementById('ai-module-tiers').checked,
-    writingPractice: document.getElementById('ai-module-practice').checked,
+    writingPractices: document.getElementById('ai-module-practice').checked,
     teachingPlan: document.getElementById('ai-module-plan').checked,
   };
   const extraHints = document.getElementById('ai-feedback-extra-hints').value.trim();
@@ -3207,7 +3223,7 @@ function generateFeedbackPromptV2() {
   }
 
   let prompt = `# Role and Goal
-你是一位資深的香港中學中文科老師，現正為全班同學就最近一次的作文練習撰寫一份綜合性的回饋文件。你的目標是根據我提供的全班整體表現數據，生成一個結構化的 JSON 物件，其中同時包含給老師的詳細教學材料，以及給學生的簡明回饋單張內容。
+你是一位資深的香港中學中文科老師，現正為全班同學就最近一次的作文練習撰寫一份綜合性的回饋文件。你的目標是根據我提供的全班整體表現數據，生成一個結構化的 JSON 物件，該物件的內容將用於產生兩份 Word 文件：一份給老師的詳細教學材料，另一份給學生的簡明回饋單張。
 
 # Persona
 - 教學風格：專業、溫和、具鼓勵性、層次分明。
@@ -3215,16 +3231,18 @@ function generateFeedbackPromptV2() {
 - 專長：分析學生寫作的共性問題，並提供清晰的教學指導和分層次的材料。
 
 # Context: Class Performance Data
+- 作文題目：「${topic}」
+- 班別：${className}
+- 學生級別：${studentLevel}
 `;
-  if (sources.basic) {
-    prompt += `- 作文題目：「${topic}」\n`;
-    prompt += `- 班別：${className}\n`;
-    prompt += `- 學生級別：${studentLevel}\n`;
-  }
-  if (sources.excel) {
+
+  if (document.getElementById('ai-source-excel').checked) {
     prompt += `- 全班詳細表現：我已上傳名為「全班評語資料_供AI分析.xlsx」的檔案，其中包含每位學生的分數和評語。請務必詳細分析此檔案，以了解學生的具體表現，並從中抽取匿名示例。\n`;
   }
-  if (sources.stats && analysisData) {
+  if (document.getElementById('ai-module-excellent-students').checked) {
+    prompt += `- 優秀同學名單：請從 Excel 中選取分數較高的同學，作為「優秀同學特點」的例子。如果 Excel 檔案中沒有具體姓名，請使用「陳同學」、「李同學」等通用稱謂。\n`;
+  }
+  if (analysisData && document.getElementById('ai-source-stats').checked) {
     const scoreText = analysisData.scoreSummary.map(s => `- ${s.指標}：${s.平均分 != null ? s.平均分.toFixed(2) : 'N/A'}`).join('\n');
     const topCritiquesText = analysisData.topEntries.map(t => `- "${t.評語標題}" (出現 ${t.被選次數} 次)`).join('\n');
     prompt += `- 系統數據摘要：\n`;
@@ -3234,48 +3252,67 @@ function generateFeedbackPromptV2() {
   }
 
   prompt += `\n# Core Task
-根據以上數據，為作文「${topic}」撰寫一份綜合回饋。請生成以下被要求的部分：**${requestedModules.join(', ')}**。
+根據以上數據，為作文「${topic}」撰寫一份綜合回饋。請嚴格按照下方指定的 JSON 結構和內容要求，生成所有被要求的部分。
 
-# Additional Instructions
-${extraHints ? `- ${extraHints}\n` : ''}- 內容必須同時兼顧「老師版」和「學生版」的需要，並按下方指定的 JSON 格式輸出。
+# General Instructions
+- 內容必須同時兼顧「老師版」和「學生版」的需要。
 - 「老師版」應詳細、專業，包含教學策略和深入分析。
 - 「學生版」應簡潔、視覺化、多用點列，語氣親切鼓勵。
+- 請在生成的文字中，使用 Markdown 的 \`**文字**\` 來標示粗體。
+- 所有示例都應匿名化，但內容需反映真實學生作品的水平。
 
 # Output Format (VERY IMPORTANT)
 你的回覆必須是、也只能是一個 JSON 物件。不要包含任何 JSON 以外的文字、註解或 markdown 語法。直接以 \`{\` 開頭，以 \`}\` 結尾。
 如果某個模組未被要求生成，請將其值設為 \`null\` 或省略該鍵。
 
-## JSON 結構詳解:
+## JSON 結構詳解 (請嚴格遵守):
 \`\`\`json
 {
   "classOverview": {
-    "teacherSummary": "(String) 供老師參考的詳細總結，使用專業術語分析普遍優點與核心問題。",
-    "studentSummary": "(String) 給學生的簡明總結，語氣鼓勵，點出共同進步之處及未來方向。"
+    "teacherSummary": "(String) **老師版**：專業、深入地總結全班表現，分析結構性弱點、核心問題及教學切入點。",
+    "studentSummary": "(String) **學生版**：以「老師的話」形式撰寫，語氣親切鼓勵，點出共同進步之處及挑戰，並給予方向性建議。"
   },
   "topicAnalysis": {
-    "keywords": ["(String) 題目關鍵字1", "(String) 題目關鍵字2"],
-    "analysisTeacher": "(String) 深入的審題分析，探討不同層次的立意和可能的寫作陷阱，供老師備課用。",
-    "analysisStudent": "(String) 點列式審題指引，清晰易懂，幫助學生掌握題目要求。",
-    "exampleParagraph": "(String) 一段約 80-120 字的立意示範段落，展示如何緊扣題旨展開。"
+    "keywords": ["(String) 題目關鍵字1", "依依不捨", "離愁", "..."],
+    "analysisTeacher": "(String) **老師版**：深入的審題與立意深度分析，可使用表格形式的文字（用 Tab 或空格分隔），欄位包括：關鍵詞、寫作要求、常見弊病、進階方向。",
+    "highlightsAndProblems": {
+      "highlights": ["(String) 全班亮點1", "文章結構普遍完整"],
+      "problems": [
+        { "problem": "行程細節過於流水賬", "tip": "刪減搭車、吃飯等瑣碎過程..." },
+        { "problem": "友人形象模糊", "tip": "加入描寫友人的外貌、習慣動作..." }
+      ]
+    }
   },
+  "materialAndThemeExamples": [
+    {
+      "theme": "(String) 立意方向1，如：離別是成長的催化劑。",
+      "material": "(String) 具體選材建議1，如：透過描寫送別後，主角開始獨立處理以往依賴朋友幫忙的事，來體現成長。"
+    }
+  ],
+  "excellentStudents": [
+    {
+      "name": "(String) 優秀同學姓名（如：陳同學）",
+      "strength": "(String) 該同學的優點總結，如：描寫細膩，善於運用感官刻畫離愁。"
+    }
+  ],
   "workTiers": {
     "high": {
-      "characteristics": ["(String) 上品作品的特徵1（點列式）", "..."],
+      "characteristics": ["(String) 上品作品的特徵1（點列式）", "能細緻描寫友人的神態與動作"],
       "sample": "(String) 匿名化的上品作品示例段落。",
-      "commentary": "(String) 針對該示例的深入點評，分析其優點及技巧運用，供老師講解用。",
-      "selfChecklist": ["(String) 供學生自評的問題1", "..."]
+      "commentary": "(String) **老師版**：針對該示例的深入點評，分析其優點及技巧。",
+      "selfChecklist": ["(String) 供學生自評的問題1", "我的結尾是否昇華了主題？"]
     },
     "mid": {
-      "characteristics": ["(String) 中品作品的特徵1（點列式）", "..."],
+      "characteristics": ["(String) 中品作品的特徵1", "敘事完整，情感尚可"],
       "sample": "(String) 匿名化的中品作品示例段落。",
-      "commentary": "(String) 針對該示例的點評，指出可改善之處，供老師講解用。",
-      "selfChecklist": ["(String) 供學生自評的問題1", "..."]
+      "commentary": "(String) **老師版**：針對該示例的點評，指出可改善之處。",
+      "selfChecklist": ["(String) 供學生自評的問題1", "我的「難過」有沒有具體的細節支持？"]
     },
     "low": {
-      "characteristics": ["(String) 下品作品的特徵1（點列式）", "..."],
+      "characteristics": ["(String) 下品作品的特徵1", "過於側重行程記錄"],
       "sample": "(String) 匿名化的下品作品示例段落。",
-      "commentary": "(String) 針對該示例的點評，點出基本問題及修正方向，供老師講解用。",
-      "selfChecklist": ["(String) 供學生自評的問題1", "..."]
+      "commentary": "(String) **老師版**：針對該示例的點評，點出基本問題及修正方向。",
+      "selfChecklist": ["(String) 供學生自評的問題1", "我是否寫了很多與「送別」無關的瑣事？"]
     }
   },
   "teachingPlan": {
@@ -3286,14 +3323,23 @@ ${extraHints ? `- ${extraHints}\n` : ''}- 內容必須同時兼顧「老師版�
     "remedialStrategies": ["(String) 針對能力稍遜學生的補底策略1", "..."],
     "extensionActivities": ["(String) 給能力較佳學生的延伸挑戰1", "..."]
   },
-  "writingPractice": {
-    "prompt": "(String) 一個與本次題目相關的短寫練習題目。",
-    "guidelines": ["(String) 清晰的寫作指引1（點列式）", "..."],
-    "modelAnswer": "(String) 短寫練習的參考示例答案。"
-  }
+  "writingPractices": [
+    {
+      "prompt": "(String) **練習一** 的題目。",
+      "guidelines": ["(String) 練習一的寫作指引1（點列式）", "..."],
+      "modelAnswer": "(String) 練習一的參考示例答案。",
+      "commentary": "(String, Optional) **老師版**：對練習一示例的簡要點評。"
+    },
+    {
+      "prompt": "(String) **練習二** 的題目。",
+      "guidelines": ["(String) 練習二的寫作指引1（點列式）", "..."],
+      "modelAnswer": "(String) 練習二的參考示例答案。",
+      "commentary": "(String, Optional) **老師版**：對練習二示例的簡要點評。"
+    }
+  ]
 }
 \`\`\`
-
+${extraHints ? `\n# 額外提示\n${extraHints}\n` : ''}
 請現在開始生成。`;
   
   document.getElementById('ai-feedback-prompt-preview').value = prompt.trim();
@@ -3340,27 +3386,29 @@ function generateTeacherWord() {
           <meta charset="utf-8" />
           <title>作文回饋 (老師版) - ${escapeHtmlAttr(topic)}</title>
           <style>
-            body { font-family: "PMingLiU", "新細明體", "Microsoft JhengHei", sans-serif; font-size: 12pt; line-height: 1.7; }
-            h1 { font-size: 18pt; text-align: center; }
-            h2 { font-size: 16pt; border-bottom: 2px solid #000; padding-bottom: 4pt; margin-top: 24pt; color: #000080; }
-            h3 { font-size: 14pt; margin-top: 18pt; color: #005050; border-left: 4px solid #005050; padding-left: 8pt;}
-            h4 { font-size: 12pt; font-weight: bold; color: #333; }
-            .meta-info { text-align: center; margin-bottom: 20pt; font-size: 11pt; color: #555; }
-            .sample-box { border: 1px solid #ccc; background: #f9f9f9; padding: 10pt; margin: 10pt 0; }
-            .commentary-box { border: 1px dashed #800000; background: #fff5f5; padding: 10pt; margin-top: 5pt; }
-            table { border-collapse: collapse; width: 100%; margin: 10pt 0; }
-            th, td { border: 1px solid #666; padding: 5pt; text-align: left; }
-            th { background-color: #f2f2f2; }
-            ul, ol { padding-left: 24pt; }
-            p { margin-top: 0; margin-bottom: 6pt; }
+            body { font-family: Calibri, 'Microsoft JhengHei', sans-serif; font-size: 11pt; line-height: 1.8; }
+            h1 { font-size: 20pt; text-align: center; font-weight: bold; color: #2F5496; margin-bottom: 0; }
+            h2 { font-size: 16pt; font-weight: bold; border-bottom: 2.5px solid #4472C4; padding-bottom: 6pt; margin-top: 28pt; color: #2F5496; }
+            h3 { font-size: 14pt; font-weight: bold; margin-top: 20pt; color: #365F91; border-left: 5px solid #5B9BD5; padding-left: 10pt;}
+            h4 { font-size: 12pt; font-weight: bold; color: #333; margin-bottom: 4pt; }
+            .meta-info { text-align: center; margin-bottom: 24pt; font-size: 11pt; color: #555; }
+            .sample-box { border: 1px solid #5B9BD5; padding: 12pt; margin: 12pt 0; border-radius: 4px; background: #F7F9FC; }
+            .commentary-box { border: 1.5px dashed #C00000; padding: 12pt; margin-top: 8pt; border-radius: 4px; background: #FFF9F9;}
+            table { border-collapse: collapse; width: 100%; margin: 12pt 0; font-size: 10.5pt; }
+            th, td { border: 1px solid #888; padding: 8pt; text-align: left; vertical-align: top; }
+            th { font-weight: bold; background: #EAEFF7; }
+            ul, ol { padding-left: 28pt; margin-top: 5pt; margin-bottom: 5pt; }
+            li { margin-bottom: 6pt; }
+            p { margin-top: 0; margin-bottom: 8pt; }
+            b, strong { font-weight: bold; }
           </style>
         </head>
         <body>
           <h1>作文練習綜合回饋 (老師版)</h1>
           <div class="meta-info">
-            題目：${escapeHtml(topic)}<br>
-            班別：${escapeHtml(className)}<br>
-            日期：${dateStr}
+            <p><b>題目：</b>${escapeHtml(topic)}<br>
+            <b>班別：</b>${escapeHtml(className)}<br>
+            <b>日期：</b>${dateStr}</p>
           </div>
     `;
 
@@ -3375,19 +3423,22 @@ function generateTeacherWord() {
     }
 
     // 3. 審題立意
-    if (aiData.topicAnalysis) {
-        content += `<h2>三、審題與立意分析</h2>`;
-        if (aiData.topicAnalysis.analysisTeacher) {
-            content += `<h3>審題重點與教學備忘</h3>${textToWordHtmlWithLists(aiData.topicAnalysis.analysisTeacher)}`;
-        }
-        if (aiData.topicAnalysis.exampleParagraph) {
-            content += `<h3>立意示範段落</h3><div class="sample-box">${textToWordHtmlWithLists(aiData.topicAnalysis.exampleParagraph)}</div>`;
-        }
+    if (aiData.topicAnalysis && aiData.topicAnalysis.analysisTeacher) {
+        content += `<h2>三、審題與立意深度分析</h2>${textToWordHtmlWithLists(aiData.topicAnalysis.analysisTeacher)}`;
+    }
+    
+    // 4. 立意選材舉隅
+    if (aiData.materialAndThemeExamples && aiData.materialAndThemeExamples.length > 0) {
+        content += `<h2>四、立意選材舉隅</h2><table><tr><th>立意方向</th><th>具體選材建議</th></tr>`;
+        aiData.materialAndThemeExamples.forEach(item => {
+            content += `<tr><td>${escapeHtml(item.theme)}</td><td>${textToWordHtmlWithLists(item.material)}</td></tr>`;
+        });
+        content += `</table>`;
     }
 
-    // 4. 分層作品講評
+    // 5. 分層作品講評
     if (aiData.workTiers) {
-        content += `<h2>四、分層作品示例與講評</h2>`;
+        content += `<h2>五、分層作品示例與講評</h2>`;
         const tiers = { high: '上品', mid: '中品', low: '下品' };
         for (const key in tiers) {
             if (aiData.workTiers[key]) {
@@ -3400,9 +3451,9 @@ function generateTeacherWord() {
         }
     }
 
-    // 5. 教學計劃
+    // 6. 教學計劃
     if (aiData.teachingPlan) {
-        content += `<h2>五、跟進教學計劃建議</h2>`;
+        content += `<h2>六、跟進教學計劃建議</h2>`;
         if (aiData.teachingPlan.objectives) content += `<h3>教學目標</h3>${arrayToWordHtmlList(aiData.teachingPlan.objectives)}`;
         if (aiData.teachingPlan.activities) {
             content += `<h3>課堂活動</h3><table><tr><th>活動名稱</th><th>描述</th><th>預計時間</th></tr>`;
@@ -3415,12 +3466,16 @@ function generateTeacherWord() {
         if (aiData.teachingPlan.extensionActivities) content += `<h3>拔尖活動</h3>${arrayToWordHtmlList(aiData.teachingPlan.extensionActivities)}`;
     }
     
-    // 6. 短寫練習
-    if (aiData.writingPractice) {
-        content += `<h2>六、跟進練習設計</h2>`;
-        if (aiData.writingPractice.prompt) content += `<h3>練習題目</h3><p>${textToWordHtmlWithLists(aiData.writingPractice.prompt)}</p>`;
-        if (aiData.writingPractice.guidelines) content += `<h3>寫作指引</h3>${arrayToWordHtmlList(aiData.writingPractice.guidelines)}`;
-        if (aiData.writingPractice.modelAnswer) content += `<h3>參考示例</h3><div class="sample-box">${textToWordHtmlWithLists(aiData.writingPractice.modelAnswer)}</div>`;
+    // 7. 短寫練習
+    if (aiData.writingPractices && aiData.writingPractices.length > 0) {
+        content += `<h2>七、跟進練習設計</h2>`;
+        aiData.writingPractices.forEach((practice, index) => {
+            content += `<h3>練習 ${index + 1}</h3>`;
+            if (practice.prompt) content += `<h4>練習題目</h4><div class="sample-box" style="border-style:dashed;">${textToWordHtmlWithLists(practice.prompt)}</div>`;
+            if (practice.guidelines) content += `<h4>寫作指引</h4>${arrayToWordHtmlList(practice.guidelines)}`;
+            if (practice.modelAnswer) content += `<h4>參考示例</h4><div class="sample-box">${textToWordHtmlWithLists(practice.modelAnswer)}</div>`;
+            if (practice.commentary) content += `<h4>示例點評</h4><div class="commentary-box">${textToWordHtmlWithLists(practice.commentary)}</div>`;
+        });
     }
 
     content += `</body></html>`;
@@ -3447,77 +3502,106 @@ function generateStudentWord() {
           <meta charset="utf-8" />
           <title>作文回饋 (學生版) - ${escapeHtmlAttr(topic)}</title>
           <style>
-            body { font-family: "Microsoft JhengHei", "微軟正黑體", sans-serif; font-size: 11pt; line-height: 1.8; }
-            h1 { font-size: 16pt; text-align: center; color: #4A708B; }
-            h2 { font-size: 14pt; border-bottom: 2px solid #6CA6CD; padding-bottom: 4pt; margin-top: 20pt; color: #104E8B; }
-            h3 { font-size: 12pt; margin-top: 16pt; color: #36648B; background-color: #F0F8FF; padding: 4pt; border-left: 5px solid #6CA6CD;}
-            .meta-info { text-align: center; margin-bottom: 20pt; font-size: 10pt; color: #555; }
-            .box { border: 1px solid #B0C4DE; background: #F8F8FF; padding: 8pt; margin: 8pt 0; border-radius: 8px; }
-            .keyword-box { text-align: center; margin: 10pt 0; }
-            .keyword { display: inline-block; background: #E0FFFF; border: 1px solid #ADD8E6; padding: 4pt 8pt; margin: 2pt; border-radius: 15px; font-weight: bold; }
-            table { border-collapse: collapse; width: 100%; margin: 10pt 0; }
-            th, td { border: 1px solid #B0C4DE; padding: 6pt; text-align: left; }
-            th { background-color: #E6E6FA; }
-            ul, ol { padding-left: 20pt; }
+            body { font-family: 'Microsoft JhengHei UI', 'Segoe UI', sans-serif; font-size: 11pt; line-height: 1.8; }
+            h1 { font-size: 18pt; text-align: center; color: #0078D4; font-weight: bold; }
+            h2 { font-size: 15pt; border-bottom: 2px solid #AEC6CF; padding-bottom: 5pt; margin-top: 24pt; color: #005A9E; font-weight: bold; }
+            h3 { font-size: 13pt; margin-top: 18pt; color: #333; border-left: 4px solid #77DD77; padding-left: 8pt; font-weight: bold;}
+            .meta-info { text-align: center; margin-bottom: 24pt; font-size: 10pt; color: #666; }
+            .box { border: 1px solid #AEC6CF; padding: 10pt; margin: 10pt 0; border-radius: 8px; background: #F8F9FA; }
+            .keyword-box { text-align: center; margin: 12pt 0; padding: 8pt; border: 1px dashed #AEC6CF; border-radius: 8px; }
+            .keyword { display: inline-block; border: 1px solid #77DD77; color: #287D28; background: #E9F9E9; padding: 4pt 10pt; margin: 3pt; border-radius: 15px; font-weight: bold; }
+            table { border-collapse: collapse; width: 100%; margin: 12pt 0; }
+            th, td { border: 1px solid #DCDCDC; padding: 8pt; text-align: left; vertical-align: top; }
+            th { background: #F1F3F5; border-bottom: 2px solid #999; font-weight: bold; }
+            ul, ol { padding-left: 24pt; margin-top: 4pt; margin-bottom: 4pt; }
             li { margin-bottom: 5pt; }
-            p { margin-top: 0; margin-bottom: 5pt; }
+            p { margin-top: 0; margin-bottom: 6pt; }
+            b, strong { font-weight: bold; }
           </style>
         </head>
         <body>
           <h1>📝 作文練習回饋單張 📝</h1>
           <div class="meta-info">
-            題目：${escapeHtml(topic)}<br>
-            班別：${escapeHtml(className)}<br>
-            日期：${dateStr}
+            <p><b>題目：</b>${escapeHtml(topic)}<br>
+            <b>班別：</b>${escapeHtml(className)}<br>
+            <b>日期：</b>${dateStr}</p>
           </div>
     `;
 
-    // 1. 總體概覽
+    // 1. 老師的話
     if (aiData.classOverview && aiData.classOverview.studentSummary) {
-        content += `<h2>一、各位同學好！</h2><div class="box">${textToWordHtmlWithLists(aiData.classOverview.studentSummary)}</div>`;
+        content += `<h2>一、老師的話</h2><div class="box">${textToWordHtmlWithLists(aiData.classOverview.studentSummary)}</div>`;
     }
 
-    // 2. 審題立意
-    if (aiData.topicAnalysis) {
-        content += `<h2>二、💡 審題小貼士</h2>`;
+    // 2. 寫作重點圖解 (綜合)
+    if (aiData.topicAnalysis && aiData.topicAnalysis.highlightsAndProblems) {
+        const hp = aiData.topicAnalysis.highlightsAndProblems;
+        content += `<h2>二、寫作重點圖解</h2>`;
         if (aiData.topicAnalysis.keywords && aiData.topicAnalysis.keywords.length > 0) {
-            content += `<div class="keyword-box">${aiData.topicAnalysis.keywords.map(k => `<span class="keyword">${escapeHtml(k)}</span>`).join(' ')}</div>`;
+            content += `<div class="keyword-box"><b>題目關鍵字：</b><br>${aiData.topicAnalysis.keywords.map(k => `<span class="keyword">${escapeHtml(k)}</span>`).join(' ')}</div>`;
         }
-        if (aiData.topicAnalysis.analysisStudent) {
-            content += `<h3>我們可以從這些角度思考：</h3>${textToWordHtmlWithLists(aiData.topicAnalysis.analysisStudent)}`;
+        content += `<table>`;
+        if (hp.highlights && hp.highlights.length > 0) {
+            content += `<tr><th>全班亮點</th><td>${arrayToWordHtmlList(hp.highlights)}</td></tr>`;
         }
-        if (aiData.topicAnalysis.exampleParagraph) {
-            content += `<h3>立意示範：</h3><div class="box">${textToWordHtmlWithLists(aiData.topicAnalysis.exampleParagraph)}</div>`;
+        if (hp.problems && hp.problems.length > 0) {
+            content += `<tr><th>常見問題與建議</th><td>`;
+            hp.problems.forEach(p => {
+                content += `<p><b>問題：</b>${escapeHtml(p.problem)}<br><b>貼士：</b>${escapeHtml(p.tip)}</p>`;
+            });
+            content += `</td></tr>`;
         }
+        content += `</table>`;
     }
 
-    // 3. 分層作品
+    // 3. 優秀同學特點
+    if (aiData.excellentStudents && aiData.excellentStudents.length > 0) {
+        content += `<h3>👍 優秀同學特點</h3><table><tr><th>同學</th><th>優點</th></tr>`;
+        aiData.excellentStudents.forEach(s => {
+            content += `<tr><td>${escapeHtml(s.name)}</td><td>${escapeHtml(s.strength)}</td></tr>`;
+        });
+        content += `</table>`;
+    }
+    
+    // 4. 作品齊齊睇
     if (aiData.workTiers) {
-        content += `<h2>三、🧐 作品齊齊睇</h2><p>我們來看看不同層次的作品示例，思考一下可以如何學習和改進：</p>`;
-        const tiers = { high: '👍 上品', mid: '🤔 中品', low: '💪 下品' };
-        content += `<table><tr><th>層級</th><th>特點</th><th>自我檢查清單</th></tr>`;
+        content += `<h2>三、作品齊齊睇</h2><p>我們來看看不同層次的作品示例，思考一下可以如何學習和改進：</p>`;
+        content += `<table><tr><th>層級</th><th>特點及示例</th><th>自我檢查清單</th></tr>`;
+        const tiers = { high: '上品 (情景交融，立意深刻)', mid: '中品 (敘事完整，情感尚可)', low: '下品 (流水作業，形象模糊)' };
         for (const key in tiers) {
             if (aiData.workTiers[key]) {
                 const tierData = aiData.workTiers[key];
+                let characteristicsHtml = tierData.characteristics ? arrayToWordHtmlList(tierData.characteristics) : '';
+                let sampleHtml = tierData.sample ? `<br><b>示例：</b><div class="box" style="margin-left:0; margin-right:0;">${textToWordHtmlWithLists(tierData.sample)}</div>` : '';
+                let checklistHtml = tierData.selfChecklist ? arrayToWordHtmlList(tierData.selfChecklist) : '';
                 content += `<tr>
                     <td><b>${tiers[key]}</b></td>
-                    <td>${tierData.characteristics ? arrayToWordHtmlList(tierData.characteristics) : ''}</td>
-                    <td>${tierData.selfChecklist ? arrayToWordHtmlList(tierData.selfChecklist) : ''}</td>
+                    <td>${characteristicsHtml}${sampleHtml}</td>
+                    <td>${checklistHtml}</td>
                 </tr>`;
-                if(tierData.sample) {
-                    content += `<tr><td colspan="3"><b>示例：</b><div class="box" style="background:#fff;">${textToWordHtmlWithLists(tierData.sample)}</div></td></tr>`;
-                }
             }
         }
         content += `</table>`;
     }
+
+    // 5. 選材立意舉隅
+    if (aiData.materialAndThemeExamples && aiData.materialAndThemeExamples.length > 0) {
+        content += `<h2>四、選材立意舉隅</h2><table><tr><th>立意方向</th><th>具體選材建議</th></tr>`;
+        aiData.materialAndThemeExamples.forEach(item => {
+            content += `<tr><td>${escapeHtml(item.theme)}</td><td>${textToWordHtmlWithLists(item.material)}</td></tr>`;
+        });
+        content += `</table>`;
+    }
     
-    // 4. 短寫練習
-    if (aiData.writingPractice) {
-        content += `<h2>四、✍️ 動筆試一試</h2>`;
-        if (aiData.writingPractice.prompt) content += `<h3>練習題目：</h3><div class="box" style="font-weight:bold;">${textToWordHtmlWithLists(aiData.writingPractice.prompt)}</div>`;
-        if (aiData.writingPractice.guidelines) content += `<h3>寫作指引：</h3>${arrayToWordHtmlList(aiData.writingPractice.guidelines)}`;
-        if (aiData.writingPractice.modelAnswer) content += `<h3>參考示例：</h3><div class="box">${textToWordHtmlWithLists(aiData.writingPractice.modelAnswer)}</div>`;
+    // 6. 動筆試一試
+    if (aiData.writingPractices && aiData.writingPractices.length > 0) {
+        content += `<h2>五、✍️ 動筆試一試</h2>`;
+        aiData.writingPractices.forEach((practice, index) => {
+            content += `<h3>練習 ${index + 1}</h3>`;
+            if (practice.prompt) content += `<h4>練習題目：</h4><div class="box" style="border-style:dashed;">${textToWordHtmlWithLists(practice.prompt)}</div>`;
+            if (practice.guidelines) content += `<h4>寫作指引：</h4>${arrayToWordHtmlList(practice.guidelines)}`;
+            if (practice.modelAnswer) content += `<h4>參考示例：</h4><div class="box">${textToWordHtmlWithLists(practice.modelAnswer)}</div>`;
+        });
     }
 
     content += `</body></html>`;
@@ -3527,11 +3611,58 @@ function generateStudentWord() {
     alert(`學生版 Word 文件已成功匯出：${fileName}`);
 }
 
+
 function arrayToWordHtmlList(arr, ordered = false) {
     if (!arr || !Array.isArray(arr) || arr.length === 0) return '';
     const tag = ordered ? 'ol' : 'ul';
-    return `<${tag}>${arr.map(item => `<li>${escapeHtml(item)}</li>`).join('')}</${tag}>`;
+    return `<${tag}>${arr.map(item => `<li>${textToWordHtmlWithLists(item)}</li>`).join('')}</${tag}>`;
 }
+
+function textToWordHtmlWithLists(text) {
+  if (!text) return '';
+  
+  let processedText = String(text)
+      .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+
+  const lines = processedText.split(/\r?\n/);
+  let html = '';
+  let inUl = false;
+  let inOl = false;
+
+  const flushLists = () => {
+    if (inUl) { html += '</ul>'; inUl = false; }
+    if (inOl) { html += '</ol>'; inOl = false; }
+  };
+
+  for (let line of lines) {
+    line = escapeHtml(line.trim()).replace(/&lt;b&gt;/g, '<b>').replace(/&lt;\/b&gt;/g, '</b>');
+
+    if (!line) {
+      flushLists();
+      html += '<p>&nbsp;</p>';
+      continue;
+    }
+
+    const isBullet = /^[-•*．]\s+/.test(line);
+    const isNumbered = /^\d+[\.\)]\s+/.test(line);
+
+    if (isBullet) {
+      if (inOl) flushLists();
+      if (!inUl) { html += '<ul>'; inUl = true; }
+      html += `<li>${line.replace(/^[-•*．]\s+/, '')}</li>`;
+    } else if (isNumbered) {
+      if (inUl) flushLists();
+      if (!inOl) { html += '<ol>'; inOl = true; }
+      html += `<li>${line.replace(/^\d+[\.\)]\s+/, '')}</li>`;
+    } else {
+      flushLists();
+      html += `<p>${line}</p>`;
+    }
+  }
+  flushLists();
+  return html.replace(/<p>&nbsp;<\/p>/g, '').replace(/<p><\/p>/g, '');
+}
+
 
 /* ---------------- 總覽頁 ---------------- */
 
@@ -3978,55 +4109,6 @@ function exportOverviewToExcel() {
     XLSX.writeFile(wb, filename);
     alert(`學生評語總覽已成功導出為 ${filename}！`);
 }
-
-function textToWordHtmlWithLists(text) {
-  if (!text) return '';
-  
-  text = escapeHtml(text);
-  const lines = text.split(/\r?\n/);
-  let html = '';
-  let inUl = false;
-  let inOl = false;
-
-  const flushLists = () => {
-    if (inUl) { html += '</ul>'; inUl=false; }
-    if (inOl) { html += '</ol>'; inOl=false; }
-  };
-
-  for (let line of lines) {
-    line = line.trim();
-    if (!line) {
-      flushLists();
-      html += '<p>&nbsp;</p>';
-      continue;
-    }
-
-    const isBullet = /^[-•*．]\s+/.test(line);
-    const isNumbered = /^\d+[\.\)]\s+/.test(line);
-    const isHeader = /【(.*?)】/.test(line);
-
-    if (isHeader) {
-      flushLists();
-      html += `<p><b>${line}</b></p>`;
-    } else if (isBullet) {
-      if (inOl) flushLists();
-      if (!inUl) { html += '<ul>'; inUl=true; }
-      html += `<li>${line.replace(/^[-•*．]\s+/, '')}</li>`;
-    } else if (isNumbered) {
-      if (inUl) flushLists();
-      if (!inOl) { html += '<ol>'; inOl=true; }
-      html += `<li>${line.replace(/^\d+[\.\)]\s+/, '')}</li>`;
-    } else {
-      flushLists();
-      html += `<p>${line}</p>`;
-    }
-  }
-  flushLists();
-  // Replace standalone bracketed headers with bolded paragraphs for better formatting
-  html = html.replace(/<p>【(.*?)】<\/p>/g, '<p><b>【$1】</b></p>');
-  return html.replace(/<p>&nbsp;<\/p>/g, ''); // Clean up empty paragraphs
-}
-
 
 function exportOverviewToWord() {
   const records = allStudentRecords.filter(r => r.data);
