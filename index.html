@@ -4070,28 +4070,54 @@ function exportOverviewToWord() {
   records.sort((a, b) => (a.number || 999) - (b.number || 999));
   const topic = document.getElementById('topic').value.trim() || '未命名文章';
   const className = records[0].data.class || document.getElementById('student-class').value || '未指定班別';
- /**
- * 1. 核心邏輯：標題變粗體，內容變純文字行 (靠左對齊)
+/**
+ * 1. 智能分析函數：
+ * - 標題 (【...】) -> 純粗體
+ * - 關鍵字 (問題、宜、例) -> 點列 <li>
+ * - 其他文字 -> 純文字 div
  */
-function formatPureTextComment(text) {
+function formatSmartComment(text) {
     if (!text) return '—';
     
     const lines = text.split('\n').map(l => l.trim()).filter(l => l);
     let html = '';
+    let isListOpen = false;
 
     lines.forEach(line => {
-        // 判斷是否為標題：以【開頭，或包含特定關鍵字
-        const isHeader = line.startsWith('【') || /做得好|待改進|建議/.test(line);
+        // 1. 判斷是否需要變點列 (包含 問題/宜/例)
+        // 注意：這裡用正則表達式偵測行首
+        const isBulletItem = /^(問題|宜|例|建議|優點|缺點)[:：]/.test(line) || line.startsWith('•');
 
-        if (isHeader) {
-            // 標題：粗體，靠左
-            html += `<div class="comment-title">${escapeHtml(line)}</div>`;
+        // 2. 判斷是否為標題 (【...】)
+        const isHeader = line.startsWith('【');
+
+        if (isBulletItem) {
+            // 如果還沒開列表，現在開啟
+            if (!isListOpen) { 
+                html += '<ul>'; 
+                isListOpen = true; 
+            }
+            // 輸出點列項目
+            html += `<li>${escapeHtml(line)}</li>`;
         } else {
-            // 內容：普通文字 div，靠左 (去除原本的 1. 或 - 符號，以免混淆)
-            const cleanLine = line.replace(/^[0-9]+[\.\、]\s*|^-\s*/, '');
-            html += `<div class="comment-text">${escapeHtml(cleanLine)}</div>`;
+            // 如果遇到非點列內容，而列表正開著，先關閉列表
+            if (isListOpen) { 
+                html += '</ul>'; 
+                isListOpen = false; 
+            }
+
+            if (isHeader) {
+                // 標題：粗體，無點
+                html += `<div class="comment-title">${escapeHtml(line)}</div>`;
+            } else {
+                // 普通文字 (如 "(1) 立場搖擺...")：純文字，無點
+                html += `<div class="comment-text">${escapeHtml(line)}</div>`;
+            }
         }
     });
+
+    // 確保最後關閉列表
+    if (isListOpen) { html += '</ul>'; }
     
     return html;
 }
@@ -4104,73 +4130,75 @@ let content = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="
 <meta charset="utf-8" />
 <title>學生評語-${escapeHtmlAttr(topic)}</title>
 <style>
-    /* A4 頁面設定 */
-    @page { size: 210mm 297mm; margin: 2cm; }
+    /* --- A4 頁面設定 (上下左右 2cm) --- */
+    @page { 
+        size: 210mm 297mm; 
+        margin: 2cm; 
+    }
     
     /* 字體設定 */
     body { 
         font-family: "ThePeakFontBeta", "FangSong", "PMingLiU", serif; 
         font-size: 12pt; 
-        line-height: 1.6; 
+        line-height: 1.5; 
     }
 
-    /* --- 1. 標題樣式 (粗體，靠左) --- */
+    /* --- 1. 標題樣式 (純文字，粗體) --- */
     .comment-title {
         font-weight: bold;
-        margin-top: 10pt;    /* 與上一段分開 */
-        margin-bottom: 2pt;
+        margin-top: 12pt;
+        margin-bottom: 4pt;
         color: #000;
-        text-align: left;    /* 強制靠左 */
+        text-align: left;
     }
 
-    /* --- 2. 內容樣式 (純文字，靠左，唔縮入去) --- */
+    /* --- 2. 普通文字樣式 (純文字，靠左) --- */
     .comment-text {
-        margin-left: 0;      /* 關鍵：唔移右！ */
+        margin-top: 4pt;
         margin-bottom: 2pt;
         text-align: left;
-        padding-left: 0;
     }
 
-    /* --- 3. 框線設定：全部變返實線 (Solid) --- */
+    /* --- 3. 點列樣式 (只針對 問題、宜、例) --- */
+    ul {
+        margin: 2pt 0 4pt 24pt; /* 左邊縮排，讓點點縮進去 */
+        padding: 0;
+        list-style-type: disc; /* 實心圓點 */
+    }
+    li {
+        margin-bottom: 2pt;
+    }
+
+    /* --- 4. 框線設定：全部實線 (Solid) --- */
     .line { 
-        border-top: 1px solid #000; /* 實線 */
-        margin: 6pt 0; 
+        border-top: 1px solid #000; 
+        margin: 8pt 0; 
     }
     
     .box {
         border: 1px solid #000;     /* 實線 */
-        border-radius: 10px;        /* 保留圓角 */
+        border-radius: 0;           /* 雖然你可以加 border-radius，但 Word 對實線圓角支援普通，這裡建議直角更整齊，或保留 10px */
         padding: 8pt 10pt;
-        margin: 6pt 0;
+        margin: 8pt 0;
         font-size: 11pt;
     }
 
     table.score {
         width: 100%;
-        border-collapse: separate; 
-        border-spacing: 0;
-        border: 1px solid #000;     /* 實線 */
-        border-radius: 10px;
-        margin: 6pt 0;
+        border-collapse: collapse;  /* 實線表格通常用 collapse 比較靚 */
+        margin: 8pt 0;
         font-size: 10.5pt;
     }
     table.score th, table.score td {
-        border-right: 1px solid #000;  /* 實線 */
-        border-bottom: 1px solid #000; /* 實線 */
+        border: 1px solid #000;     /* 實線 */
         padding: 4pt 6pt;
         text-align: center;
     }
-    /* 修正表格圓角邊框 */
-    table.score th:last-child, table.score td:last-child { border-right: none; }
-    table.score tr:last-child td { border-bottom: none; }
 
     /* 其他設定 */
     .meta-line { margin: 4pt 0; }
     .section-title { font-weight: bold; margin: 10pt 0 4pt 0; font-size: 12pt; }
     b, strong { font-weight: bold; }
-    
-    /* 確保沒有任何 list 樣式影響 */
-    ul, ol, li { margin: 0; padding: 0; list-style: none; } 
 
 </style>
 </head>
@@ -4179,16 +4207,17 @@ let content = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="
 records.forEach((record, idx) => {
     const s = record.data.scores || {};
     
-    // 處理錯別字 (純文字列表，無點)
+    // 處理錯別字
     let typoHtml = "本次沒有記錄錯別字。";
     if (record.data.typos && record.data.typos.length > 0) {
-        typoHtml = record.data.typos.map(line => 
-            `<div class="comment-text">${escapeHtml(line.replace(/^\d+\.\s*/, ''))}</div>`
-        ).join('');
+        // 錯別字都變成點列
+        typoHtml = '<ul>' + record.data.typos.map(line => 
+            `<li>${escapeHtml(line.replace(/^\d+\.\s*/, ''))}</li>`
+        ).join('') + '</ul>';
     }
 
-    // 處理評語 (標題粗體，內容靠左純文字)
-    const commentHtml = formatPureTextComment(record.data.pureStudentComment);
+    // 處理評語 (智能分析：標題純文字，特定關鍵字變點列)
+    const commentHtml = formatSmartComment(record.data.pureStudentComment);
 
     // 分頁
     if (idx > 0) content += `<br style="page-break-before:always" />`;
