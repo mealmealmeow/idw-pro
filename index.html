@@ -4071,7 +4071,7 @@ function exportOverviewToWord() {
   const topic = document.getElementById('topic').value.trim() || '未命名文章';
   const className = records[0].data.class || document.getElementById('student-class').value || '未指定班別';
 /**
- * 1. 智能分析函數 (邏輯不變，保留點列)
+ * 1. 智能分析函數 (保留：關鍵字轉點列，其他純文字)
  */
 function formatSmartComment(text) {
     if (!text) return '—';
@@ -4081,10 +4081,9 @@ function formatSmartComment(text) {
     let isListOpen = false;
 
     lines.forEach(line => {
-        // 判斷是否需要變點列 (包含 問題/宜/例/建議/優點/缺點/表現)
+        // 偵測關鍵字 (問題/宜/例...) -> 轉點列
         const isBulletItem = /^(問題|宜|例|建議|優點|缺點|表現)[:：]/.test(line) || line.startsWith('•');
-
-        // 判斷是否為評語分類標題 (【...】)
+        // 偵測標題 (【...】)
         const isHeader = line.startsWith('【');
 
         if (isBulletItem) {
@@ -4094,10 +4093,10 @@ function formatSmartComment(text) {
             if (isListOpen) { html += '</ul>'; isListOpen = false; }
 
             if (isHeader) {
-                // 標題：不再粗體 (font-weight: normal)
+                // 評語標題：粗體
                 html += `<div class="comment-title">${escapeHtml(line)}</div>`;
             } else {
-                // 普通文字
+                // 普通文字：純文字靠左
                 html += `<div class="comment-text">${escapeHtml(line)}</div>`;
             }
         }
@@ -4108,7 +4107,7 @@ function formatSmartComment(text) {
 }
 
 /**
- * 2. HTML 生成代碼 (CSS 全面移除 Bold)
+ * 2. HTML 生成代碼 (修正排版與粗體)
  */
 let content = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
 <head>
@@ -4118,83 +4117,70 @@ let content = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="
     /* --- A4 頁面設定 --- */
     @page { size: 210mm 297mm; margin: 2cm; }
     
-    /* --- 全局字體設定 (預設不粗體) --- */
+    /* --- 全局字體 (預設不粗體) --- */
     body { 
         font-family: "ThePeakFontBeta", "FangSong", "PMingLiU", serif; 
         font-size: 12pt; 
         line-height: 1.5; 
-        font-weight: normal; /* 確保預設不粗體 */
+        font-weight: normal; 
     }
 
-    /* --- 1. 評語分類標題 (【...】) -> 不粗體 --- */
-    .comment-title {
-        font-weight: normal; /* 改為 normal */
-        margin-top: 12pt;
+    /* --- 粗體標籤專用 Class (題目、班別、學號、姓名) --- */
+    .label-bold {
+        font-weight: bold;
+    }
+
+    /* --- 排版區塊 --- */
+    .topic-section {
+        margin-bottom: 12pt; /* 題目與資料之間的空行距離 */
+    }
+    .student-info-section {
         margin-bottom: 4pt;
-        color: #000;
         text-align: left;
     }
 
-    /* --- 2. 普通文字 (靠左) --- */
+    /* --- 評語與文字樣式 --- */
+    .comment-title {
+        font-weight: bold; /* 評語標題 bold */
+        margin-top: 12pt;
+        margin-bottom: 4pt;
+        text-align: left;
+    }
     .comment-text {
         margin-top: 4pt;
         margin-bottom: 2pt;
         text-align: left;
-        font-weight: normal;
     }
 
-    /* --- 3. 點列樣式 (針對 問題、宜、例) --- */
-    ul {
-        margin: 2pt 0 4pt 24pt; 
-        padding: 0;
-        list-style-type: disc;
-    }
-    li {
-        margin-bottom: 2pt;
-        font-weight: normal; /* 確保點列內容也不粗體 */
-    }
+    /* --- 點列樣式 --- */
+    ul { margin: 2pt 0 4pt 24pt; padding: 0; list-style-type: disc; }
+    li { margin-bottom: 2pt; }
 
-    /* --- 4. 框線與表格 (實線) --- */
+    /* --- 實線框設定 --- */
     .line { border-top: 1px solid #000; margin: 8pt 0; }
-    
     .box {
         border: 1px solid #000;
-        border-radius: 0; /* 直角 */
         padding: 8pt 10pt;
         margin: 8pt 0;
         font-size: 11pt;
     }
 
+    /* --- 表格設定 --- */
     table.score {
         width: 100%;
         border-collapse: collapse;
         margin: 8pt 0;
         font-size: 10.5pt;
     }
-    /* 表格標頭與內容 -> 全部不粗體 */
     table.score th, table.score td {
         border: 1px solid #000;
         padding: 4pt 6pt;
         text-align: center;
-        font-weight: normal; /* 關鍵：th 預設會粗體，這裡強制取消 */
     }
 
-    /* --- 5. 章節標題 (一、分數概覽...) -> 不粗體 --- */
-    .section-title { 
-        font-weight: normal; /* 改為 normal */
-        margin: 10pt 0 4pt 0; 
-        font-size: 12pt; 
-    }
-
-    /* --- 6. 特別指定：只有這個 class 才是粗體 --- */
-    .topic-bold {
-        font-weight: bold !important;
-    }
-
-    /* 其他重置 */
-    b, strong { font-weight: normal; } /* 即使有 b 標籤也強制變幼 */
-    .meta-line { margin: 4pt 0; font-weight: normal; }
-
+    /* 其他 */
+    .section-title { font-weight: normal; margin: 10pt 0 4pt 0; font-size: 12pt; }
+    
 </style>
 </head>
 <body>`;
@@ -4202,7 +4188,7 @@ let content = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="
 records.forEach((record, idx) => {
     const s = record.data.scores || {};
     
-    // 錯別字處理 (全點列)
+    // 錯別字
     let typoHtml = "本次沒有記錄錯別字。";
     if (record.data.typos && record.data.typos.length > 0) {
         typoHtml = '<ul>' + record.data.typos.map(line => 
@@ -4210,16 +4196,24 @@ records.forEach((record, idx) => {
         ).join('') + '</ul>';
     }
 
-    // 評語處理
+    // 評語
     const commentHtml = formatSmartComment(record.data.pureStudentComment);
 
+    // 分頁
     if (idx > 0) content += `<br style="page-break-before:always" />`;
 
     content += `
       <div class="student-page">
-        <p class="meta-line">題目：<span class="topic-bold">${escapeHtml(topic)}</span></p>
         
-        <p class="meta-line">班別：${escapeHtml(record.data.class || className)}　　學號：${escapeHtml(record.number != null ? String(record.number) : '')}　　姓名：${escapeHtml(record.name)}</p>
+        <div class="topic-section">
+            <span class="label-bold">題目：</span>${escapeHtml(topic)}
+        </div>
+
+        <div class="student-info-section">
+            <span class="label-bold">班別：</span>${escapeHtml(record.data.class || className)}　　
+            <span class="label-bold">學號：</span>${escapeHtml(record.number != null ? String(record.number) : '')}　　
+            <span class="label-bold">姓名：</span>${escapeHtml(record.name)}
+        </div>
         
         <p class="section-title">一、分數概覽</p>
         <table class="score">
@@ -4247,22 +4241,6 @@ records.forEach((record, idx) => {
 
 content += `</body></html>`;
 downloadFile(`學生評語_學生版_${getDateTimeString()}.doc`, content, 'application/msword;charset=utf-8');
-  records.forEach((record, idx) => {
-    const s = record.data.scores || {};
-    const typoLines = buildTypoSectionRaw(record.data.typos || []);
-    if (idx > 0) content += `<br style="page-break-before:always" />`;
-    content += `
-      <div class="student-page">
-        <p class="meta-line">題目：${escapeHtml(topic)}</p>
-        <p class="meta-line">班別：${escapeHtml(record.data.class || className)}　　學號：${escapeHtml(record.number != null ? String(record.number) : '')}　　姓名：${escapeHtml(record.name)}</p>
-        <p class="section-title">一、分數概覽</p><div class="line"></div>
-        <table class="score"><tr><th>內容</th><th>表達</th><th>結構</th><th>標點</th><th>錯別字</th><th>總分</th></tr><tr><td>${escapeHtmlAttr(s.content||'')}</td><td>${escapeHtmlAttr(s.expression||'')}</td><td>${escapeHtmlAttr(s.structure||'')}</td><td>${escapeHtmlAttr(s.punctuation||'')}</td><td>${escapeHtmlAttr(s.typos||'')}</td><td><b>${escapeHtmlAttr(s.total||'')}</b></td></tr></table>
-        <div class="line"></div><p class="section-title">二、錯別字記錄</p><div class="box">${!typoLines.length ? "本次沒有記錄錯別字。" : `<ul>${typoLines.map(line => `<ul>${escapeHtml(line.replace(/^\d+\.\s/,''))}</ul>`).join('')}</ul>`}</div>
-        <p class="section-title">三、回饋</p><div class="box">${textToWordHtmlWithLists(record.data.pureStudentComment || '—')}</div>
-      </div>`;
-  });
-  content += `</body></html>`;
-  downloadFile(`學生評語_學生版_${getDateTimeString()}.doc`, content, 'application/msword;charset=utf-8');
 }
 
 function exportAnalysisToExcel() {
