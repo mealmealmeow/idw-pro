@@ -4296,7 +4296,29 @@ function downloadCritiqueTemplate() {
     XLSX.utils.book_append_sheet(wb, ws, '評語庫範本');
     XLSX.writeFile(wb, '評語庫-範本.xlsx');
 }
+/**
+ * 下載學生名單 Excel 範本
+ */
+function downloadStudentListTemplate() {
+  // 檢查 XLSX 庫是否已載入
+  if (!checkXlsxLibrary()) return;
 
+  // 定義範本資料 (包含範例資料，讓使用者知道格式)
+  const templateData = [
+    { "班別": "6A", "學號": "01", "姓名": "陳大文" },
+    { "班別": "6A", "學號": "02", "姓名": "李小美" }
+  ];
+
+  // 建立工作表
+  const ws = XLSX.utils.json_to_sheet(templateData);
+  
+  // 建立工作簿並加入工作表
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "學生名單範本");
+
+  // 下載檔案
+  XLSX.writeFile(wb, "學生名單範本.xlsx");
+}
 function exportCritiquesToExcel() {
     if (!checkXlsxLibrary()) return;
     const dataToExport = collectExportData();
