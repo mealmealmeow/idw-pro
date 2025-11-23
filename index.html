@@ -2587,50 +2587,74 @@ async function promptAndLoadCloudProject() {
 }
 
 /* === 修改後的 loadProjectById (載入專案專屬評語) === */
+/* === 修復版 loadProjectById (防止評語殘留) === */
 async function loadProjectById(projectId) {
     const authStatus = document.getElementById('auth-status');
     authStatus.textContent = "正在載入...";
     try {
+        // 1. 獲取專案資料
         const { data: fullProject, error: fullProjectError } = await supabaseClient
             .from('student_projects').select('project_data, class_name, topic').eq('id', projectId).single();
         if (fullProjectError) throw fullProjectError;
         
+        // 2. 清空當前介面 (防止資料殘留)
         clearAllCore(false);
         
-        // --- 資料解析邏輯 (兼容舊版與新版) ---
         const rawData = fullProject.project_data;
         let loadedStudents = [];
         let loadedCritiques = null;
 
+        // 3. 解析資料 (兼容舊版與新版)
         if (Array.isArray(rawData)) {
-            // 舊版資料：project_data 直接是一個學生陣列
-            // 對於舊專案，我們只能使用當前全域的評語
+            // 舊版存檔：只有學生陣列，沒有評語
             loadedStudents = rawData;
+            loadedCritiques = null; 
         } else if (rawData && rawData.students) {
-            // 新版資料：包含 students 和 critiques
+            // 新版存檔：有學生 + 評語
             loadedStudents = rawData.students || [];
-            loadedCritiques = rawData.critiques || []; // 讀取專屬評語
+            loadedCritiques = rawData.critiques || [];
         }
 
-        // 1. 還原學生資料
+        // 4. 還原學生資料
         allStudentRecords = loadedStudents;
-        document.getElementById('student-names').value = ''; 
+        document.getElementById('student-names').value = '';
         document.getElementById('student-names').value = allStudentRecords.map(r => r.originalName).join('\n');
 
-        // 2. 還原專案資料
+        // 5. 還原基本資料
         document.getElementById('student-class').value = fullProject.class_name || '';
         document.getElementById('topic').value = fullProject.topic || '';
         
-        // 3. 【關鍵】還原專屬評語庫 (如果有)
+        // 6. 【關鍵修復】還原評語庫邏輯
         if (loadedCritiques && loadedCritiques.length > 0) {
-            // 用專案內的評語覆蓋介面
+            // A. 如果專案內有存評語 -> 用專案的
             applyCritiquesToDOM(loadedCritiques);
-            // 重新構建 Checklist 和 總覽頁
-            buildChecklist(); 
-            buildOverviewPage();
+        } else {
+            // B. 如果專案內【無】評語 (舊存檔) -> 強制讀取雲端「通用庫」或「預設值」
+            // 這樣可以清除畫面上殘留的「上一個專案」的評語
+            const { data: globalData } = await supabaseClient
+                .from('critiques').select('*').eq('user_id', currentUser.id);
+            
+            if (globalData && globalData.length > 0) {
+                 // 有雲端通用庫 -> 用通用庫
+                 const formatted = globalData.map(c => ({
+                    id: c.critique_id, category: c.category, type: c.type, title: c.title,
+                    strengthSummary: c.strength_summary, problemCore: c.problem_core,
+                    suggestion: c.suggestion, example: c.example, options: c.options,
+                    optionsLabel: c.options_label
+                }));
+                applyCritiquesToDOM(formatted);
+            } else {
+                // 連雲端都無 -> 用系統原始預設 (Canned)
+                const allDefaultCritiques = Object.values(cannedCritiques).flat();
+                // 去重
+                const unique = Array.from(new Map(allDefaultCritiques.map(c => [c.id, c])).values());
+                applyCritiquesToDOM(unique);
+            }
         }
 
-        // 4. 更新介面
+        // 7. 重建介面並更新
+        buildChecklist(); 
+        buildOverviewPage();
         updateStudentDropdown();
         renderStudentOverviewTable();
         
@@ -2640,14 +2664,10 @@ async function loadProjectById(projectId) {
             loadStudentData(studentSelect.value);
         }
         
-        showPage('page2');
+        showPage('page2'); // 跳轉到批改頁
         
-        if (typeof showToast === 'function') {
-             const critiqueMsg = loadedCritiques ? "及專屬評語庫" : "";
-             showToast(`專案「${fullProject.class_name || ''}」${critiqueMsg}載入成功！`, "success");
-        } else {
-             alert(`專案載入成功！`);
-        }
+        const msg = loadedCritiques ? "專案及專屬評語庫" : "舊版專案(使用通用評語)";
+        showToast(`已成功載入：${fullProject.class_name || '未命名'} (${msg})`, "success");
 
     } catch (error) {
         alert(`載入專案時發生錯誤：${error.message}`);
