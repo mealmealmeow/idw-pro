@@ -15,6 +15,157 @@
   <link href="https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC&display=swap" rel="stylesheet">
 
 <style>
+  /* ========================================= */
+/* === 以下係 Pop Art 彈窗專用樣式 (必貼) === */
+/* ========================================= */
+
+.pop-overlay {
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(105, 129, 118, 0.6); /* 半透明背景 */
+  backdrop-filter: blur(4px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+
+.pop-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.pop-modal {
+  background: #ffffff;
+  width: 90%;
+  max-width: 500px;
+  /* 關鍵：圓角 + 實心橙黃色陰影 */
+  border-radius: 30px;
+  box-shadow: -8px 8px 0px 0px #F2C037; 
+  border: 2px solid #F2C037;
+  padding: 30px;
+  position: relative;
+  text-align: center;
+  color: #4a4a4a;
+  transform: scale(0.95);
+  transition: transform 0.2s;
+}
+
+.pop-overlay.active .pop-modal {
+  transform: scale(1);
+}
+
+.pop-icon {
+  font-size: 32px;
+  margin-bottom: 10px;
+  display: block;
+}
+
+.pop-modal h3 {
+  margin: 0 0 10px 0;
+  font-size: 1.3rem;
+  color: #333;
+  font-weight: 700;
+}
+
+.pop-desc {
+  font-size: 0.95rem;
+  color: #666;
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+/* 列表區域 */
+.pop-scroll-area {
+  text-align: left;
+  background: #fffdf5;
+  border-radius: 15px;
+  padding: 15px;
+  max-height: 200px;
+  overflow-y: auto;
+  margin-bottom: 20px;
+  border: 2px solid #eee;
+}
+
+.pop-list-item {
+  padding: 8px 12px;
+  border-bottom: 1px dashed #ddd;
+  font-size: 0.9rem;
+  color: #555;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.pop-list-item:hover {
+  background-color: #fcf4d6;
+  color: #333;
+}
+
+.pop-list-item strong {
+  color: #d48806;
+  margin-right: 5px;
+}
+
+/* 輸入框 */
+.pop-input {
+  width: 80%;
+  padding: 12px 20px;
+  border: 2px solid #e0e0e0;
+  border-radius: 50px;
+  font-size: 16px;
+  outline: none;
+  text-align: center;
+  transition: border-color 0.3s;
+  font-family: inherit;
+  margin-bottom: 20px;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.pop-input:focus {
+  border-color: #F2C037;
+}
+
+/* 按鈕 */
+.pop-footer {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+}
+
+.pop-btn {
+  padding: 10px 30px;
+  border: none;
+  border-radius: 50px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  font-family: inherit;
+  transition: transform 0.1s;
+}
+
+.pop-btn:active {
+  transform: scale(0.95);
+}
+
+.pop-btn-cancel {
+  background: #f0f0f0;
+  color: #888;
+}
+
+.pop-btn-confirm {
+  background: #F2C037;
+  color: #fff;
+  box-shadow: 0 4px 10px rgba(242, 192, 55, 0.4);
+}
+.pop-btn-confirm:hover {
+  background: #e0b132;
+}
   /* --- 文青風色彩與字體定義 --- */
   :root {
     --primary-bg: #f7f3eb;       /* 主背景色 - 溫潤米白偏灰 */
@@ -1004,6 +1155,7 @@
     border: 1px dashed var(--border-color);
     font-size: 0.92rem;
   }
+  
   
   /* ===== 學生總覽 ===== */
 
@@ -2140,7 +2292,28 @@
     <!-- 新增：與雲端同步按鈕 -->
     <a href="javascript:void(0)" class="floating-nav-btn" onclick="syncDataToCloud()" data-tooltip="同步至雲端">☁️</a>
   </nav>
+<!-- 自定義 Pop Art 風格 Project Selection Modal -->
+<div id="pop-project-modal" class="pop-overlay">
+  <div class="pop-modal">
+    <div class="pop-icon">📂</div>
+    <h3>雲端專案讀取</h3>
+    <p class="pop-desc">
+      在雲端找到以下專案。<br>
+      請輸入數字選擇，或直接點擊列表項目。
+    </p>
+    
+    <div class="pop-scroll-area" id="pop-project-list">
+      <!-- JS 會動態插入內容 -->
+    </div>
 
+    <input type="number" id="pop-project-input" class="pop-input" placeholder="輸入編號..." min="1">
+
+    <div class="pop-footer">
+      <button class="pop-btn pop-btn-cancel" id="pop-project-cancel">取消</button>
+      <button class="pop-btn pop-btn-confirm" id="pop-project-confirm">確定載入</button>
+    </div>
+  </div>
+</div>
 <script>
 // --- Supabase 初始化與設定 ---
 const SUPABASE_URL = 'https://wtcegbkfuklnkurrouka.supabase.co'; 
@@ -2327,57 +2500,124 @@ async function promptAndLoadCloudProject() {
         alert("請先登入以使用雲端專案功能。");
         return;
     }
+    const authStatus = document.getElementById('auth-status');
+    const originalText = authStatus.textContent;
+    authStatus.textContent = '正在搜尋雲端專案...';
+
     const { data: projectsData, error: projectsError } = await supabaseClient
         .from('student_projects').select('id, class_name, topic, updated_at').eq('user_id', currentUser.id);
+    
+    authStatus.textContent = originalText;
+
     if (projectsError) {
         alert(`讀取雲端專案列表時出錯：${projectsError.message}`);
         return;
     }
     if (!projectsData || projectsData.length === 0) {
         if (sessionStorage.getItem('projectPromptShownThisSession')) {
-            alert("雲端上沒有找到任何專案。");
+            if (typeof showToast === 'function') showToast("雲端上沒有找到任何專案。", "info");
+            else alert("雲端上沒有找到任何專案。");
         }
         return;
     }
-    let projectChoices = projectsData
-        .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))
-        .map((p, i) => `${i + 1}. ${p.class_name || '未命名班別'} - ${p.topic || '未命名題目'} (${new Date(p.updated_at).toLocaleDateString()})`)
-        .join('\n');
-    const choice = prompt(`在雲端找到 ${projectsData.length} 個專案，你想載入哪一個？\n請輸入數字，或按「取消」以繼續。\n\n${projectChoices}`);
-    const choiceIndex = parseInt(choice, 10) - 1;
 
-    if (!isNaN(choiceIndex) && choiceIndex >= 0 && choiceIndex < projectsData.length) {
-        const projectId = projectsData[choiceIndex].id;
-        try {
-            const { data: fullProject, error: fullProjectError } = await supabaseClient
-                .from('student_projects').select('project_data, class_name, topic').eq('id', projectId).single();
-            if (fullProjectError) throw fullProjectError;
+    // --- Pop Art Modal 邏輯 ---
+    const sortedProjects = projectsData.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
+    
+    return new Promise((resolve) => {
+        const modal = document.getElementById('pop-project-modal');
+        const listContainer = document.getElementById('pop-project-list');
+        const input = document.getElementById('pop-project-input');
+        const confirmBtn = document.getElementById('pop-project-confirm');
+        const cancelBtn = document.getElementById('pop-project-cancel');
+        
+        // 1. 渲染列表
+        listContainer.innerHTML = '';
+        sortedProjects.forEach((p, index) => {
+            const dateStr = new Date(p.updated_at).toLocaleDateString();
+            const div = document.createElement('div');
+            div.className = 'pop-list-item';
+            div.innerHTML = `<strong>${index + 1}.</strong> ${escapeHtmlAttr(p.class_name || '未命名')} - ${escapeHtmlAttr(p.topic || '未命名')} <span style="font-size:0.8em;color:#999">(${dateStr})</span>`;
             
-            clearAllCore(false);
-            allStudentRecords = [];
-            document.getElementById('student-names').value = '';
+            // 點擊列表項目直接選中
+            div.onclick = () => {
+                input.value = index + 1;
+                triggerConfirm();
+            };
+            listContainer.appendChild(div);
+        });
 
-            allStudentRecords = fullProject.project_data || [];
-            document.getElementById('student-class').value = fullProject.class_name || '';
-            document.getElementById('topic').value = fullProject.topic || '';
-            document.getElementById('student-names').value = allStudentRecords.map(r => r.originalName).join('\n');
-            
-            updateStudentDropdown();
-            renderStudentOverviewTable();
-            
-            const studentSelect = document.getElementById('student-select');
-            if (studentSelect.options.length > 0) {
-                studentSelect.selectedIndex = 0;
-                loadStudentData(studentSelect.value);
+        // 2. 顯示 Modal
+        modal.classList.add('active');
+        input.value = '';
+        setTimeout(() => input.focus(), 100); 
+
+        // 3. 定義確認邏輯
+        const triggerConfirm = async () => {
+            const val = parseInt(input.value, 10);
+            if (!isNaN(val) && val >= 1 && val <= sortedProjects.length) {
+                const projectId = sortedProjects[val - 1].id;
+                closeModal();
+                await loadProjectById(projectId); // 呼叫載入函數
+                resolve(true);
+            } else {
+                input.style.borderColor = '#c86a5a'; // 錯誤時變紅
+                setTimeout(() => input.style.borderColor = '#e0e0e0', 500);
             }
-            showPage('page2');
-            alert(`專案「${fullProject.class_name || '未命名'} - ${fullProject.topic || '未命名'}」已成功載入。`);
-        } catch (error) {
-            alert(`載入專案時發生錯誤：${error.message}`);
-        }
-    }
+        };
+
+        const closeModal = () => {
+            modal.classList.remove('active');
+            // 防止重複綁定
+            confirmBtn.onclick = null;
+            cancelBtn.onclick = null;
+            input.onkeydown = null;
+            resolve(false);
+        };
+
+        // 4. 綁定按鈕事件
+        confirmBtn.onclick = triggerConfirm;
+        cancelBtn.onclick = closeModal;
+        input.onkeydown = (e) => {
+            if (e.key === 'Enter') triggerConfirm();
+        };
+    });
 }
 
+async function loadProjectById(projectId) {
+    const authStatus = document.getElementById('auth-status');
+    authStatus.textContent = "正在載入...";
+    try {
+        const { data: fullProject, error: fullProjectError } = await supabaseClient
+            .from('student_projects').select('project_data, class_name, topic').eq('id', projectId).single();
+        if (fullProjectError) throw fullProjectError;
+        
+        clearAllCore(false);
+        allStudentRecords = [];
+        document.getElementById('student-names').value = '';
+
+        allStudentRecords = fullProject.project_data || [];
+        document.getElementById('student-class').value = fullProject.class_name || '';
+        document.getElementById('topic').value = fullProject.topic || '';
+        document.getElementById('student-names').value = allStudentRecords.map(r => r.originalName).join('\n');
+        
+        updateStudentDropdown();
+        renderStudentOverviewTable();
+        
+        const studentSelect = document.getElementById('student-select');
+        if (studentSelect.options.length > 0) {
+            studentSelect.selectedIndex = 0;
+            loadStudentData(studentSelect.value);
+        }
+        showPage('page2');
+        if (typeof showToast === 'function') showToast(`專案「${fullProject.class_name || ''}」載入成功！`, "success");
+        else alert(`專案「${fullProject.class_name}」載入成功！`);
+    } catch (error) {
+        alert(`載入專案時發生錯誤：${error.message}`);
+    } finally {
+        updateUIBasedOnAuthState();
+    }
+}
 // --- 重要的修改：雲端同步函式 ---
 async function syncDataToCloud() {
   // 1. 檢查是否登入
