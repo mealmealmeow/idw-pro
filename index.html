@@ -2288,7 +2288,7 @@
     <a href="#grading-section-checklist" class="floating-nav-btn" onclick="scrollToSection(event, 'grading-section-checklist')" data-tooltip="評語項目">✅</a>
     <a href="#grading-section-typo-score" class="floating-nav-btn" onclick="scrollToSection(event, 'grading-section-typo-score')" data-tooltip="錯別字/評分">📝</a>
     <a href="#grading-section-feedback" class="floating-nav-btn" onclick="scrollToSection(event, 'grading-section-feedback')" data-tooltip="學生評語">📄</a>
-    <a href="javascript:void(0)" class="floating-nav-btn" onclick="saveCurrentStudentData()" data-tooltip="儲存當前學生">💾</a>
+    <a href="#grading-section-save" class="floating-nav-btn" onclick="scrollToSection(event, 'grading-section-save')" data-tooltip="儲存">💾</a>
     <!-- 新增：與雲端同步按鈕 -->
     <a href="javascript:void(0)" class="floating-nav-btn" onclick="syncDataToCloud()" data-tooltip="同步至雲端">☁️</a>
   </nav>
@@ -2308,36 +2308,11 @@
 
     <input type="number" id="pop-project-input" class="pop-input" placeholder="輸入編號..." min="1">
 
-   <div class="pop-footer">
-      <!-- 改咗下面呢行文字，變成「開新專案」 -->
-      <button class="pop-btn pop-btn-cancel" id="pop-project-cancel">開新專案 (不載入)</button>
-      <button class="pop-btn pop-btn-confirm" id="pop-project-confirm">確定載入</button>
-
-    </div>
-  </div>
-  <!-- 新增：建立新專案的 Modal (Modal B) -->
-<div id="pop-new-project-modal" class="pop-overlay">
-  <div class="pop-modal">
-    <div class="pop-icon">✨</div>
-    <h3>建立新專案</h3>
-    <p class="pop-desc">
-      請輸入新專案的資料。<br>
-      <strong>只要填寫其中一項</strong>，即可建立。
-    </p>
-    
-    <!-- 輸入區域 -->
-    <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;">
-        <input type="text" id="new-proj-class" class="pop-input" placeholder="班別 (例如: 6A)" style="margin-bottom:0; width:90%;">
-        <input type="text" id="new-proj-topic" class="pop-input" placeholder="作文題目" style="margin-bottom:0; width:90%;">
-        <textarea id="new-proj-students" class="pop-input" placeholder="學生名單 (每行一個姓名)" style="margin-bottom:0; width:90%; height: 100px; text-align: left; resize: none; font-family: inherit;"></textarea>
-    </div>
-
     <div class="pop-footer">
-      <button class="pop-btn pop-btn-cancel" onclick="closeNewProjectModal()">取消</button>
-      <button class="pop-btn pop-btn-confirm" onclick="confirmCreateNewProject()">立即建立</button>
+      <button class="pop-btn pop-btn-cancel" id="pop-project-cancel">取消</button>
+      <button class="pop-btn pop-btn-confirm" id="pop-project-confirm">確定載入</button>
     </div>
   </div>
-</div>
 </div>
 <script>
 // --- Supabase 初始化與設定 ---
@@ -2609,7 +2584,6 @@ async function promptAndLoadCloudProject() {
     });
 }
 
-/* === 修正版：載入專案時強制切換評語庫 === */
 async function loadProjectById(projectId) {
     const authStatus = document.getElementById('auth-status');
     authStatus.textContent = "正在載入...";
@@ -2618,102 +2592,46 @@ async function loadProjectById(projectId) {
             .from('student_projects').select('project_data, class_name, topic').eq('id', projectId).single();
         if (fullProjectError) throw fullProjectError;
         
-        // 1. 先清空當前畫面，防止殘留
         clearAllCore(false);
-        document.getElementById('critique-data').innerHTML = ''; // 清空隱藏的評語數據
-        document.getElementById('checklist-container').innerHTML = ''; // 清空顯示的 Checkbox
-        
-        // 2. 解析資料
-        const rawData = fullProject.project_data;
-        let loadedStudents = [];
-        let loadedCritiques = null;
+        allStudentRecords = [];
+        document.getElementById('student-names').value = '';
 
-        if (Array.isArray(rawData)) {
-            // 舊版格式：只有學生
-            loadedStudents = rawData;
-            loadedCritiques = null; 
-        } else if (rawData && rawData.students) {
-            // 新版格式：學生 + 評語
-            loadedStudents = rawData.students || [];
-            loadedCritiques = rawData.critiques || [];
-        }
-
-        // 3. 還原學生及基本資料
-        allStudentRecords = loadedStudents;
-        document.getElementById('student-names').value = allStudentRecords.map(r => r.originalName).join('\n');
+        allStudentRecords = fullProject.project_data || [];
         document.getElementById('student-class').value = fullProject.class_name || '';
         document.getElementById('topic').value = fullProject.topic || '';
+        document.getElementById('student-names').value = allStudentRecords.map(r => r.originalName).join('\n');
         
-        // 4. 還原評語庫 (關鍵邏輯)
-        if (loadedCritiques && loadedCritiques.length > 0) {
-            // A. 如果專案內有存評語 -> 使用專案專屬評語
-            applyCritiquesToDOM(loadedCritiques);
-            console.log("已載入專案專屬評語庫");
-        } else {
-            // B. 如果是舊專案(無評語) -> 去雲端拉取「通用評語」來填補，避免空白或殘留
-            console.log("舊專案無專屬評語，嘗試載入全域設定...");
-            const { data: globalData } = await supabaseClient
-                .from('critiques').select('*').eq('user_id', currentUser.id);
-            
-            if (globalData && globalData.length > 0) {
-                 const formatted = globalData.map(c => ({
-                    id: c.critique_id, category: c.category, type: c.type, title: c.title,
-                    strengthSummary: c.strength_summary, problemCore: c.problem_core,
-                    suggestion: c.suggestion, example: c.example, options: c.options,
-                    optionsLabel: c.options_label
-                }));
-                applyCritiquesToDOM(formatted);
-            } else {
-                // C. 最壞情況 -> 載入系統預設
-                loadDefaultCritiques(); // 確保 loadDefaultCritiques 內部有正確邏輯
-                // 這裡簡單重用 cannedCritiques
-                 const allDefault = Object.values(cannedCritiques).flat();
-                 const unique = Array.from(new Map(allDefault.map(c => [c.id, c])).values());
-                 applyCritiquesToDOM(unique);
-            }
-        }
-
-        // 5. 重建介面
-        buildChecklist(); 
-        buildOverviewPage();
         updateStudentDropdown();
         renderStudentOverviewTable();
         
-        // 6. 載入第一位學生
         const studentSelect = document.getElementById('student-select');
         if (studentSelect.options.length > 0) {
             studentSelect.selectedIndex = 0;
             loadStudentData(studentSelect.value);
         }
-        
         showPage('page2');
-        
-        const msg = loadedCritiques ? " (包含專屬評語庫)" : " (使用通用評語)";
-        showToast(`已成功載入：${fullProject.class_name || '未命名'}${msg}`, "success");
-
+        if (typeof showToast === 'function') showToast(`專案「${fullProject.class_name || ''}」載入成功！`, "success");
+        else alert(`專案「${fullProject.class_name}」載入成功！`);
     } catch (error) {
         alert(`載入專案時發生錯誤：${error.message}`);
-        console.error(error);
     } finally {
         updateUIBasedOnAuthState();
     }
 }
-/* === 修正版：將評語庫「鎖死」在專案內 === */
+// --- 重要的修改：雲端同步函式 ---
 async function syncDataToCloud() {
-  // 1. 檢查登入
+  // 1. 檢查是否登入
   if (!currentUser) {
     showToast("尚未登入，請先登入帳戶以使用雲端同步功能。", "warning");
+    // 捲動到頁面頂部以便登入
     window.scrollTo({ top: 0, behavior: 'smooth' });
     return;
   }
 
-  // 2. 獲取資料
-  const className = document.getElementById('student-class').value.trim();
-  const topic = document.getElementById('topic').value.trim();
-  const hasStudents = allStudentRecords.length > 0; 
-
-  if (!className && !topic && !hasStudents) {
-     showToast("無法儲存：請至少填寫資料才可建立專案。", "warning");
+  // 2. 檢查是否有變更 (雖然按鈕 disabled 時不會觸發，但雙重保險)
+  // 或者如果是手動點擊，即使沒變更也給一個提示，讓用戶安心
+  if (!isDataDirty) {
+     showToast("您的資料已是最新，無需同步。", "success");
      return;
   }
 
@@ -2725,79 +2643,51 @@ async function syncDataToCloud() {
   showToast("正在同步至雲端...", "info");
 
   try {
-    // --- 關鍵步驟：收集當前畫面上的評語庫 ---
-    const currentCritiques = collectExportData(); 
-
-    // A. 更新全域評語庫 (作為用戶的「預設值」)
-    const critiquesToUpsert = Array.from(document.getElementById('critique-data').children).map(div => ({
-      user_id: currentUser.id, 
-      critique_id: div.dataset.id, 
-      category: div.dataset.category,
-      type: div.dataset.type, 
-      title: div.querySelector('h4').textContent,
-      strength_summary: div.dataset.strengthSummary, 
-      problem_core: div.dataset.problemCore,
-      suggestion: div.dataset.suggestion, 
-      example: div.dataset.example,
-      options: div.dataset.options, 
-      options_label: div.dataset.optionsLabel,
+    const dataContainer = document.getElementById('critique-data');
+    const critiquesToUpsert = Array.from(dataContainer.children).map(div => ({
+      user_id: currentUser.id, critique_id: div.dataset.id, category: div.dataset.category,
+      type: div.dataset.type, title: div.querySelector('h4').textContent,
+      strength_summary: div.dataset.strengthSummary, problem_core: div.dataset.problemCore,
+      suggestion: div.dataset.suggestion, example: div.dataset.example,
+      options: div.dataset.options, options_label: div.dataset.optionsLabel,
       updated_at: new Date().toISOString()
     }));
-    
-    // 即使失敗也不要卡住整個流程，所以用獨立 try-catch 或直接 await
     await supabaseClient.from('critiques').delete().eq('user_id', currentUser.id);
-    await supabaseClient.from('critiques').upsert(critiquesToUpsert);
+    const { error: critiquesError } = await supabaseClient.from('critiques').upsert(critiquesToUpsert);
+    if (critiquesError) throw critiquesError;
 
-    // B. 更新常見錯別字
     const typosToUpsert = commonTypos.map(t => ({
       user_id: currentUser.id, typo_id: t.id, wrong: t.wrong, correct: t.correct
     }));
     await supabaseClient.from('common_typos').delete().eq('user_id', currentUser.id);
-    await supabaseClient.from('common_typos').upsert(typosToUpsert);
+    const { error: typosError } = await supabaseClient.from('common_typos').upsert(typosToUpsert);
+    if (typosError) throw typosError;
 
-    // C. 儲存專案 (重點：打包 critiques)
-    let projectIdToUpdate = undefined;
-    if (className || topic) {
-        let query = supabaseClient.from('student_projects').select('id').eq('user_id', currentUser.id);
-        query = query.eq('class_name', className);
-        query = query.eq('topic', topic);
-        const { data: existingProject, error: findError } = await query.maybeSingle();
-        if (!findError && existingProject) {
-            projectIdToUpdate = existingProject.id;
-        }
+    const className = document.getElementById('student-class').value.trim();
+    const topic = document.getElementById('topic').value.trim();
+    if (allStudentRecords.length > 0 && (className || topic)) {
+        const { data: existingProject, error: findError } = await supabaseClient
+            .from('student_projects').select('id').eq('user_id', currentUser.id)
+            .eq('class_name', className).eq('topic', topic).maybeSingle();
+        if(findError) throw findError;
+        const projectToUpsert = {
+            id: existingProject ? existingProject.id : undefined, user_id: currentUser.id,
+            class_name: className, topic: topic, project_data: allStudentRecords,
+            updated_at: new Date().toISOString()
+        };
+        const { error: projectError } = await supabaseClient.from('student_projects').upsert(projectToUpsert);
+        if (projectError) throw projectError;
     }
-
-    // --- 構建資料包：包含學生 + 評語 ---
-    const projectPayload = {
-        version: 2, 
-        students: allStudentRecords,
-        critiques: currentCritiques // <--- 這裏！將評語存入專案
-    };
-
-    const projectToUpsert = {
-        id: projectIdToUpdate,
-        user_id: currentUser.id,
-        class_name: className, 
-        topic: topic, 
-        project_data: projectPayload, 
-        updated_at: new Date().toISOString()
-    };
-    
-    const { error: projectError } = await supabaseClient.from('student_projects').upsert(projectToUpsert);
-    if (projectError) throw projectError;
-
     isDataDirty = false;
-    showToast("同步成功！專案內容及評語庫已鎖定儲存。", "success");
-
+    showToast("同步成功！所有變更已儲存到雲端。", "success");
   } catch (error) {
     showToast(`同步失敗: ${error.message}`, "error");
-    console.error(error);
   } finally {
     syncBtn.textContent = originalText;
-    syncBtn.disabled = false; 
     updateUIBasedOnAuthState();
   }
 }
+
 function updateUIBasedOnAuthState() {
     const authStatus = document.getElementById('auth-status');
     const loginBtn = document.getElementById('login-btn');
@@ -5272,66 +5162,6 @@ function generateStudentWord() {
     const aiData = _getAIFeedbackData();
     if (!aiData) return;
     downloadFile(`AI回饋_${getSanitizedTopicFilename()}_學生版.doc`, _buildAiFeedbackWordHtml(aiData, 'student'), 'application/msword;charset=utf-8');
-}
-/* === 新增：控制「建立新專案」Popup 的邏輯 === */
-
-// 1. 開啟「建立新專案」Modal
-function openNewProjectModal() {
-    // 先關閉舊的選擇專案 Modal
-    document.getElementById('pop-project-modal').classList.remove('active');
-    
-    // 清空新 Modal 的輸入框
-    document.getElementById('new-proj-class').value = '';
-    document.getElementById('new-proj-topic').value = '';
-    document.getElementById('new-proj-students').value = '';
-    
-    // 顯示新 Modal
-    document.getElementById('pop-new-project-modal').classList.add('active');
-    setTimeout(() => document.getElementById('new-proj-class').focus(), 100);
-}
-
-// 2. 關閉「建立新專案」Modal
-function closeNewProjectModal() {
-    document.getElementById('pop-new-project-modal').classList.remove('active');
-}
-
-// 3. 按下「立即建立」後的邏輯
-function confirmCreateNewProject() {
-    const newClass = document.getElementById('new-proj-class').value.trim();
-    const newTopic = document.getElementById('new-proj-topic').value.trim();
-    const newStudents = document.getElementById('new-proj-students').value.trim();
-
-    // 檢查：是否至少填了一項
-    if (!newClass && !newTopic && !newStudents) {
-        alert("請至少填寫「班別」、「題目」或「學生名單」其中一項。");
-        return;
-    }
-
-    // A. 清空現有介面資料 (Reset)
-    clearAllCore(false); 
-    allStudentRecords = [];
-    
-    // B. 填入新資料
-    document.getElementById('student-class').value = newClass;
-    document.getElementById('topic').value = newTopic;
-    document.getElementById('student-names').value = newStudents; // 填入名單 textarea
-
-    // C. 觸發系統更新 (更新下拉選單、連結變數)
-    const event = new Event('input', { bubbles: true });
-    document.getElementById('student-names').dispatchEvent(event);
-    document.getElementById('topic').dispatchEvent(event);
-
-    // D. 關閉 Popup 並提示
-    closeNewProjectModal();
-    
-    if (typeof showToast === 'function') {
-        showToast("新專案已建立！請記得隨時按「同步至雲端」儲存。", "success");
-    } else {
-        alert("新專案已建立！請記得隨時按「同步至雲端」儲存。");
-    }
-    
-    // E. 跳轉到第一頁 (基本設定) 方便檢查
-    showPage('page1');
 }
 </script>
 
