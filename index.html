@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
@@ -1067,7 +1068,7 @@
   #student-overview-table th:nth-child(2),
   #student-overview-table td:nth-child(2) {
     position: sticky;
-    left: px; /* 寬度等於第一欄 */
+    left: 80px; /* 寬度等於第一欄 */
     z-index: 2;
     width: 90px; /* 縮小寬度 */
     min-width: 90px;
@@ -1353,64 +1354,6 @@
         grid-template-columns: 1fr;
     }
   }
-  /* --- 文青風進度儀表板 --- */
-.literary-progress-box {
-  background-color: #fdfcf8;
-  border: 1px solid rgba(225, 216, 200, 0.8);
-  border-radius: 12px;
-  padding: 1.2rem 1.5rem;
-  margin-bottom: 1.5rem;
-  position: relative;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.03);
-  display: none; /* 預設隱藏，有數據才顯示 */
-}
-
-.literary-progress-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  margin-bottom: 0.8rem;
-  color: var(--text-color);
-}
-
-.progress-message {
-  font-family: 'LXGW WenKai TC', serif;
-  font-size: 1.1rem;
-  color: var(--title-color);
-}
-
-.progress-stats {
-  font-size: 0.95rem;
-  color: #8c867a;
-  letter-spacing: 0.05em;
-}
-
-/* 進度條背景 */
-.progress-track {
-  width: 100%;
-  height: 6px;
-  background-color: #eee9e0;
-  border-radius: 99px;
-  overflow: hidden;
-}
-
-/* 進度條本體 */
-.progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #93b8a5, var(--accent-color));
-  width: 0%;
-  border-radius: 99px;
-  transition: width 0.8s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-/* 完成時的特效 */
-.literary-progress-box.finished {
-  background: linear-gradient(135deg, #fdfbf7, #f2f7f4);
-  border-color: #d1e2d9;
-}
-.literary-progress-box.finished .progress-message {
-  color: var(--excellent-color);
-}
 
   /* ===== 新增：右側懸浮導覽列 ===== */
   #floating-nav {
@@ -1525,55 +1468,9 @@
     }
   }
 
-  /* ===== 吐司通知 (Toast Notification) 樣式 ===== */
-  #toast-container {
-      position: fixed;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 99999;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      pointer-events: none;
-  }
-
-  .toast-notification {
-      background-color: white;
-      color: var(--text-color);
-      padding: 12px 20px;
-      border-radius: 50px;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.15);
-      border: 1px solid var(--border-color);
-      font-size: 0.95rem;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      pointer-events: auto;
-      opacity: 0;
-      transform: translateY(-20px);
-      animation: toastSlideIn 0.4s forwards;
-      max-width: 90vw;
-      white-space: nowrap;
-  }
-
-  .toast-notification.success { border-left: 5px solid var(--excellent-color); }
-  .toast-notification.warning { border-left: 5px solid #e6a23c; }
-  .toast-notification.error { border-left: 5px solid var(--problem-color); }
-  .toast-notification.info { border-left: 5px solid var(--accent-color); }
-
-  @keyframes toastSlideIn {
-      to { opacity: 1; transform: translateY(0); }
-  }
-  @keyframes toastFadeOut {
-      to { opacity: 0; transform: translateY(-20px); }
-  }
-
 </style>
 </head>
 <body>
-
-  <div id="toast-container"></div> <!-- 新增：通知容器 -->
 
   <div class="main-container">
     <div class="sticky-top-bar">
@@ -1886,18 +1783,7 @@
             </div>
           </div>
           <h3 id="overview-class-display"></h3>
-          <!-- 刪除舊的 div，換成這個： -->
-<div id="literary-progress" class="literary-progress-box">
-  <div class="literary-progress-header">
-    <div class="progress-message" id="progress-text"></div>
-    <div class="progress-stats" id="progress-numbers"></div>
-  </div>
-  <div class="progress-track">
-    <div class="progress-fill" id="progress-bar"></div>
-  </div>
-</div>
-
-<div id="student-overview-table-wrapper">
+          <div id="student-overview-table-wrapper">
               <table id="student-overview-table">
                   <thead>
                       <tr>
@@ -2137,8 +2023,6 @@
     <a href="#grading-section-typo-score" class="floating-nav-btn" onclick="scrollToSection(event, 'grading-section-typo-score')" data-tooltip="錯別字/評分">📝</a>
     <a href="#grading-section-feedback" class="floating-nav-btn" onclick="scrollToSection(event, 'grading-section-feedback')" data-tooltip="學生評語">📄</a>
     <a href="#grading-section-save" class="floating-nav-btn" onclick="scrollToSection(event, 'grading-section-save')" data-tooltip="儲存">💾</a>
-    <!-- 新增：與雲端同步按鈕 -->
-    <a href="javascript:void(0)" class="floating-nav-btn" onclick="syncDataToCloud()" data-tooltip="同步至雲端">☁️</a>
   </nav>
 
 <script>
@@ -2196,35 +2080,6 @@ const modal = {
 };
 function confirmUI(message, onOk) {
   modal.show(message).then(ok => { if (ok && typeof onOk === 'function') onOk(); });
-}
-
-// --- 新增：Toast Notification Function ---
-function showToast(message, type = 'info') {
-    const container = document.getElementById('toast-container');
-    if (!container) return;
-
-    const toast = document.createElement('div');
-    toast.className = `toast-notification ${type}`;
-    
-    // 不同類型對應的 icon
-    let icon = '';
-    switch(type) {
-        case 'success': icon = '✅'; break;
-        case 'warning': icon = '⚠️'; break;
-        case 'error': icon = '❌'; break;
-        default: icon = 'ℹ️';
-    }
-
-    toast.innerHTML = `<span>${icon}</span><span>${message}</span>`;
-    container.appendChild(toast);
-
-    // 3秒後移除
-    setTimeout(() => {
-        toast.style.animation = 'toastFadeOut 0.4s forwards';
-        setTimeout(() => {
-            if (toast.parentNode) toast.parentNode.removeChild(toast);
-        }, 400);
-    }, 3000);
 }
 
 // --- Supabase 核心功能 ---
@@ -2378,30 +2233,12 @@ async function promptAndLoadCloudProject() {
     }
 }
 
-// --- 重要的修改：雲端同步函式 ---
 async function syncDataToCloud() {
-  // 1. 檢查是否登入
-  if (!currentUser) {
-    showToast("尚未登入，請先登入帳戶以使用雲端同步功能。", "warning");
-    // 捲動到頁面頂部以便登入
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    return;
-  }
-
-  // 2. 檢查是否有變更 (雖然按鈕 disabled 時不會觸發，但雙重保險)
-  // 或者如果是手動點擊，即使沒變更也給一個提示，讓用戶安心
-  if (!isDataDirty) {
-     showToast("您的資料已是最新，無需同步。", "success");
-     return;
-  }
-
+  if (!currentUser || !isDataDirty) return;
   const syncBtn = document.getElementById('sync-btn');
   const originalText = syncBtn.textContent;
   syncBtn.textContent = '同步中...';
   syncBtn.disabled = true;
-  
-  showToast("正在同步至雲端...", "info");
-
   try {
     const dataContainer = document.getElementById('critique-data');
     const critiquesToUpsert = Array.from(dataContainer.children).map(div => ({
@@ -2439,9 +2276,9 @@ async function syncDataToCloud() {
         if (projectError) throw projectError;
     }
     isDataDirty = false;
-    showToast("同步成功！所有變更已儲存到雲端。", "success");
+    alert("同步成功！所有變更已儲存到雲端。");
   } catch (error) {
-    showToast(`同步失敗: ${error.message}`, "error");
+    alert(`同步失敗: ${error.message}`);
   } finally {
     syncBtn.textContent = originalText;
     updateUIBasedOnAuthState();
@@ -2465,10 +2302,9 @@ function updateUIBasedOnAuthState() {
             syncBtn.classList.add('dirty');
             syncBtn.textContent = '儲存變更到雲端';
         } else {
-            // 如果已同步，還是讓按鈕保持 enabled，但改變文字，這樣用戶點擊時可以看到"已是最新"的提示
-            syncBtn.disabled = false; 
+            syncBtn.disabled = true;
             syncBtn.classList.remove('dirty');
-            syncBtn.textContent = '資料已同步';
+            syncBtn.textContent = '數據已同步';
         }
     } else {
         authStatus.textContent = '離線模式';
@@ -3599,69 +3435,26 @@ function handleOverviewScoreChange(input) {
 function renderStudentOverviewTable() {
   const tbody = document.querySelector("#student-overview-table tbody");
   const classDisplay = document.getElementById("overview-class-display");
-  
-  // 獲取新加的文青進度元素
-  const progressBox = document.getElementById("literary-progress");
-  const progressText = document.getElementById("progress-text");
-  const progressNumbers = document.getElementById("progress-numbers");
-  const progressBar = document.getElementById("progress-bar");
-
   if (!tbody || !classDisplay) return;
 
   tbody.innerHTML = '';
-  
-  // 如果完全無學生資料
   if (allStudentRecords.length === 0) {
     classDisplay.textContent = '';
-    if (progressBox) progressBox.style.display = 'none';
     tbody.innerHTML = `<tr><td colspan="10" class="empty-state-message">尚未輸入學生名單或儲存任何記錄。</td></tr>`;
     return;
   }
 
-  // 計算數據
   const withData = allStudentRecords.filter(r => r.data);
   const withoutData = allStudentRecords.filter(r => !r.data);
-  const totalCount = allStudentRecords.length;
-  const gradedCount = withData.length;
-  const remainingCount = withoutData.length;
-  
-  // 計算百分比
-  const percentage = Math.round((gradedCount / totalCount) * 100);
-
   const sorter = (a, b) => (a.number || 999) - (b.number || 999) || a.name.localeCompare(b.name, 'zh-Hant');
   withData.sort(sorter);
   withoutData.sort(sorter);
 
   const firstWithData = withData[0];
   const className = firstWithData?.data.class || document.getElementById('student-class').value || '未指定班別';
-  
   classDisplay.textContent = `班別：${className}`;
 
-  // --- 更新文青進度板 ---
-  if (progressBox) {
-    progressBox.style.display = 'block';
-    progressBox.classList.remove('finished');
-
-    // 更新數字
-    progressNumbers.textContent = `${gradedCount} / ${totalCount}`;
-    
-    // 更新進度條長度
-    progressBar.style.width = `${percentage}%`;
-
-    // 設定文案
-    if (gradedCount === 0) {
-      progressText.innerHTML = `尚有 <strong>${remainingCount}<strong> 篇待閱</span>`;
-    } else if (remainingCount > 0) {
-      progressText.innerHTML = `尚有 <strong>${remainingCount}</strong> 篇篇待閱。`;
-    } else {
-      progressBox.classList.add('finished');
-      progressText.innerHTML = `全班批改完成。`;
-    }
-  }
-  // -----------------------
-
   const renderRow = (record, hasData) => {
-    // ... (這一部分完全不用改，照舊) ...
     const s = hasData ? record.data.scores : { content:'',expression:'',structure:'',punctuation:'',typos:'',total:'' };
     const tr = document.createElement('tr');
     if (!hasData) tr.classList.add('row-missing');
@@ -4694,222 +4487,59 @@ function escapeHtmlAttr(s) {
   return (s || '').toString().replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
-/**
- * 構建 AI 回饋 Word HTML (權限調整版 - 2025 Final)
- * 學生版：只隱藏數據 (A2-A3) 及 教學計劃 (B3)，其他分析內容全開
- */
 function _buildAiFeedbackWordHtml(aiData, mode) {
     const topic = document.getElementById('topic').value.trim() || '未命名文章';
     const className = (allStudentRecords.find(r => r.data)?.data.class) || '未指定班別';
     const dateStr = new Date().toLocaleDateString('zh-Hant');
-    
     const mdToHtml = (text) => text ? text.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>') : '';
-    const listToHtml = (text) => textToWordHtmlWithLists(text);
-    const analysis = getAnalysisData();
-
-    // CSS 樣式
-    const css = `
-        <style>
-            body { font-family: "Microsoft JhengHei", "PMingLiU", sans-serif; font-size: 11pt; line-height: 1.5; color: #000; }
-            .doc-header { text-align: center; margin-bottom: 20pt; border-bottom: 3px double #000; padding-bottom: 10pt; }
-            .main-title { font-size: 22pt; font-weight: bold; letter-spacing: 1px; margin-bottom: 5pt; }
-            .sub-info { font-size: 12pt; margin-top: 10pt; }
-            .section-title { font-size: 16pt; font-weight: bold; margin-top: 30pt; margin-bottom: 12pt; border-bottom: 2px solid #000; padding-bottom: 3pt; page-break-after: avoid; }
-            .sub-title { font-size: 13pt; font-weight: bold; margin-top: 20pt; margin-bottom: 8pt; border-left: 6px solid #000; padding-left: 8pt; page-break-after: avoid; }
-            table { width: 100%; border-collapse: collapse; margin-bottom: 15pt; }
-            th, td { border: 1px solid #000; padding: 8pt; vertical-align: top; text-align: left; }
-            th { background-color: #ffffff; font-weight: bold; text-align: center; border-bottom: 2px solid #000; }
-            .example-font { font-family: "ThePeakFontBeta", "隨風體", "Sui Feng", "KaiTi", "BiauKai", serif; font-size: 12pt; line-height: 1.6; color: #333; }
-            .sample-box { border: 1px solid #000; padding: 10pt; margin: 5pt 0 10pt 0; }
-            .hint-box { border: 1px dashed #000; padding: 8pt; margin: 5pt 0 10pt 0; font-size: 10.5pt; }
-            .teacher-only { border: 2px dashed #666; padding: 15pt; margin: 15pt 0; position: relative; background: transparent; }
-            .teacher-tag { position: absolute; top: -12px; left: 10px; background: #fff; border: 1px solid #000; padding: 2px 8px; font-size: 10pt; font-weight: bold; }
-            ul { margin: 3pt 0; padding-left: 1.5em; }
-            .keep-together { page-break-inside: avoid; }
-        </style>
-    `;
-
-    let html = `
-        <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
-        <head><meta charset='utf-8'><title>${escapeHtmlAttr(topic)}</title>${css}</head>
-        <body>
-        <div class="doc-header">
-            <div class="main-title">📝 寫作教學回饋與跟進詳案 (${mode === 'teacher' ? '教師版' : '學生版'})</div>
-            <div class="sub-info">班別：${escapeHtml(className)}　|　日期：${dateStr}　|　題目：${escapeHtml(topic)}</div>
-        </div>
-    `;
-
-    // ==========================
-    // 甲、學生表現分析
-    // ==========================
-    html += `<div class="section-title">甲、學生表現分析 📊</div>`;
-
-    // 1. 概覽 (分流：老師看分析，學生看鼓勵)
-    html += `<div class="sub-title">1. 整體表現概覽</div>`;
-    if (mode === 'teacher') {
-        if (aiData.classOverview && aiData.classOverview.teacherSummary) {
-            html += `<div>${mdToHtml(listToHtml(aiData.classOverview.teacherSummary))}</div>`;
-        }
-    } else {
-        // 學生版顯示親切的 Summary
-        if (aiData.classOverview && aiData.classOverview.studentSummary) {
-            html += `<div class="sample-box" style="border: 1px dashed #000;">${mdToHtml(listToHtml(aiData.classOverview.studentSummary))}</div>`;
+    let html = `<h1>${escapeHtml(topic)} - 寫作回饋 (${mode === 'teacher' ? '老師版' : '學生版'})</h1><p><b>班別：</b>${escapeHtml(className)}</p><p><b>日期：</b>${dateStr}</p>`;
+    if (aiData.classOverview) {
+        const summary = mode === 'teacher' ? aiData.classOverview.teacherSummary : aiData.classOverview.studentSummary;
+        if (summary) html += `<h2>一、整體表現概覽</h2><div class="box">${mdToHtml(textToWordHtmlWithLists(summary))}</div>`;
+    }
+    if (aiData.topicAnalysis) {
+        html += `<h2>二、審題與立意</h2>`;
+        if (mode === 'teacher' && aiData.topicAnalysis.analysisTeacher) html += `<h3>審題分析</h3><pre>${escapeHtml(aiData.topicAnalysis.analysisTeacher)}</pre>`;
+        if (aiData.topicAnalysis.highlightsAndProblems) {
+            const { highlights, problems } = aiData.topicAnalysis.highlightsAndProblems;
+            if (highlights?.length > 0) html += `<h3>本班亮點</h3><ul>${highlights.map(h => `<li>${escapeHtml(h)}</li>`).join('')}</ul>`;
+            if (problems?.length > 0) html += `<h3>常見問題與提示</h3><table><tr><th>問題</th><th>提示</th></tr>${problems.map(p => `<tr><td>${escapeHtml(p.problem)}</td><td>${escapeHtml(p.tip)}</td></tr>`).join('')}</table>`;
         }
     }
-
-    // 2 & 3. 數據 (只有老師睇到)
-    if (mode === 'teacher') {
-        html += `<div class="teacher-only"><span class="teacher-tag">🔒 教師專用數據</span>`;
-        
-        // 2. 分數
-        html += `<div class="sub-title" style="margin-top:0;">2. 分數概覽 📈</div>`;
-        if (analysis && analysis.scoreSummary) {
-            html += `<table><tr><th>指標</th><th>平均分</th></tr>`;
-            analysis.scoreSummary.forEach(row => {
-                html += `<tr><td align="center">${row.指標}</td><td align="center">${row.平均分 !== null ? row.平均分.toFixed(2) : '-'}</td></tr>`;
-            });
-            html += `</table>`;
-        } else { html += `<p>(暫無分數數據)</p>`; }
-
-        // 3. Top 10
-        html += `<div class="sub-title">3. 最常見評語項目 TOP 10 📋</div>`;
-        if (analysis && analysis.topEntries && analysis.topEntries.length > 0) {
-            html += `<table style="font-size:10.5pt;"><tr><th>排名</th><th>評語標題</th><th>次數</th></tr>`;
-            analysis.topEntries.forEach(row => {
-                html += `<tr><td align="center">${row.排名}</td><td>${row.評語標題}</td><td align="center">${row.被選次數}</td></tr>`;
-            });
-            html += `</table>`;
-        } else { html += `<p>(暫無評語數據)</p>`; }
-        html += `</div>`;
-    }
-
-    // 4. 本班亮點 (全公開)
-    if (aiData.topicAnalysis && aiData.topicAnalysis.highlightsAndProblems) {
-        const { highlights, problems } = aiData.topicAnalysis.highlightsAndProblems;
-        // 學生版編號調整 (因為隱藏了2,3，所以亮點變第2項)
-        const hlTitle = mode === 'teacher' ? '4. 本班亮點 ✨' : '2. 本班亮點 ✨';
-        html += `<div class="sub-title">${hlTitle}</div><ul>`;
-        (highlights || []).forEach(h => html += `<li>${mdToHtml(escapeHtml(h))}</li>`);
-        html += `</ul>`;
-
-        // 5. 常見問題 (全公開)
-        const pbTitle = mode === 'teacher' ? '5. 常見問題與提示 ⚠️' : '3. 常見問題與提示 ⚠️';
-        html += `<div class="sub-title">${pbTitle}</div><table><tr><th width="40%">問題</th><th width="60%">提示</th></tr>`;
-        (problems || []).forEach(p => {
-            html += `<tr><td>${mdToHtml(escapeHtml(p.problem))}</td><td>💡 ${mdToHtml(escapeHtml(p.tip))}</td></tr>`;
-        });
-        html += `</table>`;
-    }
-
-    // 6. 優秀同學 (全公開)
-    if (aiData.excellentStudents && aiData.excellentStudents.length > 0) {
-        const exTitle = mode === 'teacher' ? '6. 優秀同學特點 🏆' : '4. 優秀同學特點 🏆';
-        html += `<div class="sub-title">${exTitle}</div><ul>`;
-        aiData.excellentStudents.forEach(s => {
-            html += `<li><b>${escapeHtml(s.name)}：</b> ${mdToHtml(escapeHtml(s.strength))}</li>`;
-        });
-        html += `</ul>`;
-    }
-
-    html += `<br style="page-break-before: always;">`;
-
-    // ==========================
-    // 乙、教學內容
-    // ==========================
-    const sectionTwoTitle = mode === 'teacher' ? '乙、教學內容與跟進詳案 📚' : '乙、重點學習內容 📚';
-    html += `<div class="section-title">${sectionTwoTitle}</div>`;
-
-    // 1. 審題與立意 (現在學生都可以看)
-    html += `<div class="sub-title">1. 審題與立意深度解碼 🔍</div>`;
-    
-    // 深層分析 (開放給學生)
-    if (aiData.topicAnalysis && aiData.topicAnalysis.analysisTeacher) {
-         html += `<p><b>審題分析：</b></p><div class="sample-box" style="border:none;">${mdToHtml(listToHtml(aiData.topicAnalysis.analysisTeacher))}</div>`;
-    }
-    
-    // 選材立意舉隅 (開放給學生)
-    if (aiData.materialAndThemeExamples && aiData.materialAndThemeExamples.length > 0) {
-        html += `<p><b>選材立意舉隅 💡</b></p><table><tr><th width="30%">立意方向</th><th width="70%">選材建議</th></tr>`;
-        aiData.materialAndThemeExamples.forEach(item => {
-            html += `<tr><td align="center"><b>${escapeHtml(item.theme)}</b></td><td>${escapeHtml(item.material)}</td></tr>`;
-        });
-        html += `</table>`;
-    }
-
-    // 2. 分層作品 (現在學生都可以看點評)
-    html += `<div class="sub-title">2. 分層作品示例與講評 📝</div>`;
+    if (aiData.materialAndThemeExamples?.length > 0) html += `<h2>三、選材立意舉隅</h2><table><tr><th>立意方向</th><th>選材建議</th></tr>${aiData.materialAndThemeExamples.map(item => `<tr><td>${escapeHtml(item.theme)}</td><td>${escapeHtml(item.material)}</td></tr>`).join('')}</table>`;
+    if (aiData.excellentStudents?.length > 0) html += `<h2>四、優秀同學特點</h2><ul>${aiData.excellentStudents.map(s => `<li><b>${escapeHtml(s.name)}：</b>${escapeHtml(s.strength)}</li>`).join('')}</ul>`;
     if (aiData.workTiers) {
-        const tiers = [
-            { key: 'high', name: '上品作品', icon: '🌟' },
-            { key: 'mid', name: '中品作品', icon: '😐' },
-            { key: 'low', name: '下品作品', icon: '📉' }
-        ];
-
-        tiers.forEach(tier => {
-            const data = aiData.workTiers[tier.key];
-            if (data) {
-                html += `<div class="keep-together">`;
-                html += `<b>【${tier.name}】 ${tier.icon}</b>`;
-                html += `<div class="sample-box"><div class="example-font">${mdToHtml(listToHtml(data.sample))}</div></div>`;
-                html += `<ul>`;
-                if (data.characteristics) data.characteristics.forEach(c => html += `<li><b>🔹 特點：</b> ${escapeHtml(c)}</li>`);
-                
-                // 點評 (開放給學生)
-                if (data.commentary) html += `<li><b>🔸 點評：</b> ${mdToHtml(escapeHtml(data.commentary))}</li>`;
-                
-                if (data.selfChecklist) data.selfChecklist.forEach(q => html += `<li><b>❓ 反思：</b> ${escapeHtml(q)}</li>`);
-                html += `</ul></div>`;
+        html += `<h2>五、分層作品示例與講評</h2>`;
+        Object.entries({ high: '上品', mid: '中品', low: '下品' }).forEach(([key, name]) => {
+            const tierData = aiData.workTiers[key];
+            if (tierData) {
+                html += `<h3>${name}作品</h3>`;
+                if (tierData.characteristics?.length > 0) html += `<p><b>特點：</b></p><ul>${tierData.characteristics.map(c => `<li>${escapeHtml(c)}</li>`).join('')}</ul>`;
+                if (tierData.sample) html += `<p><b>示例：</b></p><div class="sample">${textToWordHtmlWithLists(tierData.sample)}</div>`;
+                if (mode === 'teacher' && tierData.commentary) html += `<p><b>教師點評：</b></p><div class="commentary">${textToWordHtmlWithLists(tierData.commentary)}</div>`;
+                if (tierData.selfChecklist?.length > 0) html += `<p><b>反思問題：</b></p><ol>${tierData.selfChecklist.map(q => `<li>${escapeHtml(q)}</li>`).join('')}</ol>`;
             }
         });
     }
-
-    html += `<br style="page-break-before: always;">`;
-
-    // 3. 教學計劃 (只有老師睇到)
     if (mode === 'teacher' && aiData.teachingPlan) {
-        const tp = aiData.teachingPlan;
-        html += `<div class="teacher-only"><span class="teacher-tag">🔒 教學計劃建議 (Teacher Only)</span>`;
-        html += `<div class="sub-title" style="margin-top:0;">3. 教學計劃建議 📅</div>`;
-        
-        html += `<table><tr><th width="20%">範疇</th><th width="80%">詳細內容</th></tr>`;
-        if (tp.objectives) html += `<tr><td align="center"><b>學習目標</b></td><td><ul>${tp.objectives.map(o => `<li>${escapeHtml(o)}</li>`).join('')}</ul></td></tr>`;
-        if (tp.activities) {
-            let actHtml = '';
-            tp.activities.forEach(a => actHtml += `<b>${escapeHtml(a.name)} (${escapeHtml(a.duration)})：</b> ${escapeHtml(a.description)}<br>`);
-            html += `<tr><td align="center"><b>課堂活動</b></td><td>${actHtml}</td></tr>`;
-        }
-        if (tp.remedialStrategies) html += `<tr><td align="center"><b>補底策略</b></td><td><ul>${tp.remedialStrategies.map(s => `<li>${escapeHtml(s)}</li>`).join('')}</ul></td></tr>`;
-        if (tp.extensionActivities) html += `<tr><td align="center"><b>延伸活動</b></td><td><ul>${tp.extensionActivities.map(e => `<li>${escapeHtml(e)}</li>`).join('')}</ul></td></tr>`;
-        html += `<tr><td align="center"><b>差異化支援</b></td><td>提供分層工作紙；拔尖學生挑戰開放式寫作。</td></tr>`;
-        html += `</table></div>`;
+        html += `<h2>六、教學計劃建議</h2>`;
+        const plan = aiData.teachingPlan;
+        if (plan.objectives?.length > 0) html += `<h3>學習目標</h3><ul>${plan.objectives.map(o => `<li>${escapeHtml(o)}</li>`).join('')}</ul>`;
+        if (plan.activities?.length > 0) html += `<h3>課堂活動</h3><table><tr><th>活動名稱</th><th>描述</th><th>時間</th></tr>${plan.activities.map(a => `<tr><td>${escapeHtml(a.name)}</td><td>${escapeHtml(a.description)}</td><td>${escapeHtml(a.duration)}</td></tr>`).join('')}</table>`;
+        if (plan.remedialStrategies?.length > 0) html += `<h3>補底策略</h3><ul>${plan.remedialStrategies.map(s => `<li>${escapeHtml(s)}</li>`).join('')}</ul>`;
+        if (plan.extensionActivities?.length > 0) html += `<h3>延伸活動</h3><ul>${plan.extensionActivities.map(a => `<li>${escapeHtml(a)}</li>`).join('')}</ul>`;
     }
-
-    // 4. 跟進練習 (全開放)
-    if (aiData.writingPractices && aiData.writingPractices.length > 0) {
-        const practiceSectionTitle = mode === 'teacher' ? '四、跟進練習：鞏固與遷移 ✍️' : '三、跟進練習：鞏固與遷移 ✍️';
-        html += `<div class="section-title">${practiceSectionTitle}</div>`;
-        
-        const practiceTitles = ['1. 關鍵段落：片段練習', '2. 立意昇華段', '3. 刻意練習修辭及寫作手法', '4. 舉一反三：遷移應用'];
-        
-        aiData.writingPractices.forEach((p, i) => {
-            const title = practiceTitles[i] || `練習 ${i + 1}`;
-            html += `<div class="keep-together">`;
-            html += `<div class="sub-title">${title}</div>`;
+    if (aiData.writingPractices?.length > 0) {
+        html += `<h2>${mode === 'teacher' ? '七' : '六'}、跟進練習</h2>`;
+        aiData.writingPractices.forEach((p, index) => {
+            html += `<h3>練習 ${index + 1}</h3>`;
             if (p.prompt) html += `<p><b>題目：</b>${mdToHtml(escapeHtml(p.prompt))}</p>`;
-            if (p.guidelines) {
-                html += `<div class="hint-box"><b>💡 學生指引：</b><ul>${p.guidelines.map(g => `<li>${escapeHtml(g)}</li>`).join('')}</ul></div>`;
-            }
-            if (p.modelAnswer) {
-                // 老師版會顯示「參考示例」，學生版也會顯示 (因為是 Model Answer)
-                // 這次不再加鎖，讓學生自學
-                html += `<div class="sample-box"><b>參考示例：</b><div class="example-font">${mdToHtml(listToHtml(p.modelAnswer))}</div></div>`;
-            }
-            html += `</div>`;
+            if (p.guidelines?.length > 0) html += `<p><b>指引：</b></p><ul>${p.guidelines.map(g => `<li>${escapeHtml(g)}</li>`).join('')}</ul>`;
+            if (p.modelAnswer) html += `<p><b>參考示例：</b></p><div class="sample">${textToWordHtmlWithLists(p.modelAnswer)}</div>`;
+            if (mode === 'teacher' && p.commentary) html += `<p><b>教師點評：</b></p><div class="commentary">${textToWordHtmlWithLists(p.commentary)}</div>`;
         });
     }
-
-    html += `</body></html>`;
-    return html;
+    return `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8" /><title>${escapeHtmlAttr(topic)} - 寫作回饋</title><style>body{font-family:"PMingLiU","新細明體","Microsoft JhengHei",sans-serif;font-size:11pt;line-height:1.6;}h1{font-size:16pt;text-align:center;}h2{font-size:14pt;border-bottom:2px solid #000;padding-bottom:3pt;margin-top:15pt;}h3{font-size:12pt;border-bottom:1px dashed #999;padding-bottom:2pt;margin-top:12pt;}.box,.sample,.commentary{border:1px solid #ccc;padding:8pt;margin:8pt 0;background:#f9f9f9;}table{border-collapse:collapse;width:100%;margin:10pt 0;}th,td{border:1px solid #666;padding:5pt;text-align:left;vertical-align:top;}th{background-color:#f2f2f2;}pre{white-space:pre-wrap;font-family:inherit;}p{margin:0 0 4pt 0;}ul,ol{margin-top:0;margin-bottom:0;padding-left:24pt;}</style></head><body>${html}</body></html>`;
 }
 
 function generateTeacherWord() {
