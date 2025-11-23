@@ -1467,9 +1467,55 @@
     }
   }
 
+  /* ===== 吐司通知 (Toast Notification) 樣式 ===== */
+  #toast-container {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 99999;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      pointer-events: none;
+  }
+
+  .toast-notification {
+      background-color: white;
+      color: var(--text-color);
+      padding: 12px 20px;
+      border-radius: 50px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+      border: 1px solid var(--border-color);
+      font-size: 0.95rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      pointer-events: auto;
+      opacity: 0;
+      transform: translateY(-20px);
+      animation: toastSlideIn 0.4s forwards;
+      max-width: 90vw;
+      white-space: nowrap;
+  }
+
+  .toast-notification.success { border-left: 5px solid var(--excellent-color); }
+  .toast-notification.warning { border-left: 5px solid #e6a23c; }
+  .toast-notification.error { border-left: 5px solid var(--problem-color); }
+  .toast-notification.info { border-left: 5px solid var(--accent-color); }
+
+  @keyframes toastSlideIn {
+      to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes toastFadeOut {
+      to { opacity: 0; transform: translateY(-20px); }
+  }
+
 </style>
 </head>
 <body>
+
+  <div id="toast-container"></div> <!-- 新增：通知容器 -->
 
   <div class="main-container">
     <div class="sticky-top-bar">
@@ -2022,6 +2068,8 @@
     <a href="#grading-section-typo-score" class="floating-nav-btn" onclick="scrollToSection(event, 'grading-section-typo-score')" data-tooltip="錯別字/評分">📝</a>
     <a href="#grading-section-feedback" class="floating-nav-btn" onclick="scrollToSection(event, 'grading-section-feedback')" data-tooltip="學生評語">📄</a>
     <a href="#grading-section-save" class="floating-nav-btn" onclick="scrollToSection(event, 'grading-section-save')" data-tooltip="儲存">💾</a>
+    <!-- 新增：與雲端同步按鈕 -->
+    <a href="javascript:void(0)" class="floating-nav-btn" onclick="syncDataToCloud()" data-tooltip="同步至雲端">☁️</a>
   </nav>
 
 <script>
@@ -2079,6 +2127,35 @@ const modal = {
 };
 function confirmUI(message, onOk) {
   modal.show(message).then(ok => { if (ok && typeof onOk === 'function') onOk(); });
+}
+
+// --- 新增：Toast Notification Function ---
+function showToast(message, type = 'info') {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+
+    const toast = document.createElement('div');
+    toast.className = `toast-notification ${type}`;
+    
+    // 不同類型對應的 icon
+    let icon = '';
+    switch(type) {
+        case 'success': icon = '✅'; break;
+        case 'warning': icon = '⚠️'; break;
+        case 'error': icon = '❌'; break;
+        default: icon = 'ℹ️';
+    }
+
+    toast.innerHTML = `<span>${icon}</span><span>${message}</span>`;
+    container.appendChild(toast);
+
+    // 3秒後移除
+    setTimeout(() => {
+        toast.style.animation = 'toastFadeOut 0.4s forwards';
+        setTimeout(() => {
+            if (toast.parentNode) toast.parentNode.removeChild(toast);
+        }, 400);
+    }, 3000);
 }
 
 // --- Supabase 核心功能 ---
@@ -2232,12 +2309,30 @@ async function promptAndLoadCloudProject() {
     }
 }
 
+// --- 重要的修改：雲端同步函式 ---
 async function syncDataToCloud() {
-  if (!currentUser || !isDataDirty) return;
+  // 1. 檢查是否登入
+  if (!currentUser) {
+    showToast("尚未登入，請先登入帳戶以使用雲端同步功能。", "warning");
+    // 捲動到頁面頂部以便登入
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    return;
+  }
+
+  // 2. 檢查是否有變更 (雖然按鈕 disabled 時不會觸發，但雙重保險)
+  // 或者如果是手動點擊，即使沒變更也給一個提示，讓用戶安心
+  if (!isDataDirty) {
+     showToast("您的資料已是最新，無需同步。", "success");
+     return;
+  }
+
   const syncBtn = document.getElementById('sync-btn');
   const originalText = syncBtn.textContent;
   syncBtn.textContent = '同步中...';
   syncBtn.disabled = true;
+  
+  showToast("正在同步至雲端...", "info");
+
   try {
     const dataContainer = document.getElementById('critique-data');
     const critiquesToUpsert = Array.from(dataContainer.children).map(div => ({
@@ -2275,9 +2370,9 @@ async function syncDataToCloud() {
         if (projectError) throw projectError;
     }
     isDataDirty = false;
-    alert("同步成功！所有變更已儲存到雲端。");
+    showToast("同步成功！所有變更已儲存到雲端。", "success");
   } catch (error) {
-    alert(`同步失敗: ${error.message}`);
+    showToast(`同步失敗: ${error.message}`, "error");
   } finally {
     syncBtn.textContent = originalText;
     updateUIBasedOnAuthState();
@@ -2301,9 +2396,10 @@ function updateUIBasedOnAuthState() {
             syncBtn.classList.add('dirty');
             syncBtn.textContent = '儲存變更到雲端';
         } else {
-            syncBtn.disabled = true;
+            // 如果已同步，還是讓按鈕保持 enabled，但改變文字，這樣用戶點擊時可以看到"已是最新"的提示
+            syncBtn.disabled = false; 
             syncBtn.classList.remove('dirty');
-            syncBtn.textContent = '數據已同步';
+            syncBtn.textContent = '資料已同步';
         }
     } else {
         authStatus.textContent = '離線模式';
