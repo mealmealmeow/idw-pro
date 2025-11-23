@@ -31,8 +31,8 @@
     --problem-color: #c86a5a;    /* 問題/待改進 - 柔和磚紅 */
     --excellent-color: #7a9e78;  /* 優點/佳作 - 沉穩橄欖綠 */
     --copy-success-bg: #5f9f80;  /* 複製成功 - 稍亮綠色 */
-    --modal-bg: rgba(60, 55, 50, 0.45); /* 加深背景遮罩，提升質感 */
-    --modal-card-bg: #fffdf9;
+    --modal-bg: rgba(0,0,0,0.28);
+    --modal-card-bg: #fffdf8;
     --shadow-color: rgba(52, 43, 32, 0.10); /* 陰影顏色 */
     --btn-brown-bg: #a18b73;     /* 啡色按鈕背景 */
     --btn-brown-hover: #8f7a63;
@@ -79,7 +79,7 @@
     overflow: hidden;
     border: 1px solid rgba(255,255,255,0.7);
     backdrop-filter: blur(10px);
-    position: relative; 
+    position: relative; /* 新增，為懸浮導覽提供相對定位（雖然目前用fixed） */
   }
 
   .sticky-top-bar {
@@ -1511,88 +1511,6 @@
       to { opacity: 0; transform: translateY(-20px); }
   }
 
-  /* ===== 新增：專案列表與 Modal 樣式 ===== */
-  .project-list-container {
-      max-height: 350px;
-      overflow-y: auto;
-      padding: 0.5rem 0.2rem;
-  }
-  
-  /* 文青風捲軸 */
-  .project-list-container::-webkit-scrollbar {
-      width: 8px;
-  }
-  .project-list-container::-webkit-scrollbar-track {
-      background: #f1f1f1;
-      border-radius: 10px;
-  }
-  .project-list-container::-webkit-scrollbar-thumb {
-      background: #d6d0c4;
-      border-radius: 10px;
-  }
-  .project-list-container::-webkit-scrollbar-thumb:hover {
-      background: #c2bba8;
-  }
-
-  .project-card {
-      background-color: #ffffff;
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-md);
-      padding: 1rem 1.25rem;
-      margin-bottom: 0.8rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      transition: all var(--transition-fast);
-      box-shadow: 0 2px 5px rgba(0,0,0,0.03);
-      gap: 1rem;
-  }
-
-  .project-card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 12px rgba(0,0,0,0.06);
-      border-color: var(--accent-color-soft);
-  }
-
-  .project-info h4 {
-      margin: 0 0 0.3rem 0;
-      font-size: 1.05rem;
-      color: var(--title-color);
-      font-weight: 600;
-  }
-
-  .project-meta {
-      font-size: 0.85rem;
-      color: #888;
-      display: flex;
-      gap: 0.8rem;
-      align-items: center;
-  }
-
-  .project-meta span {
-      background-color: #f4f4f4;
-      padding: 2px 8px;
-      border-radius: 4px;
-  }
-
-  .project-actions {
-      display: flex;
-      gap: 0.5rem;
-      flex-shrink: 0;
-  }
-
-  /* 專案選擇 Modal 特別樣式 */
-  #project-selection-modal .modal-card {
-      width: min(92vw, 550px); /* 稍寬一點 */
-      max-height: 85vh;
-  }
-  
-  #project-selection-modal .modal-title {
-      border-bottom: 1px solid var(--border-color);
-      padding-bottom: 0.8rem;
-      margin-bottom: 0.5rem;
-  }
-
 </style>
 </head>
 <body>
@@ -1674,17 +1592,10 @@
                 <div class="io-details-content">
                     <p>您可以從雲端讀取之前儲存的整個專案（包含學生名單及進度），或跳至其他頁面手動建立/導入評語庫。</p>
                     <div class="btn-group">
+                        <button id="select-project-btn" class="secondary-btn" style="display: none;">從雲端選取專案</button>
                         <button class="light-btn brown" onclick="showPage('page6', 'ai-student-level')">前往 AI 評語庫生成</button>
                         <button class="light-btn" onclick="showPage('page3', 'overview-controls')">前往手動修訂評語庫</button>
                     </div>
-                    
-                    <!-- 修改：嵌入式的專案列表 -->
-                    <details id="cloud-projects-section" style="margin-top: 1.5rem; border: 1px dashed var(--accent-color); background: #fff;">
-                        <summary><h3>📂 雲端專案管理 (載入 / 刪除)</h3></summary>
-                        <div id="cloud-projects-container" class="project-list-container" style="padding: 1rem;">
-                            <div class="empty-state-message">正在檢查雲端專案...</div>
-                        </div>
-                    </details>
                 </div>
             </details>
         </div>
@@ -2145,21 +2056,6 @@
     </div>
   </div>
 
-  <!-- 新增：專案選擇 Modal -->
-  <div id="project-selection-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-hidden="true">
-    <div class="modal-card" role="document">
-      <div class="modal-title">☁️ 雲端專案存檔</div>
-      <p style="margin-bottom: 1rem; color: #666; font-size: 0.9rem;">我們在雲端發現了您之前的專案紀錄，請問要載入哪一個？</p>
-      <div id="modal-project-list" class="project-list-container">
-          <!-- 專案列表將插入此處 -->
-          Loading...
-      </div>
-      <div class="modal-actions" style="margin-top: 1rem;">
-        <button class="btn btn-secondary" onclick="document.getElementById('project-selection-modal').classList.remove('active')">跳過，建立新專案</button>
-      </div>
-    </div>
-  </div>
-
   <!-- 評語資料來源 -->
   <div id="critique-data" style="display:none;">
     <!-- 預設評語會由 JS 載入 -->
@@ -2343,12 +2239,8 @@ async function loadDataFromCloud() {
     commonTypos = typosData.map(t => ({ id: t.typo_id, wrong: t.wrong, correct: t.correct }));
     renderCommonTypoList();
 
-    // 載入完成後，更新 Page 1 的列表
-    await fetchAndRenderProjects('cloud-projects-container', true);
-
-    // 處理自動彈窗邏輯 (Modal)
     if (!sessionStorage.getItem('projectPromptShownThisSession')) {
-        await showProjectSelectionModal();
+        await promptAndLoadCloudProject();
         sessionStorage.setItem('projectPromptShownThisSession', 'true');
     }
     
@@ -2361,138 +2253,60 @@ async function loadDataFromCloud() {
   }
 }
 
-// --- 新增：獲取專案列表 (共用邏輯) ---
-async function fetchProjectList() {
-    if (!currentUser) return [];
-    const { data: projectsData, error: projectsError } = await supabaseClient
-        .from('student_projects')
-        .select('id, class_name, topic, updated_at')
-        .eq('user_id', currentUser.id)
-        .order('updated_at', { ascending: false });
-        
-    if (projectsError) {
-        console.error('Error fetching projects:', projectsError);
-        return [];
-    }
-    return projectsData || [];
-}
-
-// --- 新增：渲染專案列表 UI ---
-async function renderProjectListUI(containerId, allowDelete = false) {
-    const container = document.getElementById(containerId);
-    if (!container) return;
-    
-    container.innerHTML = '<div style="padding:1rem; color:#888; text-align:center;">載入中...</div>';
-    const projects = await fetchProjectList();
-    
-    if (projects.length === 0) {
-        container.innerHTML = '<div class="empty-state-message">目前雲端沒有任何存檔專案。</div>';
-        return;
-    }
-
-    container.innerHTML = '';
-    projects.forEach(p => {
-        const date = new Date(p.updated_at).toLocaleDateString('zh-Hant');
-        const title = `${p.class_name || '未命名班別'} - ${p.topic || '未命名題目'}`;
-        
-        const card = document.createElement('div');
-        card.className = 'project-card';
-        card.innerHTML = `
-            <div class="project-info">
-                <h4>${escapeHtml(title)}</h4>
-                <div class="project-meta">
-                    <span>📅 ${date}</span>
-                </div>
-            </div>
-            <div class="project-actions">
-                <button class="action-btn" style="padding: 0.4rem 0.8rem; font-size: 0.9rem;" onclick="loadCloudProject('${p.id}')">載入</button>
-                ${allowDelete ? `<button class="danger-btn" style="padding: 0.4rem 0.8rem; font-size: 0.9rem;" onclick="deleteCloudProject('${p.id}')">刪除</button>` : ''}
-            </div>
-        `;
-        container.appendChild(card);
-    });
-}
-
-// --- 新增：整合用函式 ---
-async function showProjectSelectionModal() {
-    const projects = await fetchProjectList();
-    if (projects.length > 0) {
-        await renderProjectListUI('modal-project-list', false); // Modal 不給刪除，保持簡潔
-        const modal = document.getElementById('project-selection-modal');
-        modal.classList.add('active');
-        modal.setAttribute('aria-hidden', 'false');
-    }
-}
-
-async function fetchAndRenderProjects(containerId, allowDelete) {
-    if (currentUser) {
-        await renderProjectListUI(containerId, allowDelete);
-    } else {
-        document.getElementById(containerId).innerHTML = '<div class="empty-state-message">請先登入以檢視雲端專案。</div>';
-    }
-}
-
-// --- 新增：刪除專案邏輯 ---
-async function deleteCloudProject(id) {
-    confirmUI("確定要永久刪除此專案嗎？此操作無法復原。", async () => {
-        try {
-            const { error } = await supabaseClient
-                .from('student_projects')
-                .delete()
-                .eq('id', id);
-            
-            if (error) throw error;
-            
-            showToast("專案已成功刪除", "success");
-            // 重新渲染列表
-            await fetchAndRenderProjects('cloud-projects-container', true); 
-        } catch (error) {
-            showToast(`刪除失敗: ${error.message}`, "error");
-        }
-    });
-}
-
-// --- 修改：載入專案邏輯 (抽取出來) ---
-async function loadCloudProject(projectId) {
-    try {
-        // 如果是從 Modal 點擊的，先關閉 Modal
-        document.getElementById('project-selection-modal').classList.remove('active');
-
-        const { data: fullProject, error: fullProjectError } = await supabaseClient
-            .from('student_projects').select('project_data, class_name, topic').eq('id', projectId).single();
-        if (fullProjectError) throw fullProjectError;
-        
-        clearAllCore(false);
-        allStudentRecords = [];
-        document.getElementById('student-names').value = '';
-
-        allStudentRecords = fullProject.project_data || [];
-        document.getElementById('student-class').value = fullProject.class_name || '';
-        document.getElementById('topic').value = fullProject.topic || '';
-        document.getElementById('student-names').value = allStudentRecords.map(r => r.originalName).join('\n');
-        
-        updateStudentDropdown();
-        renderStudentOverviewTable();
-        
-        const studentSelect = document.getElementById('student-select');
-        if (studentSelect.options.length > 0) {
-            studentSelect.selectedIndex = 0;
-            loadStudentData(studentSelect.value);
-        }
-        showPage('page2');
-        showToast(`專案「${fullProject.class_name || '未命名'}」已載入`, "success");
-    } catch (error) {
-        showToast(`載入專案時發生錯誤：${error.message}`, "error");
-    }
-}
-
-// --- 保留原有的 Prompt 函式介面，但改為觸發 Modal (相容舊代碼) ---
 async function promptAndLoadCloudProject() {
     if (!currentUser) {
         alert("請先登入以使用雲端專案功能。");
         return;
     }
-    await showProjectSelectionModal();
+    const { data: projectsData, error: projectsError } = await supabaseClient
+        .from('student_projects').select('id, class_name, topic, updated_at').eq('user_id', currentUser.id);
+    if (projectsError) {
+        alert(`讀取雲端專案列表時出錯：${projectsError.message}`);
+        return;
+    }
+    if (!projectsData || projectsData.length === 0) {
+        if (sessionStorage.getItem('projectPromptShownThisSession')) {
+            alert("雲端上沒有找到任何專案。");
+        }
+        return;
+    }
+    let projectChoices = projectsData
+        .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))
+        .map((p, i) => `${i + 1}. ${p.class_name || '未命名班別'} - ${p.topic || '未命名題目'} (${new Date(p.updated_at).toLocaleDateString()})`)
+        .join('\n');
+    const choice = prompt(`在雲端找到 ${projectsData.length} 個專案，你想載入哪一個？\n請輸入數字，或按「取消」以繼續。\n\n${projectChoices}`);
+    const choiceIndex = parseInt(choice, 10) - 1;
+
+    if (!isNaN(choiceIndex) && choiceIndex >= 0 && choiceIndex < projectsData.length) {
+        const projectId = projectsData[choiceIndex].id;
+        try {
+            const { data: fullProject, error: fullProjectError } = await supabaseClient
+                .from('student_projects').select('project_data, class_name, topic').eq('id', projectId).single();
+            if (fullProjectError) throw fullProjectError;
+            
+            clearAllCore(false);
+            allStudentRecords = [];
+            document.getElementById('student-names').value = '';
+
+            allStudentRecords = fullProject.project_data || [];
+            document.getElementById('student-class').value = fullProject.class_name || '';
+            document.getElementById('topic').value = fullProject.topic || '';
+            document.getElementById('student-names').value = allStudentRecords.map(r => r.originalName).join('\n');
+            
+            updateStudentDropdown();
+            renderStudentOverviewTable();
+            
+            const studentSelect = document.getElementById('student-select');
+            if (studentSelect.options.length > 0) {
+                studentSelect.selectedIndex = 0;
+                loadStudentData(studentSelect.value);
+            }
+            showPage('page2');
+            alert(`專案「${fullProject.class_name || '未命名'} - ${fullProject.topic || '未命名'}」已成功載入。`);
+        } catch (error) {
+            alert(`載入專案時發生錯誤：${error.message}`);
+        }
+    }
 }
 
 // --- 重要的修改：雲端同步函式 ---
@@ -2506,6 +2320,7 @@ async function syncDataToCloud() {
   }
 
   // 2. 檢查是否有變更 (雖然按鈕 disabled 時不會觸發，但雙重保險)
+  // 或者如果是手動點擊，即使沒變更也給一個提示，讓用戶安心
   if (!isDataDirty) {
      showToast("您的資料已是最新，無需同步。", "success");
      return;
@@ -2556,10 +2371,6 @@ async function syncDataToCloud() {
     }
     isDataDirty = false;
     showToast("同步成功！所有變更已儲存到雲端。", "success");
-    
-    // 同步成功後，刷新第一頁的專案列表
-    await fetchAndRenderProjects('cloud-projects-container', true);
-
   } catch (error) {
     showToast(`同步失敗: ${error.message}`, "error");
   } finally {
@@ -2574,16 +2385,12 @@ function updateUIBasedOnAuthState() {
     const logoutBtn = document.getElementById('logout-btn');
     const syncBtn = document.getElementById('sync-btn');
     const selectProjectBtn = document.getElementById('select-project-btn');
-    const cloudProjectsSection = document.getElementById('cloud-projects-section'); // 取得新區塊
-
     if (currentUser) {
         authStatus.textContent = `已登入: ${currentUser.email}`;
         loginBtn.style.display = 'none';
         logoutBtn.style.display = 'inline-flex';
         syncBtn.style.display = 'inline-flex';
-        if (selectProjectBtn) selectProjectBtn.style.display = 'none'; // 隱藏舊按鈕
-        if (cloudProjectsSection) cloudProjectsSection.style.display = 'block'; // 顯示新列表
-
+        if (selectProjectBtn) selectProjectBtn.style.display = 'inline-flex';
         if (isDataDirty) {
             syncBtn.disabled = false;
             syncBtn.classList.add('dirty');
@@ -2600,7 +2407,6 @@ function updateUIBasedOnAuthState() {
         logoutBtn.style.display = 'none';
         syncBtn.style.display = 'none';
         if (selectProjectBtn) selectProjectBtn.style.display = 'none';
-        if (cloudProjectsSection) cloudProjectsSection.style.display = 'none'; // 隱藏列表
     }
 }
 
@@ -4573,6 +4379,207 @@ function exportAnalysisToWord() {
   const dateStr = new Date().toLocaleDateString('zh-Hant');
   let content = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8" /><title>評語分析-${escapeHtmlAttr(topic)}</title><style>body{font-family:"PMingLiU","新細明體","Microsoft JhengHei",sans-serif;font-size:11pt;line-height:1.6;}h1{font-size:16pt;margin-bottom:6pt;}h2{font-size:14pt;border-bottom:1px solid #000;padding-bottom:3pt;margin-top:15pt;}h3{font-size:12pt;margin-top:12pt;}.meta-line{margin:2pt 0;}pre{font-family:inherit;white-space:pre-wrap;border:1px solid #ccc;padding:8pt;background:#f9f9f9;}table{border-collapse:collapse;width:100%;margin:10pt 0;}th,td{border:1px solid #666;padding:5pt;text-align:left;vertical-align:top;}th{background-color:#f2f2f2;}</style></head><body><h1>評語分析備忘</h1><div class="meta-line">班別：${escapeHtml(className)}</div><div class="meta-line">題目：${escapeHtml(topic)}</div><div class="meta-line">日期：${escapeHtml(dateStr)}</div><div class="meta-line">已批改作品數：${data.studentCount}</div><h2>一、分數概覽</h2><table><tr><th>指標</th><th>平均分</th></tr>${data.scoreSummary.map(row => `<tr><td>${escapeHtml(row.指標)}</td><td>${row.平均分!=null?row.平均分.toFixed(2):'-'}</td></tr>`).join('')}</table>${data.topEntries.length>0?`<h2>二、最常見評語項目 TOP 10</h2><table><tr><th>排名</th><th>評語標題</th><th>被選次數</th></tr>${data.topEntries.map(row=>`<tr><td>${row.排名}</td><td>${escapeHtml(row.評語標題)}</td><td>${row.被選次數}</td></tr>`).join('')}</table>`:''}<h2>三、教學提示（草稿）</h2><pre>${escapeHtml(hint)}</pre></body></html>`;
   downloadFile(`評語分析_${getDateTimeString()}.doc`, content, 'application/msword;charset=utf-8');
+}
+
+// --- 修改開始: 修正 Excel 導出功能 ---
+function downloadCritiqueTemplate() {
+    if (!checkXlsxLibrary()) return;
+    const ws = XLSX.utils.json_to_sheet([
+        { id: "c1", category: "扣題與立意", type: "excellent", title: "扣題準確", strengthSummary: "能緊扣題目要求...", problemCore: "", suggestion: "", example: "文章題為...", options: "", optionsLabel: "" },
+        { id: "c2", category: "扣題與立意", type: "problem", title: "立意膚淺", strengthSummary: "", problemCore: "立意不夠深刻...", suggestion: "可思考事件背後...", example: "只停留在...", options: "", optionsLabel: "" }
+    ]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, '評語庫範本');
+    XLSX.writeFile(wb, '評語庫-範本.xlsx');
+}
+/**
+ * 下載學生名單 Excel 範本
+ */
+function downloadStudentListTemplate() {
+  // 檢查 XLSX 庫是否已載入
+  if (!checkXlsxLibrary()) return;
+
+  // 定義範本資料 (包含範例資料，讓使用者知道格式)
+  const templateData = [
+    { "班別": "6A", "學號": "01", "姓名": "陳大文" },
+    { "班別": "6A", "學號": "02", "姓名": "李小美" }
+  ];
+
+  // 建立工作表
+  const ws = XLSX.utils.json_to_sheet(templateData);
+  
+  // 建立工作簿並加入工作表
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "學生名單範本");
+
+  // 下載檔案
+  XLSX.writeFile(wb, "學生名單範本.xlsx");
+}
+function exportCritiquesToExcel() {
+    if (!checkXlsxLibrary()) return;
+    const dataToExport = collectExportData();
+    if (dataToExport.length === 0) { 
+        alert('評語庫目前為空，沒有內容可以導出。'); 
+        return; 
+    }
+    const ws = XLSX.utils.json_to_sheet(dataToExport);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, '評語庫');
+    XLSX.writeFile(wb, `評語庫-${getDateTimeString()}.xlsx`);
+}
+
+function exportProgressToExcel() {
+  if (!checkXlsxLibrary() || !allStudentRecords.length) {
+    alert('目前沒有學生名單，無法匯出進度。');
+    return;
+  }
+  const rows = allStudentRecords.map(r => {
+    const d = r.data || {}; const s = d.scores || {};
+    return {
+      studentNumber: r.number, studentName: r.name, originalName: r.originalName, class: d.class || '', topic: d.topic || '',
+      uniqueComment: d.uniqueComment || '', scoreContent: s.content || '', scoreExpression: s.expression || '',
+      scoreStructure: s.structure || '', scorePunctuation: s.punctuation || '', scoreTypos: s.typos || '', scoreTotal: s.total || '',
+      typosJSON: JSON.stringify(d.typos || []), checkedCritiquesJSON: JSON.stringify(d.checkedCritiques || []),
+      selectedTitles: d.selectedTitles || '', fullComment: d.fullComment || '', studentComment: d.studentComment || '',
+      pureFullComment: d.pureFullComment || '', pureStudentComment: d.pureStudentComment || ''
+    };
+  });
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '評語進度');
+  XLSX.writeFile(wb, `評語進度_${getDateTimeString()}.xlsx`);
+}
+// --- 修改結束 ---
+
+function handleStudentListImport(event) {
+    if (!checkXlsxLibrary()) return;
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        try {
+            const wb = XLSX.read(e.target.result, { type: 'array' });
+            const wsname = wb.SheetNames[0];
+            const ws = wb.Sheets[wsname];
+            const jsonData = XLSX.utils.sheet_to_json(ws);
+
+            if (jsonData.length === 0) { 
+                alert('Excel 檔案為空或格式不正確。'); 
+                return; 
+            }
+            const studentList = jsonData.map(row => {
+                const numKey = Object.keys(row).find(k => /學號|number|no/i.test(k));
+                const nameKey = Object.keys(row).find(k => /姓名|name/i.test(k));
+                if (!nameKey || !row[nameKey]) return null;
+                const num = numKey ? (row[numKey] || '').toString().trim() : '';
+                return num ? `${num}-${row[nameKey].toString().trim()}` : row[nameKey].toString().trim();
+            }).filter(Boolean).join('\n');
+            const textarea = document.getElementById('student-names');
+            textarea.value = studentList;
+            textarea.dispatchEvent(new Event('input', { bubbles: true }));
+            alert(`成功匯入 ${jsonData.length} 位學生！`);
+        } catch (error) { alert(`匯入學生名單失敗: ${error.message}`); } finally { event.target.value = ''; }
+    };
+    reader.readAsArrayBuffer(file);
+}
+
+function handleCritiqueImportExcel(event) {
+    if (!checkXlsxLibrary()) return;
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        try {
+            const wb = XLSX.read(e.target.result, { type: 'array' });
+            const wsname = wb.SheetNames[0];
+            const ws = wb.Sheets[wsname];
+            const jsonData = XLSX.utils.sheet_to_json(ws);
+            if (jsonData.length > 0 && !['category', 'type', 'title'].every(field => field in jsonData[0])) {
+                alert(`導入失敗！Excel 的標題行必須包含 'category', 'type', 'title'。`); return;
+            }
+            applyCritiquesToDOM(jsonData);
+            buildOverviewPage(); buildChecklist(); updateAllOutputs();
+            alert('評語庫已成功從 Excel 檔案導入！');
+        } catch (error) { alert(`導入 Excel 失敗: ${error.message}`); }
+    };
+    reader.readAsArrayBuffer(file);
+    event.target.value = '';
+}
+
+function exportCritiquesToJSON() {
+    const dataToExport = collectExportData();
+    if (dataToExport.length === 0) { alert('評語庫目前為空，沒有內容可以導出。'); return; }
+    downloadFile(`評語庫-${getDateTimeString()}.json`, JSON.stringify(dataToExport, null, 2), 'application/json');
+}
+
+function handleCritiqueImportJSON(event) {
+    handleFileImport(event.target.files[0], (fileContent) => {
+        try {
+            const data = JSON.parse(fileContent);
+            const critiques = Array.isArray(data) ? data : data.items;
+            if (!Array.isArray(critiques)) throw new Error("JSON 檔案格式不正確，找不到評語陣列。");
+            applyCritiquesToDOM(critiques);
+            buildOverviewPage(); buildChecklist(); updateAllOutputs();
+            alert('評語庫已成功從 JSON 檔案導入！');
+        } catch (error) { alert(`導入 JSON 失敗: ${error.message}`); }
+    });
+    event.target.value = '';
+}
+
+function handleProgressImportExcel(event) {
+  if (!checkXlsxLibrary()) return;
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const wb = XLSX.read(e.target.result, { type: 'array' });
+      const wsname = wb.SheetNames[0];
+      const ws = wb.Sheets[wsname];
+      const jsonData = XLSX.utils.sheet_to_json(ws);
+      if (!jsonData.length) { alert('匯入進度失敗：工作表為空。'); return; }
+      allStudentRecords = jsonData.map(row => {
+        const typos = safeParseJSON(row.typosJSON);
+        const checkedCritiques = safeParseJSON(row.checkedCritiquesJSON);
+        return {
+          number: row.studentNumber ?? null, name: row.studentName || '', originalName: row.originalName || row.studentName || '',
+          data: {
+            class: row.class || '', topic: row.topic || '', uniqueComment: row.uniqueComment || '',
+            scores: { content: row.scoreContent, expression: row.scoreExpression, structure: row.scoreStructure, punctuation: row.scorePunctuation, typos: row.scoreTypos, total: row.scoreTotal },
+            typos: Array.isArray(typos) ? typos : [], checkedCritiques: Array.isArray(checkedCritiques) ? checkedCritiques : [],
+            selectedTitles: row.selectedTitles || '', fullComment: row.fullComment || '', studentComment: row.studentComment || '',
+            pureFullComment: row.pureFullComment || '', pureStudentComment: row.pureStudentComment || ''
+          }
+        };
+      });
+      const firstWithData = allStudentRecords.find(r => r.data && (r.data.class || r.data.topic));
+      if (firstWithData?.data) {
+        document.getElementById('student-class').value = firstWithData.data.class || '';
+        document.getElementById('topic').value = firstWithData.data.topic || '';
+      }
+      document.getElementById('student-names').value = allStudentRecords.map(r => r.number != null && r.number !== '' ? `${r.number}-${r.name}` : r.name).join('\n');
+      updateStudentDropdown();
+      renderStudentOverviewTable();
+      updateAllOutputs();
+      isDataDirty = true;
+      updateUIBasedOnAuthState();
+      alert('評語進度已成功匯入。');
+    } catch (err) { alert('匯入進度失敗：' + err.message); } finally { event.target.value = ''; }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function safeParseJSON(str) {
+  if (!str) return [];
+  try { return JSON.parse(str); } catch { return []; }
+}
+
+function escapeHtml(text) {
+  if (!text && text !== 0) return "";
+  return String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+function escapeHtmlAttr(s) {
+  return (s || '').toString().replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
 function _buildAiFeedbackWordHtml(aiData, mode) {
