@@ -2568,18 +2568,69 @@ async function promptAndLoadCloudProject() {
             }
         };
 
-        const closeModal = () => {
+       
+        
+      // === 這裡是用來取代原本的 closeModal ===
+        const closeModal = async () => {
             modal.classList.remove('active');
             // 防止重複綁定
             confirmBtn.onclick = null;
             cancelBtn.onclick = null;
             input.onkeydown = null;
+
+            // 1. 清空學生與基本資料
+            clearAllCore(false);
+            allStudentRecords = [];
+            document.getElementById('student-names').value = '';
+            document.getElementById('student-class').value = '';
+            document.getElementById('topic').value = '';
+
+            // 2. 【關鍵修正】清空評語庫 DOM，防止上一份專案殘留
+            document.getElementById('critique-data').innerHTML = '';
+
+            // 3. 嘗試載入使用者的「全域評語設定」或者「還原系統預設」
+            if (currentUser) {
+                try {
+                    const { data: globalData } = await supabaseClient
+                        .from('critiques')
+                        .select('*')
+                        .eq('user_id', currentUser.id);
+                        
+                    if (globalData && globalData.length > 0) {
+                        applyCritiquesToDOM(globalData.map(c => ({
+                            id: c.critique_id, category: c.category, type: c.type, title: c.title,
+                            strengthSummary: c.strength_summary, problemCore: c.problem_core,
+                            suggestion: c.suggestion, example: c.example, options: c.options, optionsLabel: c.options_label
+                        })));
+                    } else {
+                        resetToDefaultCritiques(false);
+                    }
+                } catch(e) {
+                    console.error("載入預設評語失敗", e);
+                    resetToDefaultCritiques(false);
+                }
+            } else {
+                resetToDefaultCritiques(false);
+            }
+
+            // 4. 刷新介面
+            updateStudentDropdown();
+            renderStudentOverviewTable();
+            buildChecklist(); 
+            buildOverviewPage();
+            showPage('page1'); // 回到基本設定頁
+            
+            if (typeof showToast === 'function') showToast("已建立新專案 (評語庫已重置)", "info");
+
             resolve(false);
         };
 
         // 4. 綁定按鈕事件
         confirmBtn.onclick = triggerConfirm;
-        cancelBtn.onclick = closeModal;
+        cancelBtn.onclick = closeModal; // <--- 確保這行有指向新的 closeModal
+        input.onkeydown = (e) => {
+            if (e.key === 'Enter') triggerConfirm();
+        };
         input.onkeydown = (e) => {
             if (e.key === 'Enter') triggerConfirm();
         };
@@ -2598,11 +2649,46 @@ async function loadProjectById(projectId) {
         allStudentRecords = [];
         document.getElementById('student-names').value = '';
 
-        allStudentRecords = fullProject.project_data || [];
+        // 讀取專案資料
+        const rawData = fullProject.project_data;
+        let loadedStudents = [];
+        let loadedCritiques = null;
+
+        // 判斷資料格式 (新舊版相容)
+        if (Array.isArray(rawData)) {
+            loadedStudents = rawData;
+        } else if (rawData && rawData.students) {
+            loadedStudents = rawData.students || [];
+            loadedCritiques = rawData.critiques || [];
+        }
+
+        allStudentRecords = loadedStudents;
         document.getElementById('student-class').value = fullProject.class_name || '';
         document.getElementById('topic').value = fullProject.topic || '';
         document.getElementById('student-names').value = allStudentRecords.map(r => r.originalName).join('\n');
         
+        // === 【關鍵修正】載入前先清空評語庫 DOM ===
+        document.getElementById('critique-data').innerHTML = '';
+
+        // 處理評語庫還原
+        if (loadedCritiques && loadedCritiques.length > 0) {
+            applyCritiquesToDOM(loadedCritiques);
+        } else {
+            // 如果專案冇自帶評語，就試下跌用戶全域設定，或者用系統預設
+            const { data: globalData } = await supabaseClient.from('critiques').select('*').eq('user_id', currentUser.id);
+            if (globalData && globalData.length > 0) {
+                 applyCritiquesToDOM(globalData.map(c => ({
+                    id: c.critique_id, category: c.category, type: c.type, title: c.title,
+                    strengthSummary: c.strength_summary, problemCore: c.problem_core,
+                    suggestion: c.suggestion, example: c.example, options: c.options, optionsLabel: c.options_label
+                })));
+            } else {
+                 resetToDefaultCritiques(false);
+            }
+        }
+
+        buildChecklist(); 
+        buildOverviewPage(); 
         updateStudentDropdown();
         renderStudentOverviewTable();
         
