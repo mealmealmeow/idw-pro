@@ -2308,9 +2308,11 @@
 
     <input type="number" id="pop-project-input" class="pop-input" placeholder="輸入編號..." min="1">
 
-    <div class="pop-footer">
-      <button class="pop-btn pop-btn-cancel" id="pop-project-cancel">取消</button>
+   <div class="pop-footer">
+      <!-- 改咗下面呢行文字，變成「開新專案」 -->
+      <button class="pop-btn pop-btn-cancel" id="pop-project-cancel">開新專案 (不載入)</button>
       <button class="pop-btn pop-btn-confirm" id="pop-project-confirm">確定載入</button>
+
     </div>
   </div>
 </div>
@@ -2619,22 +2621,28 @@ async function loadProjectById(projectId) {
     }
 }
 // --- 重要的修改：雲端同步函式 ---
+/* === 全新版本 syncDataToCloud (放寬儲存條件) === */
 async function syncDataToCloud() {
   // 1. 檢查是否登入
   if (!currentUser) {
     showToast("尚未登入，請先登入帳戶以使用雲端同步功能。", "warning");
-    // 捲動到頁面頂部以便登入
     window.scrollTo({ top: 0, behavior: 'smooth' });
     return;
   }
 
-  // 2. 檢查是否有變更 (雖然按鈕 disabled 時不會觸發，但雙重保險)
-  // 或者如果是手動點擊，即使沒變更也給一個提示，讓用戶安心
-  if (!isDataDirty) {
-     showToast("您的資料已是最新，無需同步。", "success");
+  // 2. 獲取當前輸入資料
+  const className = document.getElementById('student-class').value.trim();
+  const topic = document.getElementById('topic').value.trim();
+  const hasStudents = allStudentRecords.length > 0; // 是否有名單
+
+  // 3. 檢查：只要符合其中一個條件就可以儲存
+  // 條件：有班別 OR 有題目 OR 有學生名單
+  if (!className && !topic && !hasStudents) {
+     showToast("無法儲存：請至少填寫「班別」、「作文題目」或「學生名單」其中一項，才可建立專案。", "warning");
      return;
   }
 
+  // 4. UI 鎖定
   const syncBtn = document.getElementById('sync-btn');
   const originalText = syncBtn.textContent;
   syncBtn.textContent = '同步中...';
@@ -2643,51 +2651,85 @@ async function syncDataToCloud() {
   showToast("正在同步至雲端...", "info");
 
   try {
+    // --- A. 儲存評語庫 (Critiques) ---
     const dataContainer = document.getElementById('critique-data');
     const critiquesToUpsert = Array.from(dataContainer.children).map(div => ({
-      user_id: currentUser.id, critique_id: div.dataset.id, category: div.dataset.category,
-      type: div.dataset.type, title: div.querySelector('h4').textContent,
-      strength_summary: div.dataset.strengthSummary, problem_core: div.dataset.problemCore,
-      suggestion: div.dataset.suggestion, example: div.dataset.example,
-      options: div.dataset.options, options_label: div.dataset.optionsLabel,
+      user_id: currentUser.id, 
+      critique_id: div.dataset.id, 
+      category: div.dataset.category,
+      type: div.dataset.type, 
+      title: div.querySelector('h4').textContent,
+      strength_summary: div.dataset.strengthSummary, 
+      problem_core: div.dataset.problemCore,
+      suggestion: div.dataset.suggestion, 
+      example: div.dataset.example,
+      options: div.dataset.options, 
+      options_label: div.dataset.optionsLabel,
       updated_at: new Date().toISOString()
     }));
+    // 先刪除舊的，再插入新的 (簡單做法)
     await supabaseClient.from('critiques').delete().eq('user_id', currentUser.id);
     const { error: critiquesError } = await supabaseClient.from('critiques').upsert(critiquesToUpsert);
     if (critiquesError) throw critiquesError;
 
+    // --- B. 儲存錯別字庫 (Typos) ---
     const typosToUpsert = commonTypos.map(t => ({
-      user_id: currentUser.id, typo_id: t.id, wrong: t.wrong, correct: t.correct
+      user_id: currentUser.id, 
+      typo_id: t.id, 
+      wrong: t.wrong, 
+      correct: t.correct
     }));
     await supabaseClient.from('common_typos').delete().eq('user_id', currentUser.id);
     const { error: typosError } = await supabaseClient.from('common_typos').upsert(typosToUpsert);
     if (typosError) throw typosError;
 
-    const className = document.getElementById('student-class').value.trim();
-    const topic = document.getElementById('topic').value.trim();
-    if (allStudentRecords.length > 0 && (className || topic)) {
-        const { data: existingProject, error: findError } = await supabaseClient
-            .from('student_projects').select('id').eq('user_id', currentUser.id)
-            .eq('class_name', className).eq('topic', topic).maybeSingle();
-        if(findError) throw findError;
-        const projectToUpsert = {
-            id: existingProject ? existingProject.id : undefined, user_id: currentUser.id,
-            class_name: className, topic: topic, project_data: allStudentRecords,
-            updated_at: new Date().toISOString()
-        };
-        const { error: projectError } = await supabaseClient.from('student_projects').upsert(projectToUpsert);
-        if (projectError) throw projectError;
+    // --- C. 儲存專案 (Project) ---
+    // 邏輯：嘗試用「班別 + 題目」去搵有無舊專案。
+    // 如果搵到就更新 (Update)，搵唔到就新增 (Insert)。
+    
+    let projectIdToUpdate = undefined;
+
+    // 只有當班別或題目有填寫時，才嘗試去匹配舊專案
+    if (className || topic) {
+        // 構建查詢條件
+        let query = supabaseClient.from('student_projects').select('id').eq('user_id', currentUser.id);
+        
+        // 如果有班別，就必須 match 班別 (空字串 match 空字串)
+        query = query.eq('class_name', className);
+        // 如果有題目，就必須 match 題目
+        query = query.eq('topic', topic);
+
+        const { data: existingProject, error: findError } = await query.maybeSingle();
+        
+        if (!findError && existingProject) {
+            projectIdToUpdate = existingProject.id;
+        }
     }
+
+    const projectToUpsert = {
+        id: projectIdToUpdate, // 如果係 undefined，Supabase 會自動當係新資料插入
+        user_id: currentUser.id,
+        class_name: className, 
+        topic: topic, 
+        project_data: allStudentRecords,
+        updated_at: new Date().toISOString()
+    };
+    
+    const { error: projectError } = await supabaseClient.from('student_projects').upsert(projectToUpsert);
+    if (projectError) throw projectError;
+
     isDataDirty = false;
-    showToast("同步成功！所有變更已儲存到雲端。", "success");
+    showToast("同步成功！專案已儲存到雲端。", "success");
+
   } catch (error) {
     showToast(`同步失敗: ${error.message}`, "error");
+    console.error(error);
   } finally {
     syncBtn.textContent = originalText;
+    syncBtn.disabled = false; 
     updateUIBasedOnAuthState();
   }
 }
-
 function updateUIBasedOnAuthState() {
     const authStatus = document.getElementById('auth-status');
     const loginBtn = document.getElementById('login-btn');
