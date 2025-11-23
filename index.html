@@ -1584,3 +1584,30 @@
   /* 專案選擇 Modal 特別樣式 */
   #project-selection-modal .modal-card {
       width: min(92vw, 550px); /* 稍寬一點 */
+=== 'teacher' ? '七' : '六'}、跟進練習</h2>`;
+        aiData.writingPractices.forEach((p, index) => {
+            html += `<h3>練習 ${index + 1}</h3>`;
+            if (p.prompt) html += `<p><b>題目：</b>${mdToHtml(escapeHtml(p.prompt))}</p>`;
+            if (p.guidelines?.length > 0) html += `<p><b>指引：</b></p><ul>${p.guidelines.map(g => `<li>${escapeHtml(g)}</li>`).join('')}</ul>`;
+            if (p.modelAnswer) html += `<p><b>參考示例：</b></p><div class="sample">${textToWordHtmlWithLists(p.modelAnswer)}</div>`;
+            if (mode === 'teacher' && p.commentary) html += `<p><b>教師點評：</b></p><div class="commentary">${textToWordHtmlWithLists(p.commentary)}</div>`;
+        });
+    }
+    return `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8" /><title>${escapeHtmlAttr(topic)} - 寫作回饋</title><style>body{font-family:"PMingLiU","新細明體","Microsoft JhengHei",sans-serif;font-size:11pt;line-height:1.6;}h1{font-size:16pt;text-align:center;}h2{font-size:14pt;border-bottom:2px solid #000;padding-bottom:3pt;margin-top:15pt;}h3{font-size:12pt;border-bottom:1px dashed #999;padding-bottom:2pt;margin-top:12pt;}.box,.sample,.commentary{border:1px solid #ccc;padding:8pt;margin:8pt 0;background:#f9f9f9;}table{border-collapse:collapse;width:100%;margin:10pt 0;}th,td{border:1px solid #666;padding:5pt;text-align:left;vertical-align:top;}th{background-color:#f2f2f2;}pre{white-space:pre-wrap;font-family:inherit;}p{margin:0 0 4pt 0;}ul,ol{margin-top:0;margin-bottom:0;padding-left:24pt;}</style></head><body>${html}</body></html>`;
+}
+
+function generateTeacherWord() {
+    const aiData = _getAIFeedbackData();
+    if (!aiData) return;
+    downloadFile(`AI回饋_${getSanitizedTopicFilename()}_老師版.doc`, _buildAiFeedbackWordHtml(aiData, 'teacher'), 'application/msword;charset=utf-8');
+}
+
+function generateStudentWord() {
+    const aiData = _getAIFeedbackData();
+    if (!aiData) return;
+    downloadFile(`AI回饋_${getSanitizedTopicFilename()}_學生版.doc`, _buildAiFeedbackWordHtml(aiData, 'student'), 'application/msword;charset=utf-8');
+}
+</script>
+
+</body>
+</html>
