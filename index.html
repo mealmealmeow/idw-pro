@@ -2288,7 +2288,7 @@
     <a href="#grading-section-checklist" class="floating-nav-btn" onclick="scrollToSection(event, 'grading-section-checklist')" data-tooltip="評語項目">✅</a>
     <a href="#grading-section-typo-score" class="floating-nav-btn" onclick="scrollToSection(event, 'grading-section-typo-score')" data-tooltip="錯別字/評分">📝</a>
     <a href="#grading-section-feedback" class="floating-nav-btn" onclick="scrollToSection(event, 'grading-section-feedback')" data-tooltip="學生評語">📄</a>
-  <a href="javascript:void(0)" class="floating-nav-btn" onclick="saveCurrentStudentData()" data-tooltip="儲存當前學生">💾</a>
+    <a href="javascript:void(0)" class="floating-nav-btn" onclick="saveCurrentStudentData()" data-tooltip="儲存當前學生">💾</a>
     <!-- 新增：與雲端同步按鈕 -->
     <a href="javascript:void(0)" class="floating-nav-btn" onclick="syncDataToCloud()" data-tooltip="同步至雲端">☁️</a>
   </nav>
@@ -2586,6 +2586,7 @@ async function promptAndLoadCloudProject() {
     });
 }
 
+/* === 修改後的 loadProjectById (載入專案專屬評語) === */
 async function loadProjectById(projectId) {
     const authStatus = document.getElementById('auth-status');
     authStatus.textContent = "正在載入...";
@@ -2595,14 +2596,41 @@ async function loadProjectById(projectId) {
         if (fullProjectError) throw fullProjectError;
         
         clearAllCore(false);
-        allStudentRecords = [];
-        document.getElementById('student-names').value = '';
+        
+        // --- 資料解析邏輯 (兼容舊版與新版) ---
+        const rawData = fullProject.project_data;
+        let loadedStudents = [];
+        let loadedCritiques = null;
 
-        allStudentRecords = fullProject.project_data || [];
+        if (Array.isArray(rawData)) {
+            // 舊版資料：project_data 直接是一個學生陣列
+            // 對於舊專案，我們只能使用當前全域的評語
+            loadedStudents = rawData;
+        } else if (rawData && rawData.students) {
+            // 新版資料：包含 students 和 critiques
+            loadedStudents = rawData.students || [];
+            loadedCritiques = rawData.critiques || []; // 讀取專屬評語
+        }
+
+        // 1. 還原學生資料
+        allStudentRecords = loadedStudents;
+        document.getElementById('student-names').value = ''; 
+        document.getElementById('student-names').value = allStudentRecords.map(r => r.originalName).join('\n');
+
+        // 2. 還原專案資料
         document.getElementById('student-class').value = fullProject.class_name || '';
         document.getElementById('topic').value = fullProject.topic || '';
-        document.getElementById('student-names').value = allStudentRecords.map(r => r.originalName).join('\n');
         
+        // 3. 【關鍵】還原專屬評語庫 (如果有)
+        if (loadedCritiques && loadedCritiques.length > 0) {
+            // 用專案內的評語覆蓋介面
+            applyCritiquesToDOM(loadedCritiques);
+            // 重新構建 Checklist 和 總覽頁
+            buildChecklist(); 
+            buildOverviewPage();
+        }
+
+        // 4. 更新介面
         updateStudentDropdown();
         renderStudentOverviewTable();
         
@@ -2611,17 +2639,24 @@ async function loadProjectById(projectId) {
             studentSelect.selectedIndex = 0;
             loadStudentData(studentSelect.value);
         }
+        
         showPage('page2');
-        if (typeof showToast === 'function') showToast(`專案「${fullProject.class_name || ''}」載入成功！`, "success");
-        else alert(`專案「${fullProject.class_name}」載入成功！`);
+        
+        if (typeof showToast === 'function') {
+             const critiqueMsg = loadedCritiques ? "及專屬評語庫" : "";
+             showToast(`專案「${fullProject.class_name || ''}」${critiqueMsg}載入成功！`, "success");
+        } else {
+             alert(`專案載入成功！`);
+        }
+
     } catch (error) {
         alert(`載入專案時發生錯誤：${error.message}`);
+        console.error(error);
     } finally {
         updateUIBasedOnAuthState();
     }
 }
-// --- 重要的修改：雲端同步函式 ---
-/* === 全新版本 syncDataToCloud (放寬儲存條件) === */
+/* === 修改後的 syncDataToCloud (將評語庫打包入專案) === */
 async function syncDataToCloud() {
   // 1. 檢查是否登入
   if (!currentUser) {
@@ -2633,16 +2668,14 @@ async function syncDataToCloud() {
   // 2. 獲取當前輸入資料
   const className = document.getElementById('student-class').value.trim();
   const topic = document.getElementById('topic').value.trim();
-  const hasStudents = allStudentRecords.length > 0; // 是否有名單
+  const hasStudents = allStudentRecords.length > 0; 
 
-  // 3. 檢查：只要符合其中一個條件就可以儲存
-  // 條件：有班別 OR 有題目 OR 有學生名單
+  // 3. 檢查
   if (!className && !topic && !hasStudents) {
      showToast("無法儲存：請至少填寫「班別」、「作文題目」或「學生名單」其中一項，才可建立專案。", "warning");
      return;
   }
 
-  // 4. UI 鎖定
   const syncBtn = document.getElementById('sync-btn');
   const originalText = syncBtn.textContent;
   syncBtn.textContent = '同步中...';
@@ -2651,9 +2684,13 @@ async function syncDataToCloud() {
   showToast("正在同步至雲端...", "info");
 
   try {
-    // --- A. 儲存評語庫 (Critiques) ---
-    const dataContainer = document.getElementById('critique-data');
-    const critiquesToUpsert = Array.from(dataContainer.children).map(div => ({
+    // --- A. 收集當前評語庫資料 (新增步驟) ---
+    // 這一步將當前畫面上的評語變成資料物件
+    const currentCritiques = collectExportData(); 
+
+    // --- B. 同時更新全域評語庫 (作為用戶的「最近使用」偏好) ---
+    // 這樣做是為了當你開一個「全新專案」時，系統會預設使用你最近一次用過的評語
+    const critiquesToUpsert = Array.from(document.getElementById('critique-data').children).map(div => ({
       user_id: currentUser.id, 
       critique_id: div.dataset.id, 
       category: div.dataset.category,
@@ -2667,51 +2704,44 @@ async function syncDataToCloud() {
       options_label: div.dataset.optionsLabel,
       updated_at: new Date().toISOString()
     }));
-    // 先刪除舊的，再插入新的 (簡單做法)
+    
     await supabaseClient.from('critiques').delete().eq('user_id', currentUser.id);
     const { error: critiquesError } = await supabaseClient.from('critiques').upsert(critiquesToUpsert);
     if (critiquesError) throw critiquesError;
 
-    // --- B. 儲存錯別字庫 (Typos) ---
+    // --- C. 儲存錯別字庫 ---
     const typosToUpsert = commonTypos.map(t => ({
-      user_id: currentUser.id, 
-      typo_id: t.id, 
-      wrong: t.wrong, 
-      correct: t.correct
+      user_id: currentUser.id, typo_id: t.id, wrong: t.wrong, correct: t.correct
     }));
     await supabaseClient.from('common_typos').delete().eq('user_id', currentUser.id);
-    const { error: typosError } = await supabaseClient.from('common_typos').upsert(typosToUpsert);
-    if (typosError) throw typosError;
+    await supabaseClient.from('common_typos').upsert(typosToUpsert);
 
-    // --- C. 儲存專案 (Project) ---
-    // 邏輯：嘗試用「班別 + 題目」去搵有無舊專案。
-    // 如果搵到就更新 (Update)，搵唔到就新增 (Insert)。
-    
+    // --- D. 儲存專案 (關鍵修改：打包評語庫) ---
     let projectIdToUpdate = undefined;
 
-    // 只有當班別或題目有填寫時，才嘗試去匹配舊專案
     if (className || topic) {
-        // 構建查詢條件
         let query = supabaseClient.from('student_projects').select('id').eq('user_id', currentUser.id);
-        
-        // 如果有班別，就必須 match 班別 (空字串 match 空字串)
         query = query.eq('class_name', className);
-        // 如果有題目，就必須 match 題目
         query = query.eq('topic', topic);
-
         const { data: existingProject, error: findError } = await query.maybeSingle();
-        
         if (!findError && existingProject) {
             projectIdToUpdate = existingProject.id;
         }
     }
 
+    // 構建新的資料結構：同時包含學生資料 和 專屬評語庫
+    const projectPayload = {
+        version: 2, // 標記版本，方便載入時識別
+        students: allStudentRecords,
+        critiques: currentCritiques // 將這份專案專用的評語存進去
+    };
+
     const projectToUpsert = {
-        id: projectIdToUpdate, // 如果係 undefined，Supabase 會自動當係新資料插入
+        id: projectIdToUpdate,
         user_id: currentUser.id,
         class_name: className, 
         topic: topic, 
-        project_data: allStudentRecords,
+        project_data: projectPayload, // 這裡存入打包好的物件
         updated_at: new Date().toISOString()
     };
     
@@ -2719,7 +2749,7 @@ async function syncDataToCloud() {
     if (projectError) throw projectError;
 
     isDataDirty = false;
-    showToast("同步成功！專案已儲存到雲端。", "success");
+    showToast("同步成功！專案及專屬評語庫已儲存。", "success");
 
   } catch (error) {
     showToast(`同步失敗: ${error.message}`, "error");
