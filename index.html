@@ -2315,6 +2315,29 @@
 
     </div>
   </div>
+  <!-- 新增：建立新專案的 Modal (Modal B) -->
+<div id="pop-new-project-modal" class="pop-overlay">
+  <div class="pop-modal">
+    <div class="pop-icon">✨</div>
+    <h3>建立新專案</h3>
+    <p class="pop-desc">
+      請輸入新專案的資料。<br>
+      <strong>只要填寫其中一項</strong>，即可建立。
+    </p>
+    
+    <!-- 輸入區域 -->
+    <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;">
+        <input type="text" id="new-proj-class" class="pop-input" placeholder="班別 (例如: 6A)" style="margin-bottom:0; width:90%;">
+        <input type="text" id="new-proj-topic" class="pop-input" placeholder="作文題目" style="margin-bottom:0; width:90%;">
+        <textarea id="new-proj-students" class="pop-input" placeholder="學生名單 (每行一個姓名)" style="margin-bottom:0; width:90%; height: 100px; text-align: left; resize: none; font-family: inherit;"></textarea>
+    </div>
+
+    <div class="pop-footer">
+      <button class="pop-btn pop-btn-cancel" onclick="closeNewProjectModal()">取消</button>
+      <button class="pop-btn pop-btn-confirm" onclick="confirmCreateNewProject()">立即建立</button>
+    </div>
+  </div>
+</div>
 </div>
 <script>
 // --- Supabase 初始化與設定 ---
@@ -5254,6 +5277,66 @@ function generateStudentWord() {
     const aiData = _getAIFeedbackData();
     if (!aiData) return;
     downloadFile(`AI回饋_${getSanitizedTopicFilename()}_學生版.doc`, _buildAiFeedbackWordHtml(aiData, 'student'), 'application/msword;charset=utf-8');
+}
+/* === 新增：控制「建立新專案」Popup 的邏輯 === */
+
+// 1. 開啟「建立新專案」Modal
+function openNewProjectModal() {
+    // 先關閉舊的選擇專案 Modal
+    document.getElementById('pop-project-modal').classList.remove('active');
+    
+    // 清空新 Modal 的輸入框
+    document.getElementById('new-proj-class').value = '';
+    document.getElementById('new-proj-topic').value = '';
+    document.getElementById('new-proj-students').value = '';
+    
+    // 顯示新 Modal
+    document.getElementById('pop-new-project-modal').classList.add('active');
+    setTimeout(() => document.getElementById('new-proj-class').focus(), 100);
+}
+
+// 2. 關閉「建立新專案」Modal
+function closeNewProjectModal() {
+    document.getElementById('pop-new-project-modal').classList.remove('active');
+}
+
+// 3. 按下「立即建立」後的邏輯
+function confirmCreateNewProject() {
+    const newClass = document.getElementById('new-proj-class').value.trim();
+    const newTopic = document.getElementById('new-proj-topic').value.trim();
+    const newStudents = document.getElementById('new-proj-students').value.trim();
+
+    // 檢查：是否至少填了一項
+    if (!newClass && !newTopic && !newStudents) {
+        alert("請至少填寫「班別」、「題目」或「學生名單」其中一項。");
+        return;
+    }
+
+    // A. 清空現有介面資料 (Reset)
+    clearAllCore(false); 
+    allStudentRecords = [];
+    
+    // B. 填入新資料
+    document.getElementById('student-class').value = newClass;
+    document.getElementById('topic').value = newTopic;
+    document.getElementById('student-names').value = newStudents; // 填入名單 textarea
+
+    // C. 觸發系統更新 (更新下拉選單、連結變數)
+    const event = new Event('input', { bubbles: true });
+    document.getElementById('student-names').dispatchEvent(event);
+    document.getElementById('topic').dispatchEvent(event);
+
+    // D. 關閉 Popup 並提示
+    closeNewProjectModal();
+    
+    if (typeof showToast === 'function') {
+        showToast("新專案已建立！請記得隨時按「同步至雲端」儲存。", "success");
+    } else {
+        alert("新專案已建立！請記得隨時按「同步至雲端」儲存。");
+    }
+    
+    // E. 跳轉到第一頁 (基本設定) 方便檢查
+    showPage('page1');
 }
 </script>
 
