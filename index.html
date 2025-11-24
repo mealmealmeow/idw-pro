@@ -4,6 +4,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>我不想努力了</title>
+  <div id="project-header-info" class="project-header-info" style="display:none;">
+  <span id="ph-class"></span>
+  <span class="ph-divider">|</span>
+  <span id="ph-topic"></span>
+</div>
   <!-- 引入 xlsx.js 函式庫，用於處理 Excel 檔案 -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <!-- 引入 Supabase.js 函式庫 -->
@@ -15,6 +20,27 @@
   <link href="https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC&display=swap" rel="stylesheet">
 
 <style>
+    /* 新增：頂部專案資訊樣式 */
+.project-header-info {
+  background-color: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 8px;
+  padding: 0.3rem 0.8rem;
+  font-size: 0.95rem;
+  margin-top: 0.5rem;
+  display: inline-flex;
+  gap: 0.5rem;
+  align-items: center;
+  backdrop-filter: blur(4px);
+}
+.project-header-info span {
+  display: inline-block;
+  color: white; /* 確保喺綠色底色上睇得清楚 */
+}
+.project-header-info .ph-divider {
+  opacity: 0.6;
+  transform: scaleY(0.8);
+}
   /* ========================================= */
 /* === 以下係 Pop Art 彈窗專用樣式 (必貼) === */
 /* ========================================= */
@@ -2401,7 +2427,22 @@ function showToast(message, type = 'info') {
         }, 400);
     }, 3000);
 }
+// 新增：更新頂部專案資訊函式
+function updateHeaderInfo() {
+    const className = document.getElementById('student-class').value.trim();
+    const topic = document.getElementById('topic').value.trim();
+    const container = document.getElementById('project-header-info');
+    const classSpan = document.getElementById('ph-class');
+    const topicSpan = document.getElementById('ph-topic');
 
+    if (className || topic) {
+        container.style.display = 'inline-flex';
+        classSpan.textContent = className || '未設定班別';
+        topicSpan.textContent = topic || '未設定題目';
+    } else {
+        container.style.display = 'none';
+    }
+}
 // --- Supabase 核心功能 ---
 
 async function checkUser() {
@@ -2616,6 +2657,7 @@ async function promptAndLoadCloudProject() {
             // 4. 刷新介面
             updateStudentDropdown();
             renderStudentOverviewTable();
+            updateHeaderInfo(); 
             buildChecklist(); 
             buildOverviewPage();
             showPage('page1'); // 回到基本設定頁
@@ -2691,6 +2733,7 @@ async function loadProjectById(projectId) {
         buildOverviewPage(); 
         updateStudentDropdown();
         renderStudentOverviewTable();
+        updateHeaderInfo();    
         
         const studentSelect = document.getElementById('student-select');
         if (studentSelect.options.length > 0) {
@@ -3094,6 +3137,8 @@ function attachGlobalListeners() {
   document.getElementById('login-btn').addEventListener('click', handleLogin);
   document.getElementById('logout-btn').addEventListener('click', handleLogout);
   document.getElementById('sync-btn').addEventListener('click', syncDataToCloud);
+  document.getElementById('student-class').addEventListener('input', updateHeaderInfo);
+document.getElementById('topic').addEventListener('input', updateHeaderInfo);
   
   const selectProjectBtn = document.getElementById('select-project-btn');
   if (selectProjectBtn) selectProjectBtn.addEventListener('click', promptAndLoadCloudProject);
@@ -3394,6 +3439,7 @@ function updateStudentDropdown() {
   
   updateAllOutputs();
   renderStudentOverviewTable();
+  
 }
 
 function toggleOtherBlock(selectId, value) {
