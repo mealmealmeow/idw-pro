@@ -15,54 +15,49 @@
   <link href="https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC&display=swap" rel="stylesheet">
 
 <style>
-  /* ✅ 新增：頂部專案資訊樣式 (改良版) */
+  /* 新增：頂部專案資訊樣式 (簡約白色版) */
 .project-header-info {
-  /* 位置與排版 */
-  margin-top: 0.6rem; 
-  align-self: flex-start;
-  display: inline-flex;
-  gap: 0.8rem;
-  align-items: center;
+  /* 位置：確保同上面有少少距離 */
+  margin-top: 0.5rem; 
+  align-self: flex-start; /* 靠左對齊 */
 
-  /* 外觀設計 (深色半透明) */
-  background-color: rgba(0, 0, 0, 0.25); 
-  border-radius: 50px;
-  padding: 0.45rem 1.2rem; 
+  /* 外觀：改番淺色半透明，冇咁重口味 */
+  background-color: rgba(255, 255, 255, 0.15); 
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px; /* 圓角改細少少，冇咁似藥丸 */
+  padding: 0.3rem 0.8rem; /* 縮番細個 Padding */
+  
+  /* 字體：改番標準大細同白色 */
+  font-size: 0.95rem; 
   color: #ffffff;
+  font-weight: normal; /* 唔好太粗 */
   
-  /* 字體調整 */
-  font-size: 1.05rem;
-  font-weight: 500;
-  letter-spacing: 0.03em;
-  
-  /* 裝飾 */
-  box-shadow: inset 0 1px 4px rgba(0,0,0,0.2);
-  border: 1px solid rgba(255,255,255,0.2);
+  /* 排版 */
+  display: inline-flex;
+  gap: 0.6rem;
+  align-items: center;
   backdrop-filter: blur(4px);
-  transition: all 0.3s ease;
 }
 
 /* 限制文字長度 */
 .project-header-info span {
   display: inline-block;
   white-space: nowrap;
-  max-width: 350px;
+  max-width: 300px;
   overflow: hidden;
   text-overflow: ellipsis;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.1);
 }
 
-/* 特別加強「班別」顏色 */
+/* 班別：改番做白色粗體 */
 #ph-class {
-    font-weight: 700;
-    color: #fff0c2; /* 淡黃色 */
-    font-size: 1.1rem;
+    font-weight: bold;
+    color: #ffffff; /* 遵命，改番白色 */
+    font-size: 1rem;
 }
 
 /* 分隔線 */
 .project-header-info .ph-divider {
-  opacity: 0.5;
-  transform: scaleY(0.9);
+  opacity: 0.6;
   margin: 0 2px;
 }
   /* ========================================= */
@@ -1779,9 +1774,14 @@
 
   <div class="main-container">
     <div class="sticky-top-bar">
-      <header>
-        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+     <header>
+        <!-- 左邊區域：垂直排列 -->
+        <div style="display: flex; flex-direction: column; gap: 0.5rem; align-items: flex-start; flex: 1;">
+          
+          <!-- 1. 標題 -->
           <h1>我不想努力了</h1>
+          
+          <!-- 2. 登入/同步按鈕 -->
           <div class="auth-container">
             <span id="auth-status">未連接</span>
             <div id="auth-buttons">
@@ -1790,21 +1790,24 @@
               <button id="sync-btn" class="btn action-btn" style="display: none;" disabled>同步至雲端</button>
             </div>
           </div>
+
+          <!-- 3. 專案資訊 (一定會喺按鈕下面) -->
+          <div id="project-header-info" class="project-header-info" style="display:none;">
+            <span style="opacity:0.8">📂</span>
+            <span id="ph-class"></span>
+            <span class="ph-divider">|</span>
+            <span id="ph-topic"></span>
+          </div>
+
         </div>
-        <div id="project-header-info" class="project-header-info" style="display:none;">
-  <span id="ph-class"></span>
-  <span class="ph-divider">|</span>
-  <span id="ph-topic"></span>
-</div>
-  
-          <!-- 右邊區域：字體控制 (固定在右上角) -->
-        <div class="font-controls" style="align-self: flex-start; margin-top: 0.5rem;">
+        
+        <!-- 右邊區域：字體控制 (保持在右上角) -->
+        <div class="font-controls" style="align-self: flex-start;">
           <button class="font-control-btn" onclick="adjustFontSize('decrease')" title="縮小字體">A-</button>
           <button class="font-control-btn" onclick="adjustFontSize('reset')" title="重設字體大小">重設</button>
           <button class="font-control-btn" onclick="adjustFontSize('increase')" title="放大字體">A+</button>
         </div>
       </header>
-      
       <nav class="page-nav">
         <button id="nav-page1" class="nav-btn active" onclick="showPage('page1')">基本設定</button>
         <button id="nav-page2" class="nav-btn" onclick="showPage('page2')">批改頁</button>
