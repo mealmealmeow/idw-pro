@@ -3809,12 +3809,15 @@ function navigateToStudent(direction) {
 function saveCurrentStudentData() {
   const studentOriginalName = document.getElementById('student-select').value;
   if (!studentOriginalName) {
-    alert('請先從下拉選單中選擇一位學生。');
+    // 改用 Toast 提示錯誤，體驗更好
+    if (typeof showToast === 'function') showToast('請先從下拉選單中選擇一位學生。', 'warning');
+    else alert('請先從下拉選單中選擇一位學生。');
     return;
   }
   const studentRecord = allStudentRecords.find(r => r.originalName === studentOriginalName);
   if (!studentRecord) {
-    alert('錯誤：在資料庫中找不到該學生。');
+    if (typeof showToast === 'function') showToast('錯誤：在資料庫中找不到該學生。', 'error');
+    else alert('錯誤：在資料庫中找不到該學生。');
     return;
   }
 
@@ -3874,15 +3877,29 @@ function saveCurrentStudentData() {
   isDataDirty = true;
   updateUIBasedOnAuthState();
 
-  confirmUI(
-    `已成功儲存 ${studentOriginalName} 的評語資料！\n\n是否要清空當前內容，以準備輸入下一位學生？`,
-    () => {
-      clearAllCore();
-      document.getElementById('student-select').focus();
-    }
-  );
-}
+  // === 修改部分開始 ===
+  
+  // 1. 顯示成功訊息 (使用 Toast，不需手動關閉)
+  if (typeof showToast === 'function') {
+      showToast(`已成功儲存 ${studentOriginalName} 的評語資料！`, 'success');
+  } else {
+      alert(`已成功儲存 ${studentOriginalName} 的評語資料！`);
+  }
 
+  // 2. 滾動回到上方的「選擇學生」區域
+  // 建立一個假的事件物件，因為 scrollToSection 需要 event.preventDefault
+  scrollToSection(new Event('dummy'), 'grading-section-student');
+
+  // 3. 將焦點放回下拉選單，方便使用者直接按鍵盤上下鍵切換下一位
+  const selectElement = document.getElementById('student-select');
+  if (selectElement) {
+      selectElement.focus();
+  }
+  
+  // 注意：這裡移除了 clearAllCore() 的呼叫，所以內容會保留
+  
+  // === 修改部分結束 ===
+}
 function loadStudentData(studentOriginalName) {
   const studentRecord = allStudentRecords.find(r => r.originalName === studentOriginalName);
   clearAllCore(false); 
