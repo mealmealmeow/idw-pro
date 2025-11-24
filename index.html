@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>我不想努力了</title>
-  <div id="project-header-info" class="project-header-info" style="display:none;">
+ 
   <span id="ph-class"></span>
   <span class="ph-divider">|</span>
   <span id="ph-topic"></span>
@@ -1758,6 +1758,33 @@
       <header>
         <div style="display: flex; flex-direction: column; gap: 0.5rem;">
           <h1>我不想努力了</h1>
+          <header>
+        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+          <h1>我不想努力了</h1>
+          
+          <!-- ✅ 正確位置：放在標題 H1 下面 -->
+          <div id="project-header-info" class="project-header-info" style="display:none;">
+            <span id="ph-class"></span>
+            <span class="ph-divider">|</span>
+            <span id="ph-topic"></span>
+          </div>
+
+          <div class="auth-container">
+            <span id="auth-status">未連接</span>
+            <div id="auth-buttons">
+              <button id="login-btn" class="btn light-btn">登入/註冊</button>
+              <button id="logout-btn" class="btn danger-btn" style="display: none;">登出</button>
+              <button id="sync-btn" class="btn action-btn" style="display: none;" disabled>同步至雲端</button>
+            </div>
+          </div>
+        </div>
+        
+        <div class="font-controls">
+          <button class="font-control-btn" onclick="adjustFontSize('decrease')" title="縮小字體">A-</button>
+          <button class="font-control-btn" onclick="adjustFontSize('reset')" title="重設字體大小">重設</button>
+          <button class="font-control-btn" onclick="adjustFontSize('increase')" title="放大字體">A+</button>
+        </div>
+      </header>
           <div class="auth-container">
             <span id="auth-status">未連接</span>
             <div id="auth-buttons">
