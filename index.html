@@ -15,6 +15,56 @@
   <link href="https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC&display=swap" rel="stylesheet">
 
 <style>
+  /* ✅ 新增：頂部專案資訊樣式 (改良版) */
+.project-header-info {
+  /* 位置與排版 */
+  margin-top: 0.6rem; 
+  align-self: flex-start;
+  display: inline-flex;
+  gap: 0.8rem;
+  align-items: center;
+
+  /* 外觀設計 (深色半透明) */
+  background-color: rgba(0, 0, 0, 0.25); 
+  border-radius: 50px;
+  padding: 0.45rem 1.2rem; 
+  color: #ffffff;
+  
+  /* 字體調整 */
+  font-size: 1.05rem;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  
+  /* 裝飾 */
+  box-shadow: inset 0 1px 4px rgba(0,0,0,0.2);
+  border: 1px solid rgba(255,255,255,0.2);
+  backdrop-filter: blur(4px);
+  transition: all 0.3s ease;
+}
+
+/* 限制文字長度 */
+.project-header-info span {
+  display: inline-block;
+  white-space: nowrap;
+  max-width: 350px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+/* 特別加強「班別」顏色 */
+#ph-class {
+    font-weight: 700;
+    color: #fff0c2; /* 淡黃色 */
+    font-size: 1.1rem;
+}
+
+/* 分隔線 */
+.project-header-info .ph-divider {
+  opacity: 0.5;
+  transform: scaleY(0.9);
+  margin: 0 2px;
+}
   /* ========================================= */
 /* === 以下係 Pop Art 彈窗專用樣式 (必貼) === */
 /* ========================================= */
@@ -1741,7 +1791,14 @@
             </div>
           </div>
         </div>
-        <div class="font-controls">
+        <div id="project-header-info" class="project-header-info" style="display:none;">
+  <span id="ph-class"></span>
+  <span class="ph-divider">|</span>
+  <span id="ph-topic"></span>
+</div>
+  
+          <!-- 右邊區域：字體控制 (固定在右上角) -->
+        <div class="font-controls" style="align-self: flex-start; margin-top: 0.5rem;">
           <button class="font-control-btn" onclick="adjustFontSize('decrease')" title="縮小字體">A-</button>
           <button class="font-control-btn" onclick="adjustFontSize('reset')" title="重設字體大小">重設</button>
           <button class="font-control-btn" onclick="adjustFontSize('increase')" title="放大字體">A+</button>
@@ -2401,7 +2458,22 @@ function showToast(message, type = 'info') {
         }, 400);
     }, 3000);
 }
+// 新增：更新頂部專案資訊函式
+function updateHeaderInfo() {
+    const className = document.getElementById('student-class').value.trim();
+    const topic = document.getElementById('topic').value.trim();
+    const container = document.getElementById('project-header-info');
+    const classSpan = document.getElementById('ph-class');
+    const topicSpan = document.getElementById('ph-topic');
 
+    if (className || topic) {
+        container.style.display = 'inline-flex';
+        classSpan.textContent = className || '未設定班別';
+        topicSpan.textContent = topic || '未設定題目';
+    } else {
+        container.style.display = 'none';
+    }
+}
 // --- Supabase 核心功能 ---
 
 async function checkUser() {
@@ -2616,6 +2688,7 @@ async function promptAndLoadCloudProject() {
             // 4. 刷新介面
             updateStudentDropdown();
             renderStudentOverviewTable();
+           updateHeaderInfo();      
             buildChecklist(); 
             buildOverviewPage();
             showPage('page1'); // 回到基本設定頁
@@ -2691,6 +2764,7 @@ async function loadProjectById(projectId) {
         buildOverviewPage(); 
         updateStudentDropdown();
         renderStudentOverviewTable();
+       updateHeaderInfo();     
         
         const studentSelect = document.getElementById('student-select');
         if (studentSelect.options.length > 0) {
