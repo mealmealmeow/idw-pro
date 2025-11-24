@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>我不想努力了</title>
-
   <!-- 引入 xlsx.js 函式庫，用於處理 Excel 檔案 -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <!-- 引入 Supabase.js 函式庫 -->
@@ -16,43 +15,6 @@
   <link href="https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC&display=swap" rel="stylesheet">
 
 <style>
-   /* 新增：頂部專案資訊樣式 (改良版) */
-.project-header-info {
-  /* 位置調整 */
-  margin-top: 0.5rem; 
-  align-self: flex-start; /* 靠左對齊 */
-
-  /* 外觀設計 (膠囊形 Tag) */
-  background-color: rgba(0, 0, 0, 0.15); /* 深色半透明背景，對比度更好 */
-  border-radius: 50px; /* 圓角 */
-  padding: 0.35rem 1rem; /* 增加內部空間 */
-  font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.95); /* 幾乎純白的文字 */
-  
-  /* 排版 */
-  display: inline-flex;
-  gap: 0.6rem;
-  align-items: center;
-  
-  /* 裝飾 */
-  box-shadow: inset 0 1px 3px rgba(0,0,0,0.1); /* 輕微內陰影增加質感 */
-  border: 1px solid rgba(255,255,255,0.1); /* 極幼細邊框 */
-  backdrop-filter: blur(4px);
-  transition: all 0.3s ease;
-}
-
-.project-header-info span {
-  display: inline-block;
-  white-space: nowrap; /* 防止文字換行 */
-  max-width: 300px;    /* 限制最大寬度 */
-  overflow: hidden;
-  text-overflow: ellipsis; /* 太長顯示 ... */
-}
-
-.project-header-info .ph-divider {
-  transform: scaleY(0.9);
-  margin: 0 2px;
-}
   /* ========================================= */
 /* === 以下係 Pop Art 彈窗專用樣式 (必貼) === */
 /* ========================================= */
@@ -1770,16 +1732,6 @@
       <header>
         <div style="display: flex; flex-direction: column; gap: 0.5rem;">
           <h1>我不想努力了</h1>
-
-            <!-- 2. 專案資訊移到這裡 (按鈕下面) -->
-          <div id="project-header-info" class="project-header-info" style="display:none;">
-            <span style="opacity:0.7">📂</span> <!-- 加個小圖示 -->
-            <span id="ph-class" style="font-weight:bold;"></span>
-            <span class="ph-divider" style="opacity:0.4">|</span>
-            <span id="ph-topic"></span>
-          </div>
-
-         
           <div class="auth-container">
             <span id="auth-status">未連接</span>
             <div id="auth-buttons">
@@ -1789,17 +1741,12 @@
             </div>
           </div>
         </div>
-    
-        
-        </div>
- 
         <div class="font-controls">
           <button class="font-control-btn" onclick="adjustFontSize('decrease')" title="縮小字體">A-</button>
           <button class="font-control-btn" onclick="adjustFontSize('reset')" title="重設字體大小">重設</button>
           <button class="font-control-btn" onclick="adjustFontSize('increase')" title="放大字體">A+</button>
         </div>
       </header>
-        
       
       <nav class="page-nav">
         <button id="nav-page1" class="nav-btn active" onclick="showPage('page1')">基本設定</button>
@@ -2454,22 +2401,7 @@ function showToast(message, type = 'info') {
         }, 400);
     }, 3000);
 }
-// 新增：更新頂部專案資訊函式
-function updateHeaderInfo() {
-    const className = document.getElementById('student-class').value.trim();
-    const topic = document.getElementById('topic').value.trim();
-    const container = document.getElementById('project-header-info');
-    const classSpan = document.getElementById('ph-class');
-    const topicSpan = document.getElementById('ph-topic');
 
-    if (className || topic) {
-        container.style.display = 'inline-flex';
-        classSpan.textContent = className || '未設定班別';
-        topicSpan.textContent = topic || '未設定題目';
-    } else {
-        container.style.display = 'none';
-    }
-}
 // --- Supabase 核心功能 ---
 
 async function checkUser() {
@@ -2684,7 +2616,6 @@ async function promptAndLoadCloudProject() {
             // 4. 刷新介面
             updateStudentDropdown();
             renderStudentOverviewTable();
-            updateHeaderInfo(); 
             buildChecklist(); 
             buildOverviewPage();
             showPage('page1'); // 回到基本設定頁
@@ -2760,7 +2691,6 @@ async function loadProjectById(projectId) {
         buildOverviewPage(); 
         updateStudentDropdown();
         renderStudentOverviewTable();
-        updateHeaderInfo();    
         
         const studentSelect = document.getElementById('student-select');
         if (studentSelect.options.length > 0) {
@@ -3164,8 +3094,6 @@ function attachGlobalListeners() {
   document.getElementById('login-btn').addEventListener('click', handleLogin);
   document.getElementById('logout-btn').addEventListener('click', handleLogout);
   document.getElementById('sync-btn').addEventListener('click', syncDataToCloud);
-  document.getElementById('student-class').addEventListener('input', updateHeaderInfo);
-document.getElementById('topic').addEventListener('input', updateHeaderInfo);
   
   const selectProjectBtn = document.getElementById('select-project-btn');
   if (selectProjectBtn) selectProjectBtn.addEventListener('click', promptAndLoadCloudProject);
@@ -3466,7 +3394,6 @@ function updateStudentDropdown() {
   
   updateAllOutputs();
   renderStudentOverviewTable();
-  
 }
 
 function toggleOtherBlock(selectId, value) {
@@ -4110,7 +4037,7 @@ function renderStudentOverviewTable() {
     if (gradedCount === 0) {
       progressText.innerHTML = `尚有 <strong>${remainingCount}<strong> 篇待閱</span>`;
     } else if (remainingCount > 0) {
-      progressText.innerHTML = `尚有 <strong>${remainingCount}</strong> 篇待閱。`;
+      progressText.innerHTML = `尚有 <strong>${remainingCount}</strong> 篇篇待閱。`;
     } else {
       progressBox.classList.add('finished');
       progressText.innerHTML = `全班批改完成。`;
