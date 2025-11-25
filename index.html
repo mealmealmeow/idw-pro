@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
@@ -3305,36 +3304,17 @@ triggerAutoSave();
     }
   });
 
- // --- 題目同步邏輯 (修改版) ---
   const topicInput = document.getElementById('topic');
   const aiTopicInput = document.getElementById('ai-topic');
-
-  // 當在 Page 1 輸入題目時
   topicInput.addEventListener('input', () => {
-      // 同步去 AI 頁面
       if (aiTopicInput.value !== topicInput.value) aiTopicInput.value = topicInput.value;
-      
-      // 同步去 Header 專案資訊
-      updateHeaderInfo();
-      
-      // 標記資料已變更 & 自動備份
       isDataDirty = true;
       updateUIBasedOnAuthState();
-      triggerAutoSave();
+  });
+  aiTopicInput.addEventListener('input', () => {
+      if (topicInput.value !== aiTopicInput.value) topicInput.value = aiTopicInput.value;
   });
 
-  // 當在 Page 6 輸入題目時
-  aiTopicInput.addEventListener('input', () => {
-      // 同步回 Page 1
-      if (topicInput.value !== aiTopicInput.value) topicInput.value = aiTopicInput.value;
-      
-      // 同步去 Header
-      updateHeaderInfo();
-      
-      isDataDirty = true;
-      updateUIBasedOnAuthState();
-      triggerAutoSave(); 
-  });
   document.getElementById('import-student-list').addEventListener('change', handleStudentListImport);
   document.getElementById('import-progress-excel').addEventListener('change', handleProgressImportExcel);
   document.getElementById('import-critique-excel').addEventListener('change', handleCritiqueImportExcel);
