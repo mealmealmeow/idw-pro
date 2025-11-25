@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
@@ -1248,28 +1249,9 @@
   #student-overview-table {
     width: 100%;
     min-width: 1200px;
-     /* ▼ 重點：一定要用 separate 同埋 spacing 0 */
-  border-collapse: separate; 
-  border-spacing: 0;
-  font-size: 0.85em;
-}
-/* 凍結整個表頭 */
-#student-overview-table thead th {
-  position: sticky;
-  top: 0;
-  z-index: 10; /* 比內容層級高 */
-  background: linear-gradient(135deg, #f1ece4, #e8f0ea);
-  border-bottom: 1px solid rgba(225,216,200,0.9);
-}
-
-/* ▼ 特別處理：左上角兩格 (學號、姓名嘅表頭) */
-/* 佢哋又要 sticky top，又要 sticky left，所以 z-index 要最高 */
-#student-overview-table thead th:nth-child(1),
-#student-overview-table thead th:nth-child(2) {
-  z-index: 20; 
-}
-
-  
+    border-collapse: collapse;
+    font-size: 0.85em;
+  }
 
   #student-overview-table th, 
   #student-overview-table td {
@@ -1287,32 +1269,24 @@
     z-index: 3;
   }
   
- /* 搵番或者加入呢段 */
-#student-overview-table th:nth-child(1),
-#student-overview-table td:nth-child(1) {
-  position: sticky;
-  left: 0;
-  z-index: 5;
-  width: 80px;
-  min-width: 80px;
-  /* ▼ 重點：要俾個實色背景佢，如果唔係捲動嗰陣會透底 */
-  background-color: #fdfbf8; 
-  border-right: 1px solid rgba(225,216,200,0.9);
-}
+  #student-overview-table th:nth-child(1),
+  #student-overview-table td:nth-child(1) {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    width: 80px;
+    min-width: 80px;
+  }
 
-  /* 搵番或者加入呢段 */
-#student-overview-table th:nth-child(2),
-#student-overview-table td:nth-child(2) {
-  position: sticky;
-  /* ▼ 重點：緊接住第一欄嘅闊度 */
-  left: 80px; 
-  z-index: 5;
-  width: 90px;
-  min-width: 90px;
-  background-color: #fdfbf8;
-  /* ▼ 建議：加條粗少少嘅線，分隔凍結區同內容區 */
-  border-right: 2px solid var(--accent-color); 
-}
+  #student-overview-table th:nth-child(2),
+  #student-overview-table td:nth-child(2) {
+    position: sticky;
+    left: px; /* 寬度等於第一欄 */
+    z-index: 2;
+    width: 90px; /* 縮小寬度 */
+    min-width: 90px;
+    /* white-space: nowrap; 已移除 */
+  }
 
   #student-overview-table td:nth-child(1),
   #student-overview-table td:nth-child(2) {
