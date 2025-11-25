@@ -8,6 +8,8 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <!-- 引入 Supabase.js 函式庫 -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- 引入 Chart.js 圖表庫 -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   
   <!-- 引入 Google Fonts 的 LXGW WenKai TC (霞鶩文楷 TC) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1817,6 +1819,7 @@
         
         <!-- 右邊區域：字體控制 (保持在右上角) -->
         <div class="font-controls" style="align-self: flex-start;">
+            <button class="font-control-btn" onclick="showHotkeyHelp()" title="鍵盤快捷鍵">⌨️</button> 
           <button class="font-control-btn" onclick="adjustFontSize('decrease')" title="縮小字體">A-</button>
           <button class="font-control-btn" onclick="adjustFontSize('reset')" title="重設字體大小">重設</button>
           <button class="font-control-btn" onclick="adjustFontSize('increase')" title="放大字體">A+</button>
@@ -1879,6 +1882,7 @@
                         <button id="select-project-btn" class="secondary-btn" style="display: none;">從雲端選取專案</button>
                         <button class="light-btn brown" onclick="showPage('page6', 'ai-student-level')">前往 AI 評語庫生成</button>
                         <button class="light-btn" onclick="showPage('page3', 'overview-controls')">前往手動修訂評語庫</button>
+                        <button id="restore-backup-btn" class="danger-btn" style="display: none;" onclick="restoreFromLocalBackup()">♻️ 發現未儲存的備份，點此還原</button>
                     </div>
                 </div>
             </details>
@@ -2149,29 +2153,47 @@
 
       <!-- ==================== 第五頁：評語分析 (原 page 4) ==================== -->
       <div id="page5" class="page-content">
-        <div class="overview-container">
-          <div class="page-header">
-            <h2>評語分析（全班概況）</h2>
-            <div class="btn-group">
-              <button class="action-btn" onclick="exportAnalysisToExcel()">📊 匯出分析 Excel</button>
-              <button class="secondary-btn" onclick="exportAnalysisToWord()">📄 匯出分析 Word</button>
-            </div>
-          </div>
-          <p style="font-size:0.9rem;color:#777;">
-            這一頁會根據你已儲存的學生資料，計算平均分數及最常見的評語項目，方便你設計針對性的補救教學或延伸教材。
-          </p>
-          <div class="analysis-grid">
-            <div class="analysis-card">
-              <h3>分數概覽（平均值）</h3>
-              <div id="analysis-score-summary"></div>
-            </div>
-            <div class="analysis-card">
-              <h3>最常見評語項目 TOP 10</h3>
-              <div id="analysis-top-critique"></div>
-            </div>
-          </div>
+  <div class="overview-container">
+    <div class="page-header">
+      <h2>評語分析（全班概況）</h2>
+      <div class="btn-group">
+        <button class="action-btn" onclick="exportAnalysisToExcel()">📊 匯出分析 Excel</button>
+        <button class="secondary-btn" onclick="exportAnalysisToWord()">📄 匯出分析 Word</button>
+      </div>
+    </div>
+    <p style="font-size:0.9rem;color:#777;">
+      透過視覺化圖表，快速掌握全班的強弱項分佈及常見問題。
+    </p>
+    
+    <!-- 新增：圖表區域 -->
+    <div class="analysis-grid" style="margin-bottom: 2rem;">
+      <div class="analysis-card">
+        <h3>📊 能力分佈雷達圖</h3>
+        <div style="position: relative; height: 300px; width: 100%;">
+            <canvas id="scoreChartCanvas"></canvas>
         </div>
       </div>
+      <div class="analysis-card">
+        <h3>🔥 常見評語 Top 5</h3>
+        <div style="position: relative; height: 300px; width: 100%;">
+            <canvas id="critiqueChartCanvas"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- 原有的表格區域 (保留作為詳細數據參考) -->
+    <div class="analysis-grid">
+      <div class="analysis-card">
+        <h3>詳細分數數據</h3>
+        <div id="analysis-score-summary"></div>
+      </div>
+      <div class="analysis-card">
+        <h3>詳細評語統計</h3>
+        <div id="analysis-top-critique"></div>
+      </div>
+    </div>
+  </div>
+</div>
 
       <!-- ==================== 第六頁：AI 評語庫生成 (原 page 5) ==================== -->
       <div id="page6" class="page-content">
@@ -2412,6 +2434,8 @@ document.addEventListener('DOMContentLoaded', () => {
   buildChecklist();
   buildOverviewPage();
   attachGlobalListeners();
+  initHotkeys();
+    checkLocalBackup();
   updateStudentDropdown(); 
   updateAllOutputs();
   checkUser();
@@ -3202,7 +3226,7 @@ function attachGlobalListeners() {
   document.body.addEventListener('input', (e) => {
     const targetPage = e.target.closest('.page-content');
     if (!targetPage) return;
-
+triggerAutoSave(); 
     if (targetPage.id === 'page2' && e.target.matches('input, textarea, select')) {
       if (e.target.closest('.interactive-module')) {
         const checkItem = e.target.closest('.check-item');
@@ -3230,6 +3254,7 @@ function attachGlobalListeners() {
           if (checkbox && e.target.tagName !== 'SELECT' && e.target.tagName !== 'TEXTAREA' && e.target.tagName !== 'INPUT') {
               checkbox.checked = !checkbox.checked;
               handleCheckboxChange(checkbox);
+                triggerAutoSave();
               isDataDirty = true;
               updateUIBasedOnAuthState();
           }
@@ -3292,7 +3317,55 @@ function attachGlobalListeners() {
       }
   });
 }
+// --- 新增：鍵盤快捷鍵功能 ---
+function initHotkeys() {
+  document.addEventListener('keydown', (e) => {
+    // 1. 儲存當前學生 (Ctrl + S 或 Cmd + S)
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+      e.preventDefault(); // 阻止瀏覽器預設的「儲存網頁」彈窗
+      
+      // 只在「批改頁 (Page 2)」才生效，避免誤觸
+      if (document.getElementById('page2').classList.contains('active')) {
+         saveCurrentStudentData();
+         // saveCurrentStudentData 內已有 Toast 提示，這裏不用重覆
+      }
+      // 如果想支援「同步至雲端」快捷鍵，可以在這裡加 else logic
+    }
 
+    // 2. 切換學生 (Alt + 左 / Alt + 右)
+    // 使用 Alt 而不是 Ctrl，是為了保留 Ctrl+左右鍵 用於文字編輯時的「跳詞」功能
+    if (e.altKey && !e.ctrlKey && !e.shiftKey) {
+      if (['ArrowLeft', 'ArrowRight'].includes(e.key)) {
+        if (document.getElementById('page2').classList.contains('active')) {
+          e.preventDefault();
+          const direction = e.key === 'ArrowRight' ? 'next' : 'prev';
+          navigateToStudent(direction);
+          
+          // 增加一點 UX：顯示切換到了誰
+          const select = document.getElementById('student-select');
+          if (select && select.value) {
+             if (typeof showToast === 'function') showToast(`已切換至：${select.value}`, 'info');
+          }
+        }
+      }
+    }
+
+    // 3. 切換分頁 (Alt + 1 到 7)
+    if (e.altKey && !e.ctrlKey && !e.shiftKey) {
+      const key = e.key;
+      if (['1', '2', '3', '4', '5', '6', '7'].includes(key)) {
+        e.preventDefault();
+        showPage('page' + key);
+        // 對應頁面名稱
+        const pageNames = {
+            '1': '基本設定', '2': '批改頁', '3': '評語庫', 
+            '4': '學生總覽', '5': '分析', '6': 'AI 生成庫', '7': 'AI 回饋'
+        };
+        if (typeof showToast === 'function') showToast(`已切換至：${pageNames[key]}`, 'info');
+      }
+    }
+  });
+}
 function buildChecklist() {
   const dataContainer = document.getElementById('critique-data');
   const checklistContainer = document.getElementById('checklist-container');
@@ -4207,23 +4280,169 @@ function getAnalysisData() {
   return { scoreSummary, topEntries, studentCount: records.length };
 }
 
+// ==========================================
+// ====== Chart.js 圖表整合 (開始) ======
+// ==========================================
+
+// 1. 定義全域變數存放圖表實例 (放在 script 最上方或其他全域變數附近)
+let globalScoreChart = null;
+let globalCritiqueChart = null;
+
+// 2. 替換原本的 renderAnalysisPage 函數
 function renderAnalysisPage() {
   const scoreDiv = document.getElementById('analysis-score-summary');
   const topDiv = document.getElementById('analysis-top-critique');
+  
+  // 取得畫布元素
+  const scoreCanvas = document.getElementById('scoreChartCanvas');
+  const critiqueCanvas = document.getElementById('critiqueChartCanvas');
+
   const analysisData = getAnalysisData();
+
+  // --- 處理空狀態 ---
   if (!analysisData) {
-    scoreDiv.innerHTML = `<div class="empty-state-message">目前尚未有已儲存的學生評語，無法計算平均分數。</div>`;
-    topDiv.innerHTML = `<div class="empty-state-message">尚未有任何勾選評語項目，無法統計常見項目。</div>`;
+    const emptyHTML = `<div class="empty-state-message">目前尚未有已儲存的學生評語，無法進行分析。</div>`;
+    scoreDiv.innerHTML = emptyHTML;
+    topDiv.innerHTML = emptyHTML;
+    // 清除舊圖表
+    if (globalScoreChart) { globalScoreChart.destroy(); globalScoreChart = null; }
+    if (globalCritiqueChart) { globalCritiqueChart.destroy(); globalCritiqueChart = null; }
     return;
   }
+
   const { scoreSummary, topEntries } = analysisData;
+
+  // ==========================
+  // Part A: 繪製表格 (保留原有邏輯)
+  // ==========================
   scoreDiv.innerHTML = `<table class="analysis-table"><thead><tr><th>指標</th><th>平均分</th></tr></thead><tbody>${scoreSummary.map(row => `<tr><td>${escapeHtml(row.指標)}</td><td>${row.平均分 != null ? row.平均分.toFixed(2) : '-'}</td></tr>`).join('')}</tbody></table><p style="font-size:0.85rem;color:#777;margin-top:0.75rem;">※ 平均分只會計算已填寫該欄分數的學生。</p>`;
+  
   if (!topEntries.length) {
     topDiv.innerHTML = `<div class="empty-state-message">尚未有任何評語項目被勾選。</div>`;
   } else {
-    topDiv.innerHTML = `<table class="analysis-table"><thead><tr><th>排名</th><th>評語標題</th><th>被選次數</th></tr></thead><tbody>${topEntries.map(row => `<tr><td>${row.排名}</td><td>${escapeHtmlAttr(row.評語標題)}</td><td>${row.被選次數}</td></tr>`).join('')}</tbody></table><p style="font-size:0.85rem;color:#777;margin-top:0.75rem;">※ 統計根據學生實際勾選的評語項目（同一項目在同一學生只計 1 次）。</p>`;
+    topDiv.innerHTML = `<table class="analysis-table"><thead><tr><th>排名</th><th>評語標題</th><th>被選次數</th></tr></thead><tbody>${topEntries.map(row => `<tr><td>${row.排名}</td><td>${escapeHtmlAttr(row.評語標題)}</td><td>${row.被選次數}</td></tr>`).join('')}</tbody></table>`;
   }
+
+  // ==========================
+  // Part B: 繪製 Chart.js 圖表
+  // ==========================
+
+  // --- 1. 雷達圖 (分數) ---
+  // 過濾掉「總分」，因為總分 scale 不同，會壓扁其他維度
+  const radarData = scoreSummary.filter(s => s.指標 !== '總分');
+  const labels = radarData.map(s => s.指標);
+  const dataPoints = radarData.map(s => s.平均分 || 0);
+
+  if (globalScoreChart) globalScoreChart.destroy(); // 銷毀舊圖表防止重疊
+
+  globalScoreChart = new Chart(scoreCanvas, {
+    type: 'radar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: '全班平均表現',
+        data: dataPoints,
+        fill: true,
+        backgroundColor: 'rgba(90, 143, 123, 0.2)', // 主題色半透明
+        borderColor: 'rgba(90, 143, 123, 1)',      // 主題色實心
+        pointBackgroundColor: 'rgba(90, 143, 123, 1)',
+        pointBorderColor: '#fff',
+        pointHoverBackgroundColor: '#fff',
+        pointHoverBorderColor: 'rgba(90, 143, 123, 1)'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        r: {
+          angleLines: { color: 'rgba(0,0,0,0.1)' },
+          grid: { color: 'rgba(0,0,0,0.05)' },
+          pointLabels: {
+            font: { size: 12, family: "'LXGW WenKai TC', sans-serif" },
+            color: '#5b5044'
+          },
+          suggestedMin: 0,
+          // 根據你的最高分可能要調整，例如 content 滿分 40，其他 30/20...
+          // 這裡不設 max，讓它自動適應，或者你可以根據你的滿分標準設定
+          // suggestedMax: 10 
+        }
+      },
+      plugins: {
+        legend: { display: false } // 只有一個 dataset，隱藏 legend 更簡潔
+      }
+    }
+  });
+
+  // --- 2. 橫向長條圖 (Top 評語) ---
+  // 取前 5 名，避免圖表過長
+  const top5Entries = topEntries.slice(0, 5);
+  const barLabels = top5Entries.map(e => e.評語標題.length > 8 ? e.評語標題.substring(0, 8) + '...' : e.評語標題); // 截斷太長的標題
+  const barData = top5Entries.map(e => e.被選次數);
+
+  if (globalCritiqueChart) globalCritiqueChart.destroy();
+
+  globalCritiqueChart = new Chart(critiqueCanvas, {
+    type: 'bar',
+    data: {
+      labels: barLabels,
+      datasets: [{
+        label: '被選次數',
+        data: barData,
+        backgroundColor: [
+          'rgba(242, 192, 55, 0.7)', // 黃色 (Pop Art 風格)
+          'rgba(90, 143, 123, 0.7)', // 綠色
+          'rgba(200, 106, 90, 0.7)', // 紅色
+          'rgba(161, 139, 115, 0.7)', // 啡色
+          'rgba(147, 184, 165, 0.7)'  // 淺綠
+        ],
+        borderColor: [
+          'rgba(242, 192, 55, 1)',
+          'rgba(90, 143, 123, 1)',
+          'rgba(200, 106, 90, 1)',
+          'rgba(161, 139, 115, 1)',
+          'rgba(147, 184, 165, 1)'
+        ],
+        borderWidth: 1,
+        borderRadius: 5,
+        barPercentage: 0.6
+      }]
+    },
+    options: {
+      indexAxis: 'y', // 轉為橫向
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { stepSize: 1 } // 次數必須是整數
+        },
+        y: {
+          grid: { display: false },
+          ticks: {
+            font: { family: "'LXGW WenKai TC', sans-serif" },
+            color: '#5b5044'
+          }
+        }
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            // Tooltip 顯示完整標題
+            title: function(context) {
+              const index = context[0].dataIndex;
+              return top5Entries[index].評語標題;
+            }
+          }
+        }
+      }
+    }
+  });
 }
+// ==========================================
+// ====== Chart.js 圖表整合 (結束) ======
+// ==========================================
 
 /* ---------------- AI 評語庫生成 ---------------- */
 function generateAIPrompt() {
@@ -5393,6 +5612,317 @@ function generateStudentWord() {
     const aiData = _getAIFeedbackData();
     if (!aiData) return;
     downloadFile(`AI回饋_${getSanitizedTopicFilename()}_學生版.doc`, _buildAiFeedbackWordHtml(aiData, 'student'), 'application/msword;charset=utf-8');
+}
+// ==========================================
+// ====== 新增：鍵盤快捷鍵功能 (開始) ======
+// ==========================================
+
+function initHotkeys() {
+  document.addEventListener('keydown', (e) => {
+    // 1. 儲存當前學生 (Ctrl + S 或 Cmd + S)
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+      e.preventDefault(); // 阻止瀏覽器預設的儲存網頁
+      
+      // 只在「批改頁 (Page 2)」才生效
+      if (document.getElementById('page2').classList.contains('active')) {
+         saveCurrentStudentData();
+      }
+    }
+
+    // 2. 切換學生 (Alt + 左 / Alt + 右)
+    if (e.altKey && !e.ctrlKey && !e.shiftKey) {
+      if (['ArrowLeft', 'ArrowRight'].includes(e.key)) {
+        if (document.getElementById('page2').classList.contains('active')) {
+          e.preventDefault();
+          const direction = e.key === 'ArrowRight' ? 'next' : 'prev';
+          navigateToStudent(direction);
+          
+          // 顯示 Toast 提示
+          const select = document.getElementById('student-select');
+          if (select && select.value) {
+             if (typeof showToast === 'function') showToast(`已切換至：${select.value}`, 'info');
+          }
+        }
+      }
+    }
+
+    // 3. 切換分頁 (Alt + 1 到 7)
+    if (e.altKey && !e.ctrlKey && !e.shiftKey) {
+      const key = e.key;
+      if (['1', '2', '3', '4', '5', '6', '7'].includes(key)) {
+        e.preventDefault();
+        showPage('page' + key);
+        
+        const pageNames = {
+            '1': '基本設定', '2': '批改頁', '3': '評語總覽', 
+            '4': '學生總覽', '5': '評語分析', '6': 'AI 生成庫', '7': 'AI 回饋'
+        };
+        if (typeof showToast === 'function') showToast(`已切換至：${pageNames[key]}`, 'info');
+      }
+    }
+  });
+}
+
+function showHotkeyHelp() {
+    const helpContent = `
+        <div style="text-align: left; font-size: 0.95rem;">
+            <p><strong>通用導航：</strong></p>
+            <ul style="margin-top:5px; margin-bottom:15px;">
+                <li><code>Alt + 1-7</code>：切換分頁 1 至 7</li>
+            </ul>
+            <p><strong>批改頁專用：</strong></p>
+            <ul style="margin-top:5px;">
+                <li><code>Ctrl + S</code> (Mac: <code>Cmd + S</code>)：儲存當前學生</li>
+                <li><code>Alt + →</code>：下一位學生</li>
+                <li><code>Alt + ←</code>：上一位學生</li>
+            </ul>
+        </div>
+    `;
+    
+    // 重用 Pop Art 風格的 Modal
+    const popModal = document.getElementById('pop-project-modal');
+    const popList = document.getElementById('pop-project-list');
+    
+    // 修改內容
+    popModal.querySelector('.pop-icon').textContent = '⌨️';
+    popModal.querySelector('h3').textContent = '鍵盤快捷鍵列表';
+    popModal.querySelector('.pop-desc').textContent = '提升批改效率的秘密武器';
+    
+    popList.innerHTML = helpContent;
+    
+    // 隱藏不必要的元素
+    const input = document.getElementById('pop-project-input');
+    const cancelBtn = document.getElementById('pop-project-cancel');
+    input.style.display = 'none';
+    cancelBtn.style.display = 'none';
+    
+    const confirmBtn = document.getElementById('pop-project-confirm');
+    confirmBtn.textContent = '知道了';
+    
+    // 綁定關閉事件
+    confirmBtn.onclick = () => {
+        popModal.classList.remove('active');
+        // 還原 UI 狀態 (以免影響 Project Load 功能)
+        setTimeout(() => {
+            input.style.display = 'block';
+            cancelBtn.style.display = 'inline-block';
+            confirmBtn.textContent = '確定載入';
+            // 還原標題 (雖然 loadProject 會自己改，但重置比較保險)
+            popModal.querySelector('.pop-icon').textContent = '📂';
+            popModal.querySelector('h3').textContent = '雲端專案讀取';
+        }, 300);
+    };
+    
+    popModal.classList.add('active');
+}
+
+// ==========================================
+// ====== 新增：鍵盤快捷鍵功能 (結束) ======
+// ==========================================
+// ==========================================
+// ====== 離線防災備份功能 (加強版) ======
+// ==========================================
+
+const BACKUP_KEY = 'idw_grading_backup_v1';
+let backupTimer = null;
+
+// 1. 自動備份 (Debounced)
+function triggerAutoSave() {
+    clearTimeout(backupTimer);
+    backupTimer = setTimeout(() => {
+        saveToLocalBackup();
+    }, 1000); 
+}
+
+// 2. 執行備份
+function saveToLocalBackup() {
+    // A. 獲取當前正在編輯的學生資料 (即使未按儲存)
+    // 這樣做可以確保「打到一半」的內容都被備份
+    let currentEditingData = null;
+    const currentStudentName = document.getElementById('student-select')?.value;
+    
+    if (currentStudentName) {
+        // 嘗試抓取 Page 2 的所有輸入框狀態
+        const checkedCritiques = [];
+        document.querySelectorAll('#checklist-container input[type="checkbox"]:checked').forEach(cb => {
+            const id = cb.id;
+            const selectValues = [];
+            const module = document.getElementById(`module-${id}`);
+            if (module) {
+                module.querySelectorAll('select').forEach((select, index) => {
+                    let value = select.value;
+                    let otherValue = '';
+                    if (value === '其他') {
+                        const otherInput = document.getElementById(`${id}-other-${index + 1}-text`);
+                        otherValue = otherInput ? otherInput.value : '';
+                    }
+                    selectValues.push({ value, otherValue });
+                });
+            }
+            checkedCritiques.push({ id, selectValues });
+        });
+
+        currentEditingData = {
+            name: currentStudentName,
+            data: {
+                class: document.getElementById('student-class').value,
+                topic: document.getElementById('topic').value,
+                uniqueComment: document.getElementById('unique-comment').value,
+                scores: {
+                    content: document.getElementById('score-content').value,
+                    expression: document.getElementById('score-expression').value,
+                    structure: document.getElementById('score-structure').value,
+                    punctuation: document.getElementById('score-punctuation').value,
+                    typos: document.getElementById('score-typos').value,
+                    total: document.getElementById('score-total').value,
+                },
+                typos: [...currentTypos],
+                checkedCritiques: checkedCritiques,
+                fullComment: document.getElementById('full-output').value,
+                studentComment: document.getElementById('student-report-output').value
+            }
+        };
+    }
+
+    // B. 準備備份包
+    const backupData = {
+        timestamp: Date.now(),
+        className: document.getElementById('student-class').value,
+        topic: document.getElementById('topic').value,
+        namesText: document.getElementById('student-names').value, // 直接存文本，保證名單一致
+        students: allStudentRecords, 
+        critiques: collectExportData(),
+        typos: commonTypos, 
+        currentStudent: currentStudentName,
+        liveEdit: currentEditingData // 這是關鍵：存下正在編輯的狀態
+    };
+
+    try {
+        localStorage.setItem(BACKUP_KEY, JSON.stringify(backupData));
+    } catch (e) {
+        console.warn("備份失敗 (可能是儲存空間不足)", e);
+    }
+}
+
+// 3. 檢查備份
+function checkLocalBackup() {
+    const backup = localStorage.getItem(BACKUP_KEY);
+    if (!backup) return;
+
+    try {
+        const data = JSON.parse(backup);
+        // 如果備份存在且是 7 天內的
+        if (data.timestamp && (Date.now() - data.timestamp < 7 * 24 * 60 * 60 * 1000)) {
+            const btn = document.getElementById('restore-backup-btn');
+            if (btn) {
+                const date = new Date(data.timestamp);
+                const timeStr = `${date.getMonth()+1}/${date.getDate()} ${date.getHours()}:${date.getMinutes() < 10 ? '0' : ''}${date.getMinutes()}`;
+                btn.style.display = 'inline-flex';
+                btn.textContent = `♻️ 發現未儲存備份 (${timeStr}) - 點此還原`;
+                btn.style.animation = "pulse 2s infinite";
+            }
+        }
+    } catch (e) {
+        console.error("檢查備份錯誤", e);
+    }
+}
+
+// 4. 還原備份 (修復版)
+function restoreFromLocalBackup() {
+    if (!confirm("確定要還原備份嗎？\n這將會覆蓋當前頁面上的所有資料。")) return;
+
+    const backup = localStorage.getItem(BACKUP_KEY);
+    if (!backup) {
+        alert("找不到備份資料。");
+        return;
+    }
+
+    try {
+        const data = JSON.parse(backup);
+
+        // A. 還原評語庫 (必須最先做，因為 Checklist 依賴它)
+        if (data.critiques && data.critiques.length > 0) {
+            document.getElementById('critique-data').innerHTML = '';
+            applyCritiquesToDOM(data.critiques);
+        }
+
+        // B. 還原基礎資料
+        document.getElementById('student-class').value = data.className || '';
+        document.getElementById('topic').value = data.topic || '';
+        document.getElementById('student-names').value = data.namesText || '';
+        commonTypos = data.typos || [];
+
+        // C. 還原學生資料庫
+        // 這裡做一個合併：如果備份中有 liveEdit (正在打字但未儲存)，將其合併到 allStudentRecords
+        let restoredRecords = data.students || [];
+        
+        if (data.liveEdit && data.liveEdit.name) {
+            const idx = restoredRecords.findIndex(r => r.originalName === data.liveEdit.name);
+            if (idx >= 0) {
+                // 如果資料庫有這個人，更新他的 data
+                // 注意：這裡只合併必要欄位，防止覆蓋了其他已保存的細節
+                restoredRecords[idx].data = {
+                    ...restoredRecords[idx].data,
+                    ...data.liveEdit.data
+                };
+            }
+        }
+        allStudentRecords = restoredRecords;
+
+        // D. 重建 UI
+        updateStudentDropdown(); // 這會重新建立 student-select 的選項
+        buildChecklist();
+        buildOverviewPage();
+        renderCommonTypoList();
+        renderStudentOverviewTable();
+
+        // E. 跳轉回上次編輯的學生
+        if (data.currentStudent) {
+            const select = document.getElementById('student-select');
+            // 檢查該學生是否在選單中
+            let optionExists = false;
+            for(let i=0; i<select.options.length; i++) {
+                if(select.options[i].value === data.currentStudent) {
+                    optionExists = true;
+                    break;
+                }
+            }
+
+            if (optionExists) {
+                select.value = data.currentStudent;
+                // 強制觸發載入
+                loadStudentData(data.currentStudent);
+                
+                // 如果有 liveEdit 數據，再次覆蓋介面，確保畫面上是「打字打到一半」的狀態
+                if (data.liveEdit && data.liveEdit.name === data.currentStudent && data.liveEdit.data) {
+                     const d = data.liveEdit.data;
+                     if(d.uniqueComment) document.getElementById('unique-comment').value = d.uniqueComment;
+                     if(d.fullComment) document.getElementById('full-output').value = d.fullComment;
+                     if(d.studentComment) document.getElementById('student-report-output').value = d.studentComment;
+                     // 恢復 Typos
+                     if(d.typos) {
+                         currentTypos = [...d.typos];
+                         renderTypoList();
+                         renderCommonTyposCheckedState();
+                     }
+                }
+                
+                showPage('page2');
+                alert(`備份還原成功！已回到學生：${data.currentStudent}`);
+            } else {
+                alert("備份還原成功！(但上次編輯的學生不在名單中，請手動選擇)");
+            }
+        } else {
+            alert("備份還原成功！");
+        }
+
+        // 隱藏按鈕
+        document.getElementById('restore-backup-btn').style.display = 'none';
+
+    } catch (e) {
+        console.error(e);
+        alert("還原失敗，資料可能已損壞。\n錯誤訊息：" + e.message);
+    }
 }
 </script>
 
