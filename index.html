@@ -4371,10 +4371,7 @@ function saveCurrentStudentData() {
   // 建立一個假的事件物件，因為 scrollToSection 需要 event.preventDefault
   scrollToSection(new Event('dummy'), 'grading-section-student');
 
-  // 3. 將焦點放回下拉選單，方便使用者直接按鍵盤上下鍵切換下一位
-  const selectElement = document.getElementById('student-select');
-  if (selectElement) {
-      selectElement.focus();
+
   }
   
   // 注意：這裡移除了 clearAllCore() 的呼叫，所以內容會保留
