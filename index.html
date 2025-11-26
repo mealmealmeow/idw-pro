@@ -3378,6 +3378,49 @@ triggerAutoSave();
           });
       }
   });
+  initSwipeGestures();
+}
+/* === 手機 Swipe 手勢偵測功能 === */
+function initSwipeGestures() {
+  const targetArea = document.getElementById('page2'); // 只在批改頁生效
+  let touchStartX = 0;
+  let touchStartY = 0;
+  let touchEndX = 0;
+  let touchEndY = 0;
+
+  // 1. 手指掂到螢幕
+  targetArea.addEventListener('touchstart', function(e) {
+    touchStartX = e.changedTouches[0].screenX;
+    touchStartY = e.changedTouches[0].screenY;
+  }, {passive: true});
+
+  // 2. 手指離開螢幕
+  targetArea.addEventListener('touchend', function(e) {
+    touchEndX = e.changedTouches[0].screenX;
+    touchEndY = e.changedTouches[0].screenY;
+    handleSwipeGesture();
+  }, {passive: true});
+
+  function handleSwipeGesture() {
+    const diffX = touchEndX - touchStartX;
+    const diffY = touchEndY - touchStartY;
+    const threshold = 60; // 敏感度：要滑動超過 60px 才算數
+
+    // 邏輯：橫向移動距離 > 直向移動 (防止碌上碌落時誤觸) && 移動距離夠長
+    if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > threshold) {
+      
+      // 判斷方向
+      if (diffX < 0) {
+        // 數值係負數 = 手指由右邊掃去左邊 (Swipe Left) -> 下一位
+        navigateToStudent('next');
+        if (typeof showToast === 'function') showToast('下一位 ⏩', 'info');
+      } else {
+        // 數值係正數 = 手指由左邊掃去右邊 (Swipe Right) -> 上一位
+        navigateToStudent('prev');
+        if (typeof showToast === 'function') showToast('⏪ 上一位', 'info');
+      }
+    }
+  }
 }
 // --- 新增：鍵盤快捷鍵功能 ---
 function initHotkeys() {
