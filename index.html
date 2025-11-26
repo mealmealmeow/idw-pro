@@ -4360,21 +4360,17 @@ function saveCurrentStudentData() {
 
   // === 修改部分開始 ===
   
-  // 1. 顯示成功訊息 (使用 Toast，不需手動關閉)
+  // 1. 顯示成功訊息
   if (typeof showToast === 'function') {
       showToast(`已成功儲存 ${studentOriginalName} 的評語資料！`, 'success');
   } else {
       alert(`已成功儲存 ${studentOriginalName} 的評語資料！`);
   }
 
-  // 2. 滾動回到上方的「選擇學生」區域
-  // 建立一個假的事件物件，因為 scrollToSection 需要 event.preventDefault
+  // 2. 滾動回到上方的「選擇學生」區域 (不自動打開選單)
   scrollToSection(new Event('dummy'), 'grading-section-student');
 
-
-  }
-  
-  // 注意：這裡移除了 clearAllCore() 的呼叫，所以內容會保留
+  // *已移除 focus() 代碼，解決手機版彈出選單問題*
   
   // === 修改部分結束 ===
 }
