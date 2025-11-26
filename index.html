@@ -3014,18 +3014,27 @@ async function loadProjectById(projectId) {
         
         const studentSelect = document.getElementById('student-select');
         if (studentSelect.options.length > 0) {
-            studentSelect.selectedIndex = 0;
+            // 1. 嘗試找出上次儲存的學生
+            // 兼容舊版(array)與新版(object)
+            const lastActive = Array.isArray(rawData) ? null : rawData.lastActive;
+            
+            // 2. 預設選第 0 個
+            let targetIndex = 0;
+
+            // 3. 如果有記錄上次的學生，嘗試在選單中找出來
+            if (lastActive) {
+                for (let i = 0; i < studentSelect.options.length; i++) {
+                    if (studentSelect.options[i].value === lastActive) {
+                        targetIndex = i;
+                        break;
+                    }
+                }
+            }
+            
+            // 4. 選定並載入
+            studentSelect.selectedIndex = targetIndex;
             loadStudentData(studentSelect.value);
         }
-        showPage('page2');
-        if (typeof showToast === 'function') showToast(`專案「${fullProject.class_name || ''}」載入成功！`, "success");
-        else alert(`專案「${fullProject.class_name}」載入成功！`);
-    } catch (error) {
-        alert(`載入專案時發生錯誤：${error.message}`);
-    } finally {
-        updateUIBasedOnAuthState();
-    }
-}
 // --- 重要的修改：雲端同步函式 ---
 /* === 全新版本 syncDataToCloud (放寬儲存條件) === */
 async function syncDataToCloud() {
@@ -3112,12 +3121,19 @@ async function syncDataToCloud() {
         }
     }
 
+   // 獲取當前選中的學生名字，如果沒選則為 null
+    const currentStudentVal = document.getElementById('student-select') ? document.getElementById('student-select').value : null;
+
     const projectToUpsert = {
-        id: projectIdToUpdate, // 如果係 undefined，Supabase 會自動當係新資料插入
+        id: projectIdToUpdate, 
         user_id: currentUser.id,
         class_name: className, 
         topic: topic, 
-        project_data: allStudentRecords,
+        // ▼ 修改這裡：變成物件格式，多存一個 lastActive
+        project_data: {
+            students: allStudentRecords,
+            lastActive: currentStudentVal 
+        },
         updated_at: new Date().toISOString()
     };
     
@@ -4368,7 +4384,7 @@ function saveCurrentStudentData() {
   }
 
  setTimeout(() => {
-      scrollToSection(new Event('dummy'), 'grading-section-student');
+      scrollToSection(new Event('dummy'), 'student-select');
   }, 100);
 
   // *已移除 focus() 代碼，解決手機版彈出選單問題*
