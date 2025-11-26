@@ -1655,162 +1655,127 @@
   color: var(--excellent-color);
 }
 
-  /* ===== 新增：右側懸浮導覽列 ===== */
-  #floating-nav {
-    position: fixed;
-    top: 50%;
-    right: 20px;
-    transform: translateY(-50%);
-    z-index: 1050;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    background-color: rgba(255, 255, 255, 0.6);
-    padding: 12px;
-    border-radius: 99px;
-    backdrop-filter: blur(10px);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.05);
-    transition: opacity 0.3s ease, transform 0.3s ease;
-    opacity: 0;
-    pointer-events: none;
-    transform: translateY(-50%) translateX(20px); /* 預設在畫面外 */
-  }
+ /* ===== 修改後：右側懸浮導覽列 (Scroll才顯示版) ===== */
+#floating-nav {
+  position: fixed;
+  top: 50%;
+  right: 20px;
+  transform: translateY(-50%) translateX(30px); /* 預設向右隱藏少少 */
+  z-index: 1050;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background-color: rgba(255, 255, 255, 0.75); /* 稍微實色少少，因為會消失 */
+  padding: 12px;
+  border-radius: 99px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.05);
+  
+  /* 關鍵：預設全透明，且不可點擊 */
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
 
-  #floating-nav.visible {
-    opacity: 1;
-    pointer-events: auto;
-    transform: translateY(-50%) translateX(0);
+/* 這是由 showPage() 控制的 class，代表「現在是批改頁」 */
+#floating-nav.visible {
+  /* 即使在批改頁，預設也是隱藏，等待 scroll 事件觸發顯示 */
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* 這是新增的狀態：當正在 Scroll 或滑鼠指住時 */
+#floating-nav.visible.is-scrolling,
+#floating-nav.visible:hover {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(-50%) translateX(0);
+}
+
+.floating-nav-btn {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background-color: var(--accent-color-soft);
+  color: var(--accent-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  font-size: 1.5rem;
+  transition: all var(--transition-normal);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  position: relative;
+}
+
+.floating-nav-btn:hover {
+  background-color: var(--accent-color);
+  color: white;
+  transform: scale(1.1);
+  box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+}
+
+.floating-nav-btn.active {
+  background-color: var(--accent-color);
+  color: white;
+  box-shadow: 0 0 0 3px var(--secondary-bg), 0 0 0 5px var(--accent-color);
+}
+
+/* Tooltip 提示文字 */
+.floating-nav-btn::before {
+  content: attr(data-tooltip);
+  position: absolute;
+  right: 120%;
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: var(--text-color);
+  color: white;
+  padding: 5px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition-fast);
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.floating-nav-btn:hover::before {
+  opacity: 1;
+  transition-delay: 0.3s;
+}
+
+/* 手機響應式設計 */
+@media (max-width: 768px) {
+  #floating-nav {
+    top: auto;
+    bottom: 25px; /* 推高少少 */
+    left: 50%;
+    right: auto;
+    /* 手機版預設向下隱藏 */
+    transform: translateX(-50%) translateY(30px); 
+    flex-direction: row;
+    padding: 8px 15px; /* 加闊 padding 容易按 */
+    width: auto;
+    max-width: 90vw;
+  }
+  
+  #floating-nav.visible.is-scrolling {
+    transform: translateX(-50%) translateY(0);
   }
 
   .floating-nav-btn {
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    background-color: var(--accent-color-soft);
-    color: var(--accent-color);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-decoration: none;
-    font-size: 1.5rem;
-    transition: all var(--transition-normal);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    position: relative;
+    width: 44px;
+    height: 44px;
+    font-size: 1.3rem;
   }
-
-  .floating-nav-btn:hover {
-    background-color: var(--accent-color);
-    color: white;
-    transform: scale(1.1);
-    box-shadow: 0 6px 12px rgba(0,0,0,0.2);
-  }
-
-  .floating-nav-btn.active {
-    background-color: var(--accent-color);
-    color: white;
-    box-shadow: 0 0 0 3px var(--secondary-bg), 0 0 0 5px var(--accent-color);
-  }
-
-  /* Tooltip 提示文字 */
   .floating-nav-btn::before {
-    content: attr(data-tooltip);
-    position: absolute;
-    right: 120%;
-    top: 50%;
-    transform: translateY(-50%);
-    background-color: var(--text-color);
-    color: white;
-    padding: 5px 10px;
-    border-radius: var(--radius-sm);
-    font-size: 0.85rem;
-    white-space: nowrap;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity var(--transition-fast);
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    right: 50%;
+    top: auto;
+    bottom: 120%;
+    transform: translateX(50%);
   }
-
-  .floating-nav-btn:hover::before {
-    opacity: 1;
-    transition-delay: 0.3s;
-  }
-
-  /* 手機響應式設計 */
-  @media (max-width: 768px) {
-    #floating-nav {
-      top: auto;
-      bottom: 15px;
-      left: 50%;
-      right: auto;
-      transform: translateX(-50%);
-      flex-direction: row;
-      padding: 8px;
-      width: auto;
-      max-width: 90vw;
-    }
-    #floating-nav.visible {
-      transform: translateX(-50%) translateY(0);
-    }
-    #floating-nav:not(.visible) {
-      transform: translateX(-50%) translateY(100px); /* 從下方滑出 */
-    }
-    .floating-nav-btn {
-      width: 44px;
-      height: 44px;
-      font-size: 1.3rem;
-    }
-    .floating-nav-btn::before {
-      /* 在手機上，提示文字改到按鈕上方 */
-      right: 50%;
-      top: auto;
-      bottom: 120%;
-      transform: translateX(50%);
-    }
-  }
-
-  /* ===== 吐司通知 (Toast Notification) 樣式 ===== */
-  #toast-container {
-      position: fixed;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 99999;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      pointer-events: none;
-  }
-
-  .toast-notification {
-      background-color: white;
-      color: var(--text-color);
-      padding: 12px 20px;
-      border-radius: 50px;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.15);
-      border: 1px solid var(--border-color);
-      font-size: 0.95rem;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      pointer-events: auto;
-      opacity: 0;
-      transform: translateY(-20px);
-      animation: toastSlideIn 0.4s forwards;
-      max-width: 90vw;
-      white-space: nowrap;
-  }
-
-  .toast-notification.success { border-left: 5px solid var(--excellent-color); }
-  .toast-notification.warning { border-left: 5px solid #e6a23c; }
-  .toast-notification.error { border-left: 5px solid var(--problem-color); }
-  .toast-notification.info { border-left: 5px solid var(--accent-color); }
-
-  @keyframes toastSlideIn {
-      to { opacity: 1; transform: translateY(0); }
-  }
-  @keyframes toastFadeOut {
-      to { opacity: 0; transform: translateY(-20px); }
-  }
+}
 /* === 手機版防止自動放大修正 === */
 @media screen and (max-width: 768px) {
   /* 強制手機版輸入框字體至少 16px，防止 iOS 自動放大 */
@@ -2635,6 +2600,7 @@ document.addEventListener('DOMContentLoaded', () => {
   checkUser();
   loadFontSize();
   initFloatingNavObserver();
+    initScrollAutoShow(); 
 });
 
 /* ====== 小型 Confirm UI ====== */
@@ -3276,6 +3242,33 @@ function initFloatingNavObserver() {
         observer.observe(section);
     });
 }
+// ▼▼▼ 在這裡貼上整段新函數 ▼▼▼
+function initScrollAutoShow() {
+    let scrollTimer = null;
+    const nav = document.getElementById('floating-nav');
+
+    window.addEventListener('scroll', () => {
+        // 只有在導覽列本身是 visible (即在 page2) 時才執行
+        if (!nav.classList.contains('visible')) return;
+
+        // 1. 開始滾動：顯示導覽列
+        nav.classList.add('is-scrolling');
+
+        // 2. 清除舊的計時器
+        if (scrollTimer) clearTimeout(scrollTimer);
+
+        // 3. 設定新的計時器：停止滾動 2 秒後隱藏
+        scrollTimer = setTimeout(() => {
+            // 如果滑鼠還指在上面，就不隱藏 (方便電腦版操作)
+            if (!nav.matches(':hover')) {
+                nav.classList.remove('is-scrolling');
+            }
+        }, 2000); 
+    }, { passive: true });
+}
+// ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+
+/* === 手機 Swipe 手勢偵測功能 ... (下面接續原有代碼) */
 
 function toggleAllDetails(containerId, openState) {
   const container = document.getElementById(containerId);
@@ -3532,6 +3525,7 @@ triggerAutoSave();
   initSwipeGestures();
 }
 /* === 手機 Swipe 手勢偵測功能 (增強版：顯示名 + 自動滾動) === */
+/* === 手機 Swipe 手勢偵測功能 (修正版：半個螢幕闊度才觸發) === */
 function initSwipeGestures() {
   const targetArea = document.getElementById('page2'); // 只在批改頁生效
   if (!targetArea) return;
@@ -3557,9 +3551,12 @@ function initSwipeGestures() {
   function handleSwipeGesture() {
     const diffX = touchEndX - touchStartX;
     const diffY = touchEndY - touchStartY;
-    const threshold = 60; // 敏感度
+    
+    // 修改：門檻設為螢幕闊度的 50%
+    // 這樣可以防止稍微滑動就觸發切換
+    const threshold = window.innerWidth * 0.5; 
 
-    // 邏輯：橫向移動距離 > 直向移動 && 移動距離夠長
+    // 邏輯：橫向移動距離 > 直向移動 && 移動距離 > 半個螢幕
     if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > threshold) {
       
       let direction = '';
@@ -3590,8 +3587,7 @@ function initSwipeGestures() {
         showToast(`${icon} ${actionName}：${currentStudentName}`, 'info');
       }
 
-      // 4. 自動滾動到「評語項目選擇」區域
-      // 使用 setTimeout 確保畫面渲染完先滑動，感覺更順暢
+      // 4. 自動滾動到頂部或「評語項目選擇」區域
       setTimeout(() => {
           scrollToSection(new Event('dummy'), 'grading-section-checklist');
       }, 50);
