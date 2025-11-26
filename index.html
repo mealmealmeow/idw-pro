@@ -4367,8 +4367,9 @@ function saveCurrentStudentData() {
       alert(`已成功儲存 ${studentOriginalName} 的評語資料！`);
   }
 
-  // 2. 滾動回到上方的「選擇學生」區域 (不自動打開選單)
-  scrollToSection(new Event('dummy'), 'grading-section-student');
+ setTimeout(() => {
+      scrollToSection(new Event('dummy'), 'grading-section-student');
+  }, 100);
 
   // *已移除 focus() 代碼，解決手機版彈出選單問題*
   
