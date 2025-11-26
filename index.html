@@ -1811,7 +1811,20 @@
   @keyframes toastFadeOut {
       to { opacity: 0; transform: translateY(-20px); }
   }
-
+/* === 手機版防止自動放大修正 === */
+@media screen and (max-width: 768px) {
+  /* 強制手機版輸入框字體至少 16px，防止 iOS 自動放大 */
+  input[type="text"], 
+  input[type="number"], 
+  textarea, 
+  select,
+  .pop-input,
+  .input-group input,
+  .input-group textarea,
+  .input-group select {
+    font-size: 16px !important; 
+  }
+}
 </style>
 </head>
 <body>
