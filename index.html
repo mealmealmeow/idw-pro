@@ -1986,9 +1986,99 @@
     white-space: normal !important;
   }
 }
+/* Dashboard 專用樣式 */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+.dash-card {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+    border: 1px solid rgba(0,0,0,0.05);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.dash-card-header {
+    padding: 1.2rem 1.5rem 0.5rem;
+    border-bottom: 1px solid transparent;
+}
+
+.dash-card-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: #5b5044;
+}
+
+.dash-card-body {
+    padding: 1.2rem 1.5rem;
+    flex-grow: 1;
+}
+
+/* 待辦事項樣式 */
+.todo-item {
+    margin-bottom: 1rem;
+}
+.todo-info {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.95rem;
+    margin-bottom: 5px;
+}
+.progress-bar-bg {
+    background: #eee;
+    height: 8px;
+    border-radius: 10px;
+    overflow: hidden;
+}
+.progress-bar-fill {
+    background: var(--accent-color);
+    height: 100%;
+    border-radius: 10px;
+    transition: width 0.5s ease;
+}
+
+/* 表格樣式 */
+.dash-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.dash-table th {
+    text-align: left;
+    padding: 1rem 1.5rem;
+    background: #f9fbfb;
+    color: #666;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+.dash-table td {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 0.95rem;
+}
+.dash-table tr:last-child td { border-bottom: none; }
+.dash-table tr:hover { background-color: #fafdfc; }
+
+/* 警示列表 */
+.alert-item {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 8px;
+    background: #fff5f5;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    font-size: 0.9rem;
+    color: #c86a5a;
+}
 </style>
 </head>
 <body>
+   
 
   <div id="toast-container"></div> <!-- 新增：通知容器 -->
 
@@ -2563,43 +2653,96 @@
         </div>
       </div>
       <!-- ==================== 第八頁：數據儀表板 (新) ==================== -->
+<!-- ==================== 第八頁：教師儀表板 (Dashboard) ==================== -->
 <div id="page8" class="page-content">
-  <div class="overview-container">
-    <div class="page-header">
-      <h2>班級數據追蹤</h2>
-      <div class="btn-group">
-        <select id="dashboard-class-select" class="pop-input" style="width:auto; margin:0; padding: 0.5rem 1rem;">
-            <option value="">載入班級中...</option>
-        </select>
-        <button class="action-btn" onclick="initDashboard()">🔄 重新整理</button>
-      </div>
+  <div class="overview-container" style="max-width: 100%; padding: 1.5rem;">
+    
+    <!-- 1. 歡迎與捷徑區 (Header & Quick Actions) -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+        <div>
+            <h2 style="margin: 0; color: #3d5c4f; font-size: 2rem;">👋 儀表板 Dashboard</h2>
+            <p style="color: #666; margin: 5px 0 0 0;">今日概況與待辦事項</p>
+        </div>
+        <div style="display: flex; gap: 1rem;">
+            <!-- 捷徑入口 -->
+            <button class="action-btn" onclick="openCreateClassModal()" style="padding: 0.8rem 1.5rem; font-size: 1rem; box-shadow: 0 4px 12px rgba(90, 143, 123, 0.4);">
+                ＋ 建立新班級 / 任務
+            </button>
+        </div>
     </div>
 
-    <!-- 儀表板圖表區 -->
-    <div class="analysis-grid" style="margin-top: 1.5rem;">
-      <!-- 左邊：全班走勢圖 -->
-      <div class="analysis-card" style="grid-column: span 2;">
-        <h3>📈 全班平均分走勢</h3>
-        <div style="position: relative; height: 350px; width: 100%;">
-            <canvas id="trendChartCanvas"></canvas>
+    <!-- 2. 核心數據區 (Widgets) -->
+    <div class="dashboard-grid">
+        
+        <!-- A. 待辦事項 (Progress) -->
+        <div class="dash-card">
+            <div class="dash-card-header">
+                <h3>📌 批改進度 (待辦)</h3>
+            </div>
+            <div class="dash-card-body" id="widget-todo-list">
+                <p style="color:#999; text-align:center;">載入中...</p>
+                <!-- JS 會插入類似： 
+                <div class="todo-item">
+                    <div class="todo-info">
+                        <strong>3A - 我的志願</strong>
+                        <span>已改 15/30</span>
+                    </div>
+                    <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: 50%"></div></div>
+                </div> 
+                -->
+            </div>
         </div>
-      </div>
-      <!-- 左下：高風險學生 -->
-      <div class="analysis-card">
-        <h3>🚨 需關注學生 (連續退步/低分)</h3>
-        <ul id="at-risk-list" style="padding-left: 20px; color: #666;"><li>暫無數據...</li></ul>
-      </div>
-      <!-- 右下：作業列表 -->
-      <div class="analysis-card">
-        <h3>📝 歷次作業列表</h3>
-        <ul id="assignment-list" style="list-style: none; padding: 0; max-height: 250px; overflow-y: auto;"><li>暫無數據...</li></ul>
-      </div>
+
+        <!-- B. 班級概況 (Chart) -->
+        <div class="dash-card">
+            <div class="dash-card-header">
+                <h3>📊 班級平均分比較</h3>
+            </div>
+            <div class="dash-card-body">
+                <div style="position: relative; height: 200px; width: 100%;">
+                    <canvas id="dashClassChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- C. 退步預警 (Alerts) -->
+        <div class="dash-card" style="border-left: 5px solid #c86a5a;">
+            <div class="dash-card-header">
+                <h3 style="color: #c86a5a;">🚨 退步預警 (連續3次下降)</h3>
+            </div>
+            <div class="dash-card-body" id="widget-alerts">
+                <p style="color:#999; text-align:center;">分析中...</p>
+            </div>
+        </div>
+
     </div>
+
+    <!-- 3. 過去專案列表 (Recent Projects) -->
+    <div class="dash-card" style="margin-top: 2rem;">
+        <div class="dash-card-header" style="display:flex; justify-content:space-between;">
+            <h3>📂 最近專案 (繼續進度)</h3>
+            <button class="secondary-btn" onclick="initDashboard()" style="font-size:0.8rem; padding: 0.3rem 0.8rem;">🔄 刷新</button>
+        </div>
+        <div class="dash-card-body" style="padding: 0;">
+            <table class="dash-table">
+                <thead>
+                    <tr>
+                        <th>班級</th>
+                        <th>作文題目</th>
+                        <th>學年</th>
+                        <th>最後更新</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="dash-project-list">
+                    <!-- JS 填入 -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
   </div>
 </div>
-
-    </main>
-  </div>
 
   <!-- 自製確認對話框 -->
   <div id="modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-hidden="true">
@@ -2658,7 +2801,208 @@ const SUPABASE_URL = 'https://wtcegbkfuklnkurrouka.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind0Y2VnYmtmdWtsbmt1cnJvdWthIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM0MTU5MjgsImV4cCI6MjA3ODk5MTkyOH0.mQT2TXLR6m41D1WzmqH35mKdoGDGqHaHhZm-sTpPmpQ';
 const { createClient } = supabase;
 const supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY);
+// ======= 班級管理與學生匯入邏輯 (Start) =======
 
+    // 1. 載入班級列表
+    async function loadClasses() {
+        // 檢查登入
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+            document.getElementById('class-list').innerHTML = '<p style="padding:10px;">請先登入 (右上角) 以管理班級。</p>';
+            return;
+        }
+        const userId = session.user.id;
+
+        const { data, error } = await supabase
+            .from('classes')
+            .select('*')
+            .eq('user_id', userId) // 確保只撈自己的班
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error('載入失敗:', error);
+            alert('無法載入班級：' + error.message);
+        } else {
+            renderClassList(data);
+        }
+    }
+
+    // 2. 渲染班級卡片
+    function renderClassList(classes) {
+        const container = document.getElementById('class-list');
+        container.innerHTML = ''; 
+
+        if (!classes || classes.length === 0) {
+            container.innerHTML = '<p style="color:#666;">目前沒有班級，請建立一個。</p>';
+            return;
+        }
+
+        classes.forEach(cls => {
+            const card = document.createElement('div');
+            card.style = `
+                background: white; padding: 1.5rem; border-radius: 12px; 
+                box-shadow: 0 4px 6px rgba(0,0,0,0.05); cursor: pointer; border: 1px solid #eee;
+                transition: transform 0.2s; position: relative;
+            `;
+            card.innerHTML = `
+                <h3 style="margin:0 0 0.5rem 0; color: #3d5c4f;">${cls.class_name}</h3>
+                <div style="font-size: 0.9rem; color: #888;">學年：${cls.academic_year}</div>
+                <div style="position:absolute; top:10px; right:10px; font-size:1.5rem; opacity:0.1;">🏫</div>
+            `;
+            
+            card.onmouseover = () => card.style.transform = 'translateY(-3px)';
+            card.onmouseout = () => card.style.transform = 'translateY(0)';
+            card.onclick = () => enterClass(cls.id, cls.class_name);
+            
+            container.appendChild(card);
+        });
+    }
+
+    // 3. 建立新班級
+    async function createNewClass() {
+        const nameInput = document.getElementById('new-class-name');
+        const yearInput = document.getElementById('new-academic-year');
+        const className = nameInput.value.trim();
+        const academicYear = yearInput.value.trim();
+
+        if (!className) return alert("請輸入班級名稱！");
+
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        const { error } = await supabase
+            .from('classes')
+            .insert([{ class_name: className, academic_year: academicYear, user_id: user.id }]);
+
+        if (error) {
+            alert("建立失敗：" + error.message);
+        } else {
+            nameInput.value = '';
+            loadClasses(); 
+        }
+    }
+
+    // 4. 進入班級 (核心功能)
+    let currentClassId = null; // 全域變數
+
+    function enterClass(classId, className) {
+        currentClassId = classId;
+        document.getElementById('current-class-info').innerText = `正在批改：${className}`;
+        
+        // 切換視圖
+        document.getElementById('dashboard-view').style.display = 'none';
+        document.getElementById('editor-view').style.display = 'block';
+        
+        // 自動載入該班學生
+        loadStudentsFromDB(classId);
+    }
+
+    // 5. 返回 Dashboard
+    function showDashboard() {
+        document.getElementById('editor-view').style.display = 'none';
+        document.getElementById('dashboard-view').style.display = 'block';
+        loadClasses();
+    }
+
+    // 6. 從資料庫載入學生
+    async function loadStudentsFromDB(classId) {
+        const select = document.getElementById('student-select-db');
+        const status = document.getElementById('db-student-status');
+        select.innerHTML = '<option>載入中...</option>';
+        
+        const { data: students, error } = await supabase
+            .from('students')
+            .select('*')
+            .eq('class_id', classId)
+            .order('student_number', { ascending: true });
+
+        if (error) {
+            console.error(error);
+            return;
+        }
+
+        select.innerHTML = '';
+        if (students.length === 0) {
+            select.innerHTML = '<option value="">(此班級尚無學生，請匯入)</option>';
+            status.innerText = "0 人";
+        } else {
+            status.innerText = `${students.length} 人`;
+            // 同步更新原本 App 的學生名單 (如果有)
+            const oldSelect = document.getElementById('student-select'); 
+            if(oldSelect) oldSelect.innerHTML = '<option value="">-- 請選擇學生 --</option>';
+
+            select.innerHTML = '<option value="">-- 班級名單 --</option>';
+            students.forEach(s => {
+                const displayName = s.student_number ? `${s.student_number}. ${s.name}` : s.name;
+                
+                // 填入 Page 1 的選單
+                const opt = document.createElement('option');
+                opt.value = s.id;
+                opt.innerText = displayName;
+                select.appendChild(opt);
+
+                // 同步填入 Page 2 (批改頁) 的選單，方便直接選
+                if(oldSelect) {
+                    const opt2 = document.createElement('option');
+                    opt2.value = s.id; // 改用 ID
+                    opt2.innerText = displayName;
+                    // 重要：為了相容舊代碼，我們把名字存在 dataset
+                    opt2.dataset.name = s.name; 
+                    oldSelect.appendChild(opt2);
+                }
+            });
+        }
+    }
+
+    // 7. 匯入 Excel 學生名單
+    async function importStudentsToDB(inputElement) {
+        if (!currentClassId) return alert("錯誤：未選擇班級！");
+        const file = inputElement.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = async function(e) {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+            const rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+            
+            const studentsToInsert = [];
+            // 跳過標題列 (i=1)
+            for (let i = 1; i < rows.length; i++) {
+                const row = rows[i];
+                if (row[0]) { // A欄有名字
+                    studentsToInsert.push({
+                        class_id: currentClassId,
+                        name: row[0].toString().trim(),
+                        student_number: row[1] ? row[1].toString().trim() : null
+                    });
+                }
+            }
+
+            if (studentsToInsert.length === 0) return alert("Excel 讀取不到資料，請檢查格式 (A欄:姓名)。");
+            if (!confirm(`確認匯入 ${studentsToInsert.length} 位學生？`)) return;
+
+            const { error } = await supabase
+                .from('students')
+                .upsert(studentsToInsert, { onConflict: 'class_id, student_number, name' });
+
+            if (error) {
+                alert("匯入失敗：" + error.message);
+            } else {
+                alert("匯入成功！");
+                loadStudentsFromDB(currentClassId); // 重新整理
+                inputElement.value = '';
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
+    // 8. 啟動！
+    window.addEventListener('DOMContentLoaded', () => {
+        setTimeout(loadClasses, 1000); // 延遲載入確保 Supabase Ready
+    });
+
+    // ======= 班級管理邏輯 (End) =======
 // --- 全域變數 ---
 let currentUser = null;
 let isDataDirty = false; 
@@ -3810,7 +4154,21 @@ function buildChecklist() {
     checklistContainer.innerHTML = `<div class="empty-state-message">評語庫目前為空。<br>請返回「基本設定」頁選擇或建立評語庫，或在「評語總覽」頁新增/導入。</div>`;
    loadAndShowTopCritiques(); 
   }
-  
+  function buildChecklist() {
+  // ... (前面原本生成 HTML 的代碼，不要動) ...
+
+  // 原本的代碼結尾可能是這樣：
+  if (!hasContent) {
+    checklistContainer.innerHTML = `<div class="empty-state-message">...</div>`;
+  }
+
+  // ▼▼▼▼▼▼ 【新增】載入常用評語 Top 10 ▼▼▼▼▼▼
+  // 這會建立一個黃色邊框的「🔥 常用評語」區塊在最頂部
+  setTimeout(() => {
+      loadAndShowTopCritiques(); 
+  }, 100); // 延遲一點點確保 DOM 已經準備好
+  // ▲▲▲▲▲▲ 【新增結束】 ▲▲▲▲▲▲
+}
 }
 
 function createInteractiveModule(id) {
@@ -4404,6 +4762,18 @@ function saveCurrentStudentData() {
     // ▲▲▲
   isDataDirty = true;
   updateUIBasedOnAuthState();
+  // ▼▼▼▼▼▼ 【新增】在這裡插入計數邏輯 ▼▼▼▼▼▼
+  if (currentUser) {
+      // 收集所有被勾選的評語項目
+      const checkedItems = [];
+      document.querySelectorAll('#checklist-container input[type="checkbox"]:checked').forEach(cb => {
+          checkedItems.push({ id: cb.id });
+      });
+      
+      // 呼叫更新函式 (這個函式你已經有了，現在我們呼叫它)
+      updateCritiqueUsageStats(checkedItems).catch(err => console.error("計數失敗:", err));
+  }
+  // ▲▲▲▲▲▲ 【新增結束】 ▲▲▲▲▲▲
 
   // === 修改部分開始 ===
   
@@ -6507,74 +6877,171 @@ async function syncToLongTermDB() {
     }
 }
 // ==========================================
-// ====== Dashboard 儀表板邏輯 (全新) ======
+// ====== 修正後的 Dashboard & 資料庫邏輯 ======
 // ==========================================
+
 let globalTrendChart = null;
 
+// 1. 初始化儀表板 (載入班級列表)
 async function initDashboard() {
+    // 檢查登入狀態
     if (!currentUser) {
         if(typeof showToast === 'function') showToast("請先登入以查看歷史數據", "warning");
         return;
     }
+
     const classSelect = document.getElementById('dashboard-class-select');
-    
-    // 1. 載入班級
+    if (!classSelect) return; // 防止找不到元素報錯
+
+    classSelect.innerHTML = '<option>載入中...</option>';
+
+    // 從 Supabase 撈取班級
     const { data: classes, error } = await supabaseClient
         .from('classes')
         .select('id, class_name, academic_year')
         .eq('user_id', currentUser.id)
         .order('created_at', { ascending: false });
 
-    if (error) { console.error(error); return; }
-
-    classSelect.innerHTML = '';
-    if (!classes || classes.length === 0) {
-        classSelect.innerHTML = '<option value="">無班級數據</option>';
+    if (error) {
+        console.error("載入班級失敗", error);
+        classSelect.innerHTML = '<option value="">載入失敗</option>';
         return;
     }
 
+    classSelect.innerHTML = '';
+    
+    if (!classes || classes.length === 0) {
+        classSelect.innerHTML = '<option value="">-- 尚無班級，請建立 --</option>';
+        renderEmptyDashboard();
+        return;
+    }
+
+    // 填充下拉選單
     classes.forEach(c => {
         const opt = document.createElement('option');
         opt.value = c.id;
-        opt.textContent = `${c.class_name} (${c.academic_year || 'N/A'})`;
+        opt.textContent = `${c.class_name} (${c.academic_year})`;
         classSelect.appendChild(opt);
     });
 
+    // 綁定切換事件：選班級時載入數據
     classSelect.onchange = () => loadClassData(classSelect.value);
-    // 預設載入第一班
+
+    // 預設載入第一個班級的數據
     if (classes.length > 0) {
         classSelect.value = classes[0].id;
         loadClassData(classes[0].id);
     }
 }
 
+// 2. 建立新班級 (寫入 Supabase)
+async function createNewClass() {
+    if (!currentUser) return alert("請先登入！");
+
+    const nameInput = document.getElementById('new-class-name');
+    const yearInput = document.getElementById('new-academic-year');
+    
+    const className = nameInput.value.trim();
+    const academicYear = yearInput.value.trim();
+
+    if (!className) {
+        alert("請輸入班級名稱 (例如 5B)");
+        return;
+    }
+
+    const btn = event.target; 
+    const originalText = btn.innerText;
+    btn.textContent = "建立中...";
+    btn.disabled = true;
+
+    try {
+        // 寫入 Supabase
+        const { data, error } = await supabaseClient
+            .from('classes')
+            .insert([{ 
+                user_id: currentUser.id, 
+                class_name: className, 
+                academic_year: academicYear 
+            }])
+            .select();
+
+        if (error) throw error;
+
+        if(typeof showToast === 'function') showToast(`成功建立班級：${className}`, "success");
+        nameInput.value = ''; 
+        
+        // 重新整理列表
+        await initDashboard(); 
+
+    } catch (err) {
+        alert("建立班級失敗：" + err.message);
+        console.error(err);
+    } finally {
+        btn.textContent = originalText;
+        btn.disabled = false;
+    }
+}
+
+// 3. 載入特定班級的數據 (修復了這裡的語法錯誤)
 async function loadClassData(classId) {
     if (!classId) return;
-    // 撈取作業
-    const { data: assignments } = await supabaseClient
-        .from('assignments').select('*').eq('class_id', classId).order('date', { ascending: true });
-    
-    if (!assignments || !assignments.length) { renderEmptyDashboard(); return; }
 
-    // 撈取成績
-    const { data: results } = await supabaseClient
+    // A. 撈取作業
+    const { data: assignments, error: assignError } = await supabaseClient
+        .from('assignments')
+        .select('*')
+        .eq('class_id', classId)
+        .order('date', { ascending: true });
+
+    if (assignError) { console.error(assignError); return; }
+
+    if (!assignments || !assignments.length) {
+        renderEmptyDashboard();
+        return;
+    }
+
+    // B. 撈取成績 (包含學生姓名)
+    // 這裡修復了之前斷掉的代碼
+    const { data: results, error: resultError } = await supabaseClient
         .from('results')
-        .select(`total_score, assignment_id, student_id, students ( name )`)
+        .select(`
+            total_score, 
+            assignment_id, 
+            student_id, 
+            students ( name )
+        `)
         .in('assignment_id', assignments.map(a => a.id));
 
+    if (resultError) {
+        console.error("載入成績失敗", resultError);
+        return;
+    }
+
+    // C. 處理數據並繪圖
     processAndRenderCharts(assignments, results || []);
 }
 
+// 4. 處理數據並繪圖 (Chart.js)
 function processAndRenderCharts(assignments, results) {
-    const labels = assignments.map(a => a.title);
-    const avgScores = assignments.map(a => {
-        const classResults = results.filter(r => r.assignment_id === a.id);
-        if (classResults.length === 0) return 0;
-        const sum = classResults.reduce((acc, curr) => acc + (curr.total_score || 0), 0);
-        return (sum / classResults.length).toFixed(1);
+    // 準備 X 軸 (作業名稱)
+    const labels = assignments.map(a => {
+        return a.title.length > 10 ? a.title.substring(0,8)+'...' : a.title;
     });
 
-    // 畫圖
+    // 準備 Y 軸 (平均分)
+    const avgScores = [];
+    
+    assignments.forEach(a => {
+        const classResults = results.filter(r => r.assignment_id === a.id);
+        if (classResults.length > 0) {
+            const sum = classResults.reduce((acc, curr) => acc + (curr.total_score || 0), 0);
+            avgScores.push((sum / classResults.length).toFixed(1));
+        } else {
+            avgScores.push(0);
+        }
+    });
+
+    // --- A. 繪製走勢圖 ---
     const ctx = document.getElementById('trendChartCanvas').getContext('2d');
     if (globalTrendChart) globalTrendChart.destroy();
 
@@ -6589,36 +7056,447 @@ function processAndRenderCharts(assignments, results) {
                 backgroundColor: 'rgba(90, 143, 123, 0.2)',
                 borderWidth: 3,
                 tension: 0.3,
-                fill: true
+                fill: true,
+                pointRadius: 5,
+                pointHoverRadius: 8
             }]
         },
-        options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, suggestedMax: 100 } } }
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    suggestedMax: 100,
+                    grid: { color: '#f0f0f0' }
+                },
+                x: {
+                    grid: { display: false }
+                }
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `平均分: ${context.parsed.y}`;
+                        }
+                    }
+                }
+            }
+        }
     });
 
-    // 列出作業
+    // --- B. 渲染作業列表 ---
     const listEl = document.getElementById('assignment-list');
     listEl.innerHTML = '';
+    
     [...assignments].reverse().forEach(a => {
+        const dateStr = new Date(a.date).toLocaleDateString();
         const li = document.createElement('li');
-        li.style.borderBottom = '1px dashed #eee'; li.style.padding = '8px 0';
-        li.innerHTML = `<strong>${escapeHtml(a.title)}</strong> <span style="float:right;color:#888">${new Date(a.date).toLocaleDateString()}</span>`;
+        li.style.padding = '8px 0';
+        li.style.borderBottom = '1px dashed #eee';
+        li.innerHTML = `<strong>${escapeHtml(a.title)}</strong> <span style="font-size:0.8em; color:#888; float:right;">${dateStr}</span>`;
         listEl.appendChild(li);
     });
-    
-    // 簡單的高風險分析 (最近一次分數 < 40)
-    const lastAssign = assignments[assignments.length - 1];
-    const lowScores = results.filter(r => r.assignment_id === lastAssign.id && r.total_score < 40);
-    const riskList = document.getElementById('at-risk-list');
-    riskList.innerHTML = lowScores.length ? '' : '<li style="color:green">🎉 本次無不及格學生</li>';
-    lowScores.forEach(r => {
-        riskList.innerHTML += `<li style="color:#c86a5a"><strong>${escapeHtml(r.students?.name)}</strong>: ${r.total_score}分</li>`;
+
+    // --- C. 分析需關注學生 ---
+    analyzeAtRiskStudents(assignments, results);
+}
+
+// 5. 分析高風險學生
+function analyzeAtRiskStudents(assignments, results) {
+    const listEl = document.getElementById('at-risk-list');
+    listEl.innerHTML = '';
+
+    if (assignments.length < 1) return;
+
+    const lastAssignment = assignments[assignments.length - 1];
+    const prevAssignment = assignments.length >= 2 ? assignments[assignments.length - 2] : null;
+
+    const studentData = {}; 
+
+    results.forEach(r => {
+        if (!studentData[r.student_id]) {
+            studentData[r.student_id] = { 
+                name: r.students?.name || '未知', 
+                lastScore: null, 
+                prevScore: null 
+            };
+        }
+        
+        if (r.assignment_id === lastAssignment.id) {
+            studentData[r.student_id].lastScore = r.total_score;
+        } else if (prevAssignment && r.assignment_id === prevAssignment.id) {
+            studentData[r.student_id].prevScore = r.total_score;
+        }
     });
+
+    const risks = [];
+
+    Object.values(studentData).forEach(s => {
+        // 條件 1: 分數低於 40
+        if (s.lastScore !== null && s.lastScore < 40) {
+            risks.push({ name: s.name, reason: `分數過低 (${s.lastScore})` });
+        }
+        // 條件 2: 退步超過 15 分
+        else if (s.lastScore !== null && s.prevScore !== null && (s.prevScore - s.lastScore) > 15) {
+            risks.push({ name: s.name, reason: `顯著退步 (${s.prevScore} → ${s.lastScore})` });
+        }
+    });
+
+    if (risks.length === 0) {
+        listEl.innerHTML = '<li style="color: green;">🎉 本次作業表現良好。</li>';
+    } else {
+        risks.forEach(r => {
+            const li = document.createElement('li');
+            li.style.color = '#c86a5a'; 
+            li.style.marginBottom = '5px';
+            li.innerHTML = `<strong>${escapeHtml(r.name)}</strong>: ${r.reason}`;
+            listEl.appendChild(li);
+        });
+    }
 }
 
 function renderEmptyDashboard() {
     if (globalTrendChart) globalTrendChart.destroy();
-    document.getElementById('at-risk-list').innerHTML = '<li>無數據</li>';
-    document.getElementById('assignment-list').innerHTML = '<li>無數據</li>';
+    document.getElementById('at-risk-list').innerHTML = '<li>尚無足夠數據</li>';
+    document.getElementById('assignment-list').innerHTML = '<li>尚無數據</li>';
+}
+
+// 6. [重要] 長期數據同步函式
+async function syncToLongTermDB() {
+    if (!currentUser) return;
+    
+    const className = document.getElementById('student-class').value.trim();
+    const topic = document.getElementById('topic').value.trim();
+    
+    if (!className || !topic) return; 
+
+    console.log("正在同步至長期數據庫...");
+
+    try {
+        // 建立/獲取班級
+        const { data: classData, error: classError } = await supabaseClient
+            .from('classes')
+            .upsert(
+                { user_id: currentUser.id, class_name: className, academic_year: '2024-2025' },
+                { onConflict: 'user_id, class_name, academic_year' }
+            )
+            .select('id')
+            .single();
+
+        if (classError) throw classError;
+        const classId = classData.id;
+
+        // 建立/獲取作業
+        const { data: assignData, error: assignError } = await supabaseClient
+            .from('assignments')
+            .upsert(
+                { class_id: classId, title: topic },
+                { onConflict: 'class_id, title' }
+            )
+            .select('id')
+            .single();
+            
+        if (assignError) throw assignError;
+        const assignmentId = assignData.id;
+
+        // 批量建立學生
+        const studentsToUpsert = allStudentRecords.map(r => ({
+            class_id: classId,
+            name: r.name,
+            student_number: r.number ? String(r.number) : null
+        }));
+
+        const { data: studentsData, error: studentError } = await supabaseClient
+            .from('students')
+            .upsert(studentsToUpsert, { onConflict: 'class_id, student_number, name' })
+            .select('id, name, student_number');
+
+        if (studentError) throw studentError;
+
+        // 建立對照表 (Map)
+        const studentMap = new Map();
+        studentsData.forEach(s => {
+            const key = s.student_number ? `${parseInt(s.student_number)}-${s.name}` : s.name;
+            studentMap.set(key, s.id);
+            studentMap.set(s.name, s.id); 
+            if(s.student_number) studentMap.set(s.student_number, s.id);
+        });
+
+        // 批量同步成績
+        const resultsToUpsert = [];
+        const gradedStudents = allStudentRecords.filter(r => r.data);
+        
+        for (const record of gradedStudents) {
+            let dbStudentId = studentMap.get(`${record.number}-${record.name}`);
+            if (!dbStudentId) dbStudentId = studentMap.get(record.name);
+            if (!dbStudentId && record.number) dbStudentId = studentMap.get(String(record.number));
+
+            if (!dbStudentId) continue;
+
+            const s = record.data.scores || {};
+            
+            resultsToUpsert.push({
+                assignment_id: assignmentId,
+                student_id: dbStudentId,
+                total_score: parseFloat(s.total) || 0,
+                content_score: parseFloat(s.content) || 0,
+                expression_score: parseFloat(s.expression) || 0,
+                structure_score: parseFloat(s.structure) || 0,
+                punctuation_score: parseFloat(s.punctuation) || 0,
+                comment_full: record.data.pureFullComment || '',
+                comment_data: record.data.checkedCritiques || [],
+                updated_at: new Date().toISOString()
+            });
+        }
+
+        if (resultsToUpsert.length > 0) {
+            await supabaseClient
+                .from('results')
+                .upsert(resultsToUpsert, { onConflict: 'assignment_id, student_id' });
+        }
+
+        console.log(`長期數據同步完成：${resultsToUpsert.length} 筆`);
+
+    } catch (err) {
+        console.error("同步長期數據失敗:", err);
+    }
+}
+// ==========================================
+// ====== 商業級 Dashboard 邏輯 (全新) ======
+// ==========================================
+
+let dashboardChartInstance = null;
+
+async function initDashboard() {
+    if (!currentUser) {
+        if(typeof showToast === 'function') showToast("請先登入以查看儀表板", "warning");
+        return;
+    }
+
+    // 1. 撈取所有班級 (Classes)
+    const { data: classes, error: classError } = await supabaseClient
+        .from('classes')
+        .select('*')
+        .eq('user_id', currentUser.id);
+
+    if (classError || !classes) { console.error(classError); return; }
+
+    // 2. 撈取所有作業 (Assignments)
+    const { data: assignments, error: assignError } = await supabaseClient
+        .from('assignments')
+        .select('*')
+        .in('class_id', classes.map(c => c.id))
+        .order('date', { ascending: false }); // 最新的在前面
+
+    if (assignError) { console.error(assignError); return; }
+
+    // 3. 撈取所有成績 (Results) 用於統計
+    // 為了效能，這裡可以只撈需要的欄位
+    const { data: results, error: resError } = await supabaseClient
+        .from('results')
+        .select('assignment_id, total_score, student_id, students(name)')
+        .in('assignment_id', assignments.map(a => a.id));
+
+    if (resError) { console.error(resError); return; }
+
+    // 4. 撈取所有學生 (Students) 用於計算總人數
+    const { data: allStudents } = await supabaseClient
+        .from('students')
+        .select('id, class_id')
+        .in('class_id', classes.map(c => c.id));
+
+    // --- 開始渲染 Widgets ---
+    renderTodoList(classes, assignments, results, allStudents);
+    renderClassOverviewChart(classes, assignments, results);
+    renderRegressionAlerts(results); // 進階功能
+    renderProjectList(classes, assignments);
+}
+
+// Widget A: 待辦事項 (進度條)
+function renderTodoList(classes, assignments, results, allStudents) {
+    const container = document.getElementById('widget-todo-list');
+    container.innerHTML = '';
+
+    // 取最近 3 個作業
+    const recentAssignments = assignments.slice(0, 3);
+
+    if (recentAssignments.length === 0) {
+        container.innerHTML = '<p style="color:#999;">暫無作業</p>';
+        return;
+    }
+
+    recentAssignments.forEach(assign => {
+        // 找出該班級名稱
+        const cls = classes.find(c => c.id === assign.class_id);
+        const className = cls ? cls.class_name : '未知班級';
+
+        // 計算該班總人數
+        const totalStudents = allStudents.filter(s => s.class_id === assign.class_id).length;
+        
+        // 計算已批改人數
+        const gradedCount = results.filter(r => r.assignment_id === assign.id).length;
+        
+        // 計算百分比
+        const percent = totalStudents > 0 ? Math.round((gradedCount / totalStudents) * 100) : 0;
+
+        const html = `
+            <div class="todo-item">
+                <div class="todo-info">
+                    <strong>${escapeHtml(className)} - ${escapeHtml(assign.title)}</strong>
+                    <span>已改 ${gradedCount}/${totalStudents}</span>
+                </div>
+                <div class="progress-bar-bg">
+                    <div class="progress-bar-fill" style="width: ${percent}%"></div>
+                </div>
+            </div>
+        `;
+        container.innerHTML += html;
+    });
+}
+
+// Widget B: 班級平均分比較 (Chart.js)
+function renderClassOverviewChart(classes, assignments, results) {
+    const ctx = document.getElementById('dashClassChart').getContext('2d');
+    if (dashboardChartInstance) dashboardChartInstance.destroy();
+
+    // 邏輯：計算每個班級的「最近一次作業」平均分，或者「所有作業」平均分
+    // 這裡示範：所有作業平均分
+    const classLabels = [];
+    const classAverages = [];
+
+    classes.forEach(cls => {
+        // 找出該班所有作業 ID
+        const classAssignIds = assignments.filter(a => a.class_id === cls.id).map(a => a.id);
+        // 找出該班所有成績
+        const classResults = results.filter(r => classAssignIds.includes(r.assignment_id));
+        
+        if (classResults.length > 0) {
+            const sum = classResults.reduce((acc, r) => acc + (r.total_score || 0), 0);
+            const avg = (sum / classResults.length).toFixed(1);
+            classLabels.push(cls.class_name);
+            classAverages.push(avg);
+        }
+    });
+
+    dashboardChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: classLabels,
+            datasets: [{
+                label: '總平均分',
+                data: classAverages,
+                backgroundColor: 'rgba(90, 143, 123, 0.6)',
+                borderColor: 'rgba(90, 143, 123, 1)',
+                borderWidth: 1,
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: { y: { beginAtZero: true, suggestedMax: 100 } },
+            plugins: { legend: { display: false } }
+        }
+    });
+}
+
+// Widget C: 退步預警 (簡單版：找出最近作業分數低於 40 的)
+// (進階版需要 query 更多歷史數據，這裡先做「不及格預警」)
+function renderRegressionAlerts(results) {
+    const container = document.getElementById('widget-alerts');
+    container.innerHTML = '';
+
+    // 篩選不及格
+    const atRisk = results.filter(r => r.total_score < 40);
+    
+    if (atRisk.length === 0) {
+        container.innerHTML = '<p style="color:#aaa;">🎉 暫無高風險學生</p>';
+        return;
+    }
+
+    // 只顯示前 5 位，避免洗版
+    atRisk.slice(0, 5).forEach(r => {
+        const studentName = r.students?.name || '未知';
+        container.innerHTML += `
+            <div class="alert-item">
+                <span>⚠️</span>
+                <div>
+                    <strong>${escapeHtml(studentName)}</strong>
+                    <div style="font-size:0.8em;">分數過低: ${r.total_score}分</div>
+                </div>
+            </div>
+        `;
+    });
+}
+
+// Widget D: 專案列表 (Continue)
+function renderProjectList(classes, assignments) {
+    const tbody = document.getElementById('dash-project-list');
+    tbody.innerHTML = '';
+
+    if (assignments.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">暫無專案</td></tr>';
+        return;
+    }
+
+    assignments.forEach(assign => {
+        const cls = classes.find(c => c.id === assign.class_id);
+        const className = cls ? cls.class_name : '未知';
+        const year = cls ? cls.academic_year : '-';
+        const dateStr = new Date(assign.date).toLocaleDateString();
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><strong style="color:#3d5c4f;">${escapeHtml(className)}</strong></td>
+            <td>${escapeHtml(assign.title)}</td>
+            <td>${escapeHtml(year)}</td>
+            <td style="color:#888;">${dateStr}</td>
+            <td>
+                <button class="secondary-btn" style="padding:0.3rem 0.8rem; font-size:0.85rem;" 
+                    onclick="loadProjectContext('${assign.id}', '${assign.class_id}', '${escapeHtml(assign.title)}', '${escapeHtml(className)}')">
+                    📝 繼續批改
+                </button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+// 輔助功能：載入專案並跳轉
+// 當用戶點擊「繼續批改」時，我們需要把資料填回 Page 1 並跳轉 Page 2
+async function loadProjectContext(assignmentId, classId, topic, className) {
+    // 1. 設定全域變數或 UI
+    document.getElementById('student-class').value = className;
+    document.getElementById('topic').value = topic;
+    
+    // 2. 觸發學生名單載入 (如果我們有實作 loadStudentsFromDB)
+    // 這裡假設你上一段代碼有 loadStudentsFromDB 函式
+    if (typeof loadStudentsFromDB === 'function') {
+        await loadStudentsFromDB(classId);
+    }
+
+    // 3. 更新標頭
+    updateHeaderInfo();
+
+    // 4. 跳轉
+    showPage('page2');
+    showToast(`已載入專案：${className} - ${topic}`, 'success');
+}
+
+// 輔助功能：開啟建立班級 Modal (簡單版：直接用 prompt 示範，你可以改成漂亮的 Modal)
+function openCreateClassModal() {
+    const className = prompt("請輸入新班級名稱 (例如 6B):");
+    if(!className) return;
+    
+    const topic = prompt("請輸入這次的作文題目:");
+    if(!topic) return;
+
+    // 填入資料並跳轉到設定頁
+    document.getElementById('student-class').value = className;
+    document.getElementById('topic').value = topic;
+    showPage('page1');
 }
 </script>
 
