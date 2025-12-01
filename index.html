@@ -2037,7 +2037,6 @@
         <button id="nav-page5" class="nav-btn" onclick="showPage('page5')">評語分析</button>
         <button id="nav-page6" class="nav-btn" onclick="showPage('page6')">AI 評語庫生成</button>
         <button id="nav-page7" class="nav-btn" onclick="showPage('page7')">AI 生成回饋</button>
-        <button id="nav-page8" class="nav-btn" onclick="showPage('page8'); initDashboard();">📊 數據儀表板</button>
       </nav>
 
       <!-- 舊的快捷導覽列已被移除 -->
@@ -2562,41 +2561,6 @@
 
         </div>
       </div>
-      <!-- ==================== 第八頁：數據儀表板 (新) ==================== -->
-<div id="page8" class="page-content">
-  <div class="overview-container">
-    <div class="page-header">
-      <h2>班級數據追蹤</h2>
-      <div class="btn-group">
-        <select id="dashboard-class-select" class="pop-input" style="width:auto; margin:0; padding: 0.5rem 1rem;">
-            <option value="">載入班級中...</option>
-        </select>
-        <button class="action-btn" onclick="initDashboard()">🔄 重新整理</button>
-      </div>
-    </div>
-
-    <!-- 儀表板圖表區 -->
-    <div class="analysis-grid" style="margin-top: 1.5rem;">
-      <!-- 左邊：全班走勢圖 -->
-      <div class="analysis-card" style="grid-column: span 2;">
-        <h3>📈 全班平均分走勢</h3>
-        <div style="position: relative; height: 350px; width: 100%;">
-            <canvas id="trendChartCanvas"></canvas>
-        </div>
-      </div>
-      <!-- 左下：高風險學生 -->
-      <div class="analysis-card">
-        <h3>🚨 需關注學生 (連續退步/低分)</h3>
-        <ul id="at-risk-list" style="padding-left: 20px; color: #666;"><li>暫無數據...</li></ul>
-      </div>
-      <!-- 右下：作業列表 -->
-      <div class="analysis-card">
-        <h3>📝 歷次作業列表</h3>
-        <ul id="assignment-list" style="list-style: none; padding: 0; max-height: 250px; overflow-y: auto;"><li>暫無數據...</li></ul>
-      </div>
-    </div>
-  </div>
-</div>
 
     </main>
   </div>
@@ -3159,12 +3123,6 @@ async function syncDataToCloud() {
     
     const { error: projectError } = await supabaseClient.from('student_projects').upsert(projectToUpsert);
     if (projectError) throw projectError;
-     // 呼叫剛剛新增的函式，並使用 .then 讓它在背景執行，不卡住畫面
-    syncToLongTermDB().then(() => {
-        console.log("Background sync to relational DB finished.");
-    });
-    
-    
 
     isDataDirty = false;
     showToast("同步成功！專案已儲存到雲端。", "success");
@@ -3808,9 +3766,7 @@ function buildChecklist() {
 
   if (!hasContent) {
     checklistContainer.innerHTML = `<div class="empty-state-message">評語庫目前為空。<br>請返回「基本設定」頁選擇或建立評語庫，或在「評語總覽」頁新增/導入。</div>`;
-   loadAndShowTopCritiques(); 
   }
-  
 }
 
 function createInteractiveModule(id) {
@@ -4399,9 +4355,6 @@ function saveCurrentStudentData() {
   };
 
   renderStudentOverviewTable();
-   // ▼▼▼【新增這行】▼▼▼
-    updateCritiqueUsageStats(checkedCritiques).catch(e => console.error(e));
-    // ▲▲▲
   isDataDirty = true;
   updateUIBasedOnAuthState();
 
@@ -6281,344 +6234,6 @@ function restoreFromLocalBackup() {
         console.error(e);
         alert("還原失敗，資料可能已損壞。\n錯誤訊息：" + e.message);
     }
-}
-// --- [新增功能] 更新評語使用計數 ---
-// --- [優化版] 使用 Supabase RPC 更新評語使用計數 ---
-async function updateCritiqueUsageStats(checkedCritiques) {
-    // 檢查有沒有登入，以及有沒有勾選評語
-    if (!currentUser || !checkedCritiques || checkedCritiques.length === 0) return;
-
-    // 1. 提取所有被勾選的評語 ID，組成一個陣列
-    const critiqueIds = checkedCritiques.map(c => c.id);
-
-    try {
-        // 2. 呼叫 SQL 函數，只需一行代碼！
-        const { error } = await supabaseClient.rpc('increment_critique_usage', {
-            p_critique_ids: critiqueIds
-        });
-
-        if (error) {
-            console.error("SQL RPC 執行錯誤:", error);
-        } else {
-            console.log(`成功更新 ${critiqueIds.length} 條評語的使用次數 (Server-side)`);
-        }
-    } catch (err) {
-        console.error("呼叫 RPC 失敗:", err);
-    }
-}
-async function loadAndShowTopCritiques() {
-    if (!currentUser) return;
-
-    // 直接查表，速度很快，因為有 user_id 索引
-    const { data: topCritiques, error } = await supabaseClient
-        .from('comment_usage_stats')
-        .select('critique_id, usage_count')
-        .eq('user_id', currentUser.id)
-        .order('usage_count', { ascending: false })
-        .limit(10); // 只取前 10 名
-
-    if (error) {
-        console.error("讀取常用評語失敗:", error);
-        return;
-    }
-
-    if (!topCritiques || topCritiques.length === 0) return;
-
-    // --- 下面這段 DOM 操作邏輯保持不變 ---
-    const checklistContainer = document.getElementById('checklist-container');
-    let hotSection = document.getElementById('hot-critiques-section');
-    
-    // 如果還沒有常用區塊，就創建它
-    if (!hotSection) {
-        hotSection = document.createElement('details');
-        hotSection.id = 'hot-critiques-section';
-        hotSection.className = 'category-group';
-        hotSection.open = true;
-        // 給它一點特別的樣式 (例如金色邊框)
-        hotSection.style.border = '2px solid #F2C037';
-        hotSection.style.marginBottom = '1.5rem';
-        hotSection.innerHTML = `
-            <summary style="background:linear-gradient(135deg, #fffdf5, #fff); color:#d48806;">
-                <h3>🔥 常用評語 (Top 10)</h3>
-            </summary>
-            <div class="category-content"></div>
-        `;
-        // 插在最前面
-        checklistContainer.insertBefore(hotSection, checklistContainer.firstChild);
-    }
-
-    const contentDiv = hotSection.querySelector('.category-content');
-    contentDiv.innerHTML = ''; // 先清空
-
-    topCritiques.forEach(stat => {
-        // 根據 ID 找到原本的評語 DOM，複製它的資訊
-        const originalDiv = document.querySelector(`#critique-data div[data-id="${stat.critique_id}"]`);
-        
-        if (originalDiv) {
-            const type = originalDiv.dataset.type;
-            const title = originalDiv.querySelector('h4').textContent;
-            
-            const itemDiv = document.createElement('div');
-            itemDiv.className = `check-item ${type === 'problem' ? 'is-problem' : 'is-excellent'}`;
-            // 給一個唯一的 ID，避免與原本的衝突
-            const uniqueId = `hot_${stat.critique_id}`;
-            
-            itemDiv.innerHTML = `
-                <div class="check-item-header">
-                    <input type="checkbox" id="${uniqueId}" style="accent-color: var(--accent-color);">
-                    <label for="${uniqueId}">
-                        <span style="font-size:0.8em; color:#999; margin-right:5px;">[${stat.usage_count}次]</span>
-                        ${title}
-                    </label>
-                </div>
-            `;
-            
-            // 綁定事件：勾選這個 = 勾選原本那個
-            const hotCheckbox = itemDiv.querySelector('input');
-            const originalCheckbox = document.getElementById(stat.critique_id);
-            
-            // 1. 初始化狀態
-            if (originalCheckbox && originalCheckbox.checked) {
-                hotCheckbox.checked = true;
-            }
-
-            // 2. 連動邏輯
-            hotCheckbox.addEventListener('change', (e) => {
-                if (originalCheckbox) {
-                    originalCheckbox.checked = e.target.checked;
-                    // 觸發原本的 Change Event 以更新 UI (顯示輸入框等)
-                    handleCheckboxChange(originalCheckbox); 
-                    // 如果有輸入框，可能需要視圖跳轉，這裡暫時只做勾選同步
-                }
-            });
-            
-            contentDiv.appendChild(itemDiv);
-        }
-    });
-}// ==========================================
-// ====== [新增] 長期追蹤數據庫同步功能 ======
-// ==========================================
-
-async function syncToLongTermDB() {
-    if (!currentUser) return;
-    
-    // 1. 獲取基本資料
-    const className = document.getElementById('student-class').value.trim();
-    const topic = document.getElementById('topic').value.trim();
-    
-    // 如果連班別或題目都沒有，就不存入長期庫 (避免垃圾資料)
-    if (!className || !topic) return; 
-
-    console.log("正在同步至長期數據庫...");
-
-    try {
-        // --- A. 處理班級 (Find or Create) ---
-        const { data: classData, error: classError } = await supabaseClient
-            .from('classes')
-            .upsert(
-                { user_id: currentUser.id, class_name: className, academic_year: '2024-2025' },
-                { onConflict: 'user_id, class_name, academic_year' }
-            )
-            .select('id')
-            .single();
-
-        if (classError) throw classError;
-        const classId = classData.id;
-
-        // --- B. 處理作業 (Find or Create) ---
-        const { data: assignData, error: assignError } = await supabaseClient
-            .from('assignments')
-            .upsert(
-                { class_id: classId, title: topic },
-                { onConflict: 'class_id, title' }
-            )
-            .select('id')
-            .single();
-            
-        if (assignError) throw assignError;
-        const assignmentId = assignData.id;
-
-        // --- C. 處理學生 (Batch Find or Create) ---
-        const studentsToUpsert = allStudentRecords.map(r => ({
-            class_id: classId,
-            name: r.name,
-            student_number: r.number ? String(r.number) : null
-        }));
-
-        // 批量 Upsert 學生
-        const { data: studentsData, error: studentError } = await supabaseClient
-            .from('students')
-            .upsert(studentsToUpsert, { onConflict: 'class_id, student_number, name' })
-            .select('id, name, student_number');
-
-        if (studentError) throw studentError;
-
-        // 建立對照表 (Map)
-        const studentMap = new Map();
-        studentsData.forEach(s => {
-            const key = s.student_number ? `${parseInt(s.student_number)}-${s.name}` : s.name;
-            studentMap.set(key, s.id);
-            studentMap.set(s.name, s.id); 
-            if(s.student_number) studentMap.set(s.student_number, s.id);
-        });
-
-        // --- D. 處理成績 (Batch Upsert Results) ---
-        const resultsToUpsert = [];
-        const gradedStudents = allStudentRecords.filter(r => r.data);
-        
-        for (const record of gradedStudents) {
-            let dbStudentId = studentMap.get(`${record.number}-${record.name}`);
-            if (!dbStudentId) dbStudentId = studentMap.get(record.name);
-            if (!dbStudentId && record.number) dbStudentId = studentMap.get(String(record.number));
-
-            if (!dbStudentId) {
-                console.warn(`找不到學生 ID: ${record.name}，跳過成績同步`);
-                continue;
-            }
-
-            const s = record.data.scores || {};
-            
-            resultsToUpsert.push({
-                assignment_id: assignmentId,
-                student_id: dbStudentId,
-                total_score: parseFloat(s.total) || 0,
-                content_score: parseFloat(s.content) || 0,
-                expression_score: parseFloat(s.expression) || 0,
-                structure_score: parseFloat(s.structure) || 0,
-                punctuation_score: parseFloat(s.punctuation) || 0,
-                comment_full: record.data.pureFullComment || '',
-                comment_data: record.data.checkedCritiques || [],
-                updated_at: new Date().toISOString()
-            });
-        }
-
-        if (resultsToUpsert.length > 0) {
-            const { error: resultError } = await supabaseClient
-                .from('results')
-                .upsert(resultsToUpsert, { onConflict: 'assignment_id, student_id' });
-            
-            if (resultError) throw resultError;
-        }
-
-        console.log(`長期數據同步完成：已更新 ${resultsToUpsert.length} 筆成績。`);
-
-    } catch (err) {
-        console.error("同步長期數據失敗:", err);
-    }
-}
-// ==========================================
-// ====== Dashboard 儀表板邏輯 (全新) ======
-// ==========================================
-let globalTrendChart = null;
-
-async function initDashboard() {
-    if (!currentUser) {
-        if(typeof showToast === 'function') showToast("請先登入以查看歷史數據", "warning");
-        return;
-    }
-    const classSelect = document.getElementById('dashboard-class-select');
-    
-    // 1. 載入班級
-    const { data: classes, error } = await supabaseClient
-        .from('classes')
-        .select('id, class_name, academic_year')
-        .eq('user_id', currentUser.id)
-        .order('created_at', { ascending: false });
-
-    if (error) { console.error(error); return; }
-
-    classSelect.innerHTML = '';
-    if (!classes || classes.length === 0) {
-        classSelect.innerHTML = '<option value="">無班級數據</option>';
-        return;
-    }
-
-    classes.forEach(c => {
-        const opt = document.createElement('option');
-        opt.value = c.id;
-        opt.textContent = `${c.class_name} (${c.academic_year || 'N/A'})`;
-        classSelect.appendChild(opt);
-    });
-
-    classSelect.onchange = () => loadClassData(classSelect.value);
-    // 預設載入第一班
-    if (classes.length > 0) {
-        classSelect.value = classes[0].id;
-        loadClassData(classes[0].id);
-    }
-}
-
-async function loadClassData(classId) {
-    if (!classId) return;
-    // 撈取作業
-    const { data: assignments } = await supabaseClient
-        .from('assignments').select('*').eq('class_id', classId).order('date', { ascending: true });
-    
-    if (!assignments || !assignments.length) { renderEmptyDashboard(); return; }
-
-    // 撈取成績
-    const { data: results } = await supabaseClient
-        .from('results')
-        .select(`total_score, assignment_id, student_id, students ( name )`)
-        .in('assignment_id', assignments.map(a => a.id));
-
-    processAndRenderCharts(assignments, results || []);
-}
-
-function processAndRenderCharts(assignments, results) {
-    const labels = assignments.map(a => a.title);
-    const avgScores = assignments.map(a => {
-        const classResults = results.filter(r => r.assignment_id === a.id);
-        if (classResults.length === 0) return 0;
-        const sum = classResults.reduce((acc, curr) => acc + (curr.total_score || 0), 0);
-        return (sum / classResults.length).toFixed(1);
-    });
-
-    // 畫圖
-    const ctx = document.getElementById('trendChartCanvas').getContext('2d');
-    if (globalTrendChart) globalTrendChart.destroy();
-
-    globalTrendChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: '班級平均分',
-                data: avgScores,
-                borderColor: '#5A8F7B',
-                backgroundColor: 'rgba(90, 143, 123, 0.2)',
-                borderWidth: 3,
-                tension: 0.3,
-                fill: true
-            }]
-        },
-        options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, suggestedMax: 100 } } }
-    });
-
-    // 列出作業
-    const listEl = document.getElementById('assignment-list');
-    listEl.innerHTML = '';
-    [...assignments].reverse().forEach(a => {
-        const li = document.createElement('li');
-        li.style.borderBottom = '1px dashed #eee'; li.style.padding = '8px 0';
-        li.innerHTML = `<strong>${escapeHtml(a.title)}</strong> <span style="float:right;color:#888">${new Date(a.date).toLocaleDateString()}</span>`;
-        listEl.appendChild(li);
-    });
-    
-    // 簡單的高風險分析 (最近一次分數 < 40)
-    const lastAssign = assignments[assignments.length - 1];
-    const lowScores = results.filter(r => r.assignment_id === lastAssign.id && r.total_score < 40);
-    const riskList = document.getElementById('at-risk-list');
-    riskList.innerHTML = lowScores.length ? '' : '<li style="color:green">🎉 本次無不及格學生</li>';
-    lowScores.forEach(r => {
-        riskList.innerHTML += `<li style="color:#c86a5a"><strong>${escapeHtml(r.students?.name)}</strong>: ${r.total_score}分</li>`;
-    });
-}
-
-function renderEmptyDashboard() {
-    if (globalTrendChart) globalTrendChart.destroy();
-    document.getElementById('at-risk-list').innerHTML = '<li>無數據</li>';
-    document.getElementById('assignment-list').innerHTML = '<li>無數據</li>';
 }
 </script>
 
