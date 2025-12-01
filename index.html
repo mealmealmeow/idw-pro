@@ -1986,6 +1986,15 @@
     white-space: normal !important;
   }
 }
+/* 讓瀏覽器只渲染可見範圍內的內容，大幅提升捲動效能 */
+.section-box, 
+.category-group, 
+.check-item, 
+.overview-item, 
+#student-overview-table tr {
+  content-visibility: auto; 
+  contain-intrinsic-size: 1px 100px; /* 給個預估高度防止捲軸跳動 */
+}
 </style>
 </head>
 <body>
@@ -2617,6 +2626,15 @@
   </div>
 </div>
 <script>
+    // --- 防抖函數 (新增) ---
+function debounce(func, wait) {
+  let timeout;
+  return function(...args) {
+    const context = this;
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func.apply(context, args), wait);
+  };
+}
 // --- Supabase 初始化與設定 ---
 const SUPABASE_URL = 'https://wtcegbkfuklnkurrouka.supabase.co'; 
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind0Y2VnYmtmdWtsbmt1cnJvdWthIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM0MTU5MjgsImV4cCI6MjA3ODk5MTkyOH0.mQT2TXLR6m41D1WzmqH35mKdoGDGqHaHhZm-sTpPmpQ';
@@ -2631,6 +2649,16 @@ let currentTypos = [];
 let commonTypos = [];
 let cannedCritiques = {}; // 用於儲存預設評語
 const CATEGORY_ORDER = ['扣題與立意', '取材與刻畫', '結構與鋪排', '語言與表達'];
+
+// 通用防抖函數：限制函數執行的頻率
+function debounce(func, wait) {
+  let timeout;
+  return function(...args) {
+    const context = this;
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func.apply(context, args), wait);
+  };
+}
 
 // --- 程式入口 ---
 document.addEventListener('DOMContentLoaded', () => {
@@ -3453,11 +3481,34 @@ function attachGlobalListeners() {
     loadStudentData(e.target.value);
   });
 
+ // --- 這是新的代碼 (請貼上這個) ---
+  
+  // 1. 定義一個防抖後的更新動作 (專門處理會 LAG 的運算)
+  const debouncedUpdate = debounce((target) => {
+      // 只有當真的在輸入分數時才計算總分
+      if (target.closest('.score-main-grid')) {
+          calculateTotalScore();
+      }
+      // 最耗資源的更新輸出
+      updateAllOutputs();
+  }, 300); // 延遲 300 毫秒
+
+  // 2. 新的監聽器
   document.body.addEventListener('input', (e) => {
     const targetPage = e.target.closest('.page-content');
     if (!targetPage) return;
-triggerAutoSave(); 
+
+    // 自動備份 (本身已有防抖，直接呼叫即可)
+    triggerAutoSave(); 
+
+    // 立即標記資料已變更 (讓儲存按鈕馬上亮起)
+    if (targetPage.id === 'page2' || targetPage.id === 'page3' || targetPage.id === 'page4') {
+        isDataDirty = true;
+        updateUIBasedOnAuthState();
+    }
+
     if (targetPage.id === 'page2' && e.target.matches('input, textarea, select')) {
+      // 處理互動模組 (Checkbox 相關)，這部分需要即時反應，不然打字會覺得卡
       if (e.target.closest('.interactive-module')) {
         const checkItem = e.target.closest('.check-item');
         if (checkItem) {
@@ -3465,15 +3516,9 @@ triggerAutoSave();
           if (checkbox && checkbox.checked) populateEditableTextarea(checkbox.id);
         }
       }
-      if (e.target.closest('.score-main-grid')) {
-          calculateTotalScore();
-      }
-      updateAllOutputs();
-      isDataDirty = true; 
-      updateUIBasedOnAuthState();
-    } else if (targetPage.id === 'page3' || targetPage.id === 'page4') {
-        isDataDirty = true;
-        updateUIBasedOnAuthState();
+
+      // 重型運算交給防抖函數處理
+      debouncedUpdate(e.target);
     }
   });
   
