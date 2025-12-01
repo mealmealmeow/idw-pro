@@ -1,6 +1,3 @@
-
-
-
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
@@ -2451,6 +2448,7 @@
   <div class="overview-container">
     <div class="page-header">
       <h2>評語分析（全班概況）</h2>
+     
       <div class="btn-group">
         <button class="action-btn" onclick="exportAnalysisToExcel()">📊 匯出分析 Excel</button>
         <button class="secondary-btn" onclick="exportAnalysisToWord()">📄 匯出分析 Word</button>
@@ -2459,6 +2457,21 @@
     <p style="font-size:0.9rem;color:#777;">
       透過視覺化圖表，快速掌握全班的強弱項分佈及常見問題。
     </p>
+    <!-- 在 Page 5 加入退步預警區塊 -->
+<div class="section-box" style="margin-top: 2rem; border-left: 5px solid #c86a5a;">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="color: #c86a5a; margin:0;">🚨 退步預警分析 (連續 3 次下降)</h3>
+        <select id="analysis-class-select" onchange="runRegressionAnalysis()" style="padding: 5px; border-radius: 5px;">
+            <option value="">請選擇班級以分析...</option>
+        </select>
+    </div>
+    <p style="color:#666; font-size:0.9rem; margin-top:5px;">
+        系統會分析該班級最近的寫作數據，找出成績呈連續下降趨勢的學生。
+    </p>
+    <div id="regression-analysis-result" style="margin-top: 1rem;">
+        <div class="empty-state-message">請選擇班級以開始分析</div>
+    </div>
+</div>
     
     <!-- 新增：圖表區域 -->
     <div class="analysis-grid" style="margin-bottom: 2rem;">
@@ -2668,6 +2681,7 @@
             <button class="action-btn" onclick="openCreateClassModal()" style="padding: 0.8rem 1.5rem; font-size: 1rem; box-shadow: 0 4px 12px rgba(90, 143, 123, 0.4);">
                 ＋ 建立新班級 / 任務
             </button>
+            <button class="light-btn brown" onclick="openEditClassModal()">✏️ 編輯班級</button>
         </div>
     </div>
 
@@ -2743,7 +2757,26 @@
 
   </div>
 </div>
-
+<!-- 編輯班級 Modal -->
+<div id="edit-class-modal" class="pop-overlay">
+  <div class="pop-modal">
+    <div class="pop-icon">🏫</div>
+    <h3>編輯班級資料</h3>
+    <input type="hidden" id="edit-class-id">
+    <div style="text-align: left; margin-bottom: 15px;">
+        <label style="display:block; margin-bottom:5px; font-weight:bold;">班級名稱</label>
+        <input type="text" id="edit-class-name" class="pop-input" style="width:100%; box-sizing:border-box;">
+    </div>
+    <div style="text-align: left; margin-bottom: 15px;">
+        <label style="display:block; margin-bottom:5px; font-weight:bold;">學年度</label>
+        <input type="text" id="edit-class-year" class="pop-input" style="width:100%; box-sizing:border-box;" placeholder="例如: 2024-2025">
+    </div>
+    <div class="pop-footer">
+      <button class="pop-btn pop-btn-cancel" onclick="document.getElementById('edit-class-modal').classList.remove('active')">取消</button>
+      <button class="pop-btn pop-btn-confirm" onclick="submitEditClass()">儲存變更</button>
+    </div>
+  </div>
+</div>
   <!-- 自製確認對話框 -->
   <div id="modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-hidden="true">
     <div class="modal-card" role="document">
@@ -2801,208 +2834,7 @@ const SUPABASE_URL = 'https://wtcegbkfuklnkurrouka.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind0Y2VnYmtmdWtsbmt1cnJvdWthIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM0MTU5MjgsImV4cCI6MjA3ODk5MTkyOH0.mQT2TXLR6m41D1WzmqH35mKdoGDGqHaHhZm-sTpPmpQ';
 const { createClient } = supabase;
 const supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY);
-// ======= 班級管理與學生匯入邏輯 (Start) =======
 
-    // 1. 載入班級列表
-    async function loadClasses() {
-        // 檢查登入
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-            document.getElementById('class-list').innerHTML = '<p style="padding:10px;">請先登入 (右上角) 以管理班級。</p>';
-            return;
-        }
-        const userId = session.user.id;
-
-        const { data, error } = await supabase
-            .from('classes')
-            .select('*')
-            .eq('user_id', userId) // 確保只撈自己的班
-            .order('created_at', { ascending: false });
-
-        if (error) {
-            console.error('載入失敗:', error);
-            alert('無法載入班級：' + error.message);
-        } else {
-            renderClassList(data);
-        }
-    }
-
-    // 2. 渲染班級卡片
-    function renderClassList(classes) {
-        const container = document.getElementById('class-list');
-        container.innerHTML = ''; 
-
-        if (!classes || classes.length === 0) {
-            container.innerHTML = '<p style="color:#666;">目前沒有班級，請建立一個。</p>';
-            return;
-        }
-
-        classes.forEach(cls => {
-            const card = document.createElement('div');
-            card.style = `
-                background: white; padding: 1.5rem; border-radius: 12px; 
-                box-shadow: 0 4px 6px rgba(0,0,0,0.05); cursor: pointer; border: 1px solid #eee;
-                transition: transform 0.2s; position: relative;
-            `;
-            card.innerHTML = `
-                <h3 style="margin:0 0 0.5rem 0; color: #3d5c4f;">${cls.class_name}</h3>
-                <div style="font-size: 0.9rem; color: #888;">學年：${cls.academic_year}</div>
-                <div style="position:absolute; top:10px; right:10px; font-size:1.5rem; opacity:0.1;">🏫</div>
-            `;
-            
-            card.onmouseover = () => card.style.transform = 'translateY(-3px)';
-            card.onmouseout = () => card.style.transform = 'translateY(0)';
-            card.onclick = () => enterClass(cls.id, cls.class_name);
-            
-            container.appendChild(card);
-        });
-    }
-
-    // 3. 建立新班級
-    async function createNewClass() {
-        const nameInput = document.getElementById('new-class-name');
-        const yearInput = document.getElementById('new-academic-year');
-        const className = nameInput.value.trim();
-        const academicYear = yearInput.value.trim();
-
-        if (!className) return alert("請輸入班級名稱！");
-
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        const { error } = await supabase
-            .from('classes')
-            .insert([{ class_name: className, academic_year: academicYear, user_id: user.id }]);
-
-        if (error) {
-            alert("建立失敗：" + error.message);
-        } else {
-            nameInput.value = '';
-            loadClasses(); 
-        }
-    }
-
-    // 4. 進入班級 (核心功能)
-    let currentClassId = null; // 全域變數
-
-    function enterClass(classId, className) {
-        currentClassId = classId;
-        document.getElementById('current-class-info').innerText = `正在批改：${className}`;
-        
-        // 切換視圖
-        document.getElementById('dashboard-view').style.display = 'none';
-        document.getElementById('editor-view').style.display = 'block';
-        
-        // 自動載入該班學生
-        loadStudentsFromDB(classId);
-    }
-
-    // 5. 返回 Dashboard
-    function showDashboard() {
-        document.getElementById('editor-view').style.display = 'none';
-        document.getElementById('dashboard-view').style.display = 'block';
-        loadClasses();
-    }
-
-    // 6. 從資料庫載入學生
-    async function loadStudentsFromDB(classId) {
-        const select = document.getElementById('student-select-db');
-        const status = document.getElementById('db-student-status');
-        select.innerHTML = '<option>載入中...</option>';
-        
-        const { data: students, error } = await supabase
-            .from('students')
-            .select('*')
-            .eq('class_id', classId)
-            .order('student_number', { ascending: true });
-
-        if (error) {
-            console.error(error);
-            return;
-        }
-
-        select.innerHTML = '';
-        if (students.length === 0) {
-            select.innerHTML = '<option value="">(此班級尚無學生，請匯入)</option>';
-            status.innerText = "0 人";
-        } else {
-            status.innerText = `${students.length} 人`;
-            // 同步更新原本 App 的學生名單 (如果有)
-            const oldSelect = document.getElementById('student-select'); 
-            if(oldSelect) oldSelect.innerHTML = '<option value="">-- 請選擇學生 --</option>';
-
-            select.innerHTML = '<option value="">-- 班級名單 --</option>';
-            students.forEach(s => {
-                const displayName = s.student_number ? `${s.student_number}. ${s.name}` : s.name;
-                
-                // 填入 Page 1 的選單
-                const opt = document.createElement('option');
-                opt.value = s.id;
-                opt.innerText = displayName;
-                select.appendChild(opt);
-
-                // 同步填入 Page 2 (批改頁) 的選單，方便直接選
-                if(oldSelect) {
-                    const opt2 = document.createElement('option');
-                    opt2.value = s.id; // 改用 ID
-                    opt2.innerText = displayName;
-                    // 重要：為了相容舊代碼，我們把名字存在 dataset
-                    opt2.dataset.name = s.name; 
-                    oldSelect.appendChild(opt2);
-                }
-            });
-        }
-    }
-
-    // 7. 匯入 Excel 學生名單
-    async function importStudentsToDB(inputElement) {
-        if (!currentClassId) return alert("錯誤：未選擇班級！");
-        const file = inputElement.files[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = async function(e) {
-            const data = new Uint8Array(e.target.result);
-            const workbook = XLSX.read(data, { type: 'array' });
-            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-            const rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
-            
-            const studentsToInsert = [];
-            // 跳過標題列 (i=1)
-            for (let i = 1; i < rows.length; i++) {
-                const row = rows[i];
-                if (row[0]) { // A欄有名字
-                    studentsToInsert.push({
-                        class_id: currentClassId,
-                        name: row[0].toString().trim(),
-                        student_number: row[1] ? row[1].toString().trim() : null
-                    });
-                }
-            }
-
-            if (studentsToInsert.length === 0) return alert("Excel 讀取不到資料，請檢查格式 (A欄:姓名)。");
-            if (!confirm(`確認匯入 ${studentsToInsert.length} 位學生？`)) return;
-
-            const { error } = await supabase
-                .from('students')
-                .upsert(studentsToInsert, { onConflict: 'class_id, student_number, name' });
-
-            if (error) {
-                alert("匯入失敗：" + error.message);
-            } else {
-                alert("匯入成功！");
-                loadStudentsFromDB(currentClassId); // 重新整理
-                inputElement.value = '';
-            }
-        };
-        reader.readAsArrayBuffer(file);
-    }
-
-    // 8. 啟動！
-    window.addEventListener('DOMContentLoaded', () => {
-        setTimeout(loadClasses, 1000); // 延遲載入確保 Supabase Ready
-    });
-
-    // ======= 班級管理邏輯 (End) =======
 // --- 全域變數 ---
 let currentUser = null;
 let isDataDirty = false; 
@@ -3509,7 +3341,10 @@ async function syncDataToCloud() {
     });
     
     
-
+// ▼▼▼ 新增這段 ▼▼▼
+    // 呼叫長期數據同步 (背景執行)
+    syncToLongTermDB().then(() => console.log("長期數據已同步"));
+    // ▲▲▲
     isDataDirty = false;
     showToast("同步成功！專案已儲存到雲端。", "success");
 
@@ -3617,6 +3452,7 @@ function showPage(pageId, focusElementId = null) {
     renderStudentOverviewTable(); 
   } else if (pageId === 'page5') {
     renderAnalysisPage();
+      loadClassesForAnalysis();
   } else if (pageId === 'page7') {
     const records = allStudentRecords.filter(r => r.data);
     const promptTextarea = document.getElementById('ai-feedback-prompt-preview');
@@ -7466,136 +7302,149 @@ function renderProjectList(classes, assignments) {
 
 // 輔助功能：載入專案並跳轉
 // 輔助功能：載入專案並跳轉 (增強版：自動恢復進度 + 顯示Header)
+// ---------------------------------------------------------
+// 修復 1 & 4: 繼續批改邏輯 (精準定位最後學生) & 待辦事項點擊
+// ---------------------------------------------------------
+
+// 渲染待辦事項 (由 initDashboard 呼叫)
+function renderTodoList(classes, assignments, results, allStudents) {
+    const container = document.getElementById('widget-todo-list');
+    container.innerHTML = '';
+
+    // 取最近 5 個未完成的作業
+    const activeAssignments = assignments.slice(0, 5);
+
+    if (activeAssignments.length === 0) {
+        container.innerHTML = '<p style="color:#999;">暫無待辦作業</p>';
+        return;
+    }
+
+    activeAssignments.forEach(assign => {
+        const cls = classes.find(c => c.id === assign.class_id);
+        const className = cls ? cls.class_name : '未知班級';
+        const totalStudents = allStudents.filter(s => s.class_id === assign.class_id).length;
+        const gradedCount = results.filter(r => r.assignment_id === assign.id).length;
+        const percent = totalStudents > 0 ? Math.round((gradedCount / totalStudents) * 100) : 0;
+
+        // 製作成可點擊的區塊
+        const div = document.createElement('div');
+        div.className = 'todo-item';
+        div.style.cursor = 'pointer'; // 手指游標
+        div.title = "點擊繼續批改";
+        // 綁定點擊事件
+        div.onclick = () => loadProjectContext(assign.id, assign.class_id, assign.title, className);
+
+        div.innerHTML = `
+            <div class="todo-info">
+                <strong>${escapeHtml(className)} - ${escapeHtml(assign.title)}</strong>
+                <span>${gradedCount}/${totalStudents}</span>
+            </div>
+            <div class="progress-bar-bg">
+                <div class="progress-bar-fill" style="width: ${percent}%"></div>
+            </div>
+        `;
+        container.appendChild(div);
+    });
+}
+
+// 載入專案並跳轉 (核心修復：精準定位最後一位)
+// 修復版：載入專案並跳轉 (自動定位最後一位學生)
 async function loadProjectContext(assignmentId, classId, topic, className) {
     if(typeof showToast === 'function') showToast("正在恢復專案進度...", "info");
 
     try {
-        // 1. 設定基本 UI 狀態
+        // 1. 設定 UI
         document.getElementById('student-class').value = className;
         document.getElementById('topic').value = topic;
         
-        // --- 關鍵：顯示頂部 Header 專案資訊 ---
-        // 這樣老師就可以隨時點擊頂部按鈕切換其他專案
-        updateHeaderInfo(); 
+        // 確保 Header 資訊更新
         const headerInfo = document.getElementById('project-header-info');
         if (headerInfo) {
             headerInfo.style.display = 'inline-flex';
-            // 確保文字更新
-            document.getElementById('ph-class').innerText = className;
-            document.getElementById('ph-topic').innerText = topic;
+            document.getElementById('ph-class').textContent = className;
+            document.getElementById('ph-topic').textContent = topic;
         }
 
-        // 2. 從資料庫撈取學生名單
+        // 2. 撈取學生 (按學號排序)
         const { data: students, error: sErr } = await supabaseClient
             .from('students')
             .select('*')
             .eq('class_id', classId)
-            .order('student_number', { ascending: true }); // 按學號排
+            .order('student_number', { ascending: true });
         
         if (sErr) throw sErr;
 
-        // 3. 從資料庫撈取成績 (為了知道改過什麼，以及最後改的是誰)
+        // 3. 撈取成績 (按更新時間倒序，最新的在第0個)
         const { data: results, error: rErr } = await supabaseClient
             .from('results')
             .select('*')
             .eq('assignment_id', assignmentId)
-            .order('updated_at', { ascending: false }); // 時間由新到舊排序
+            .order('updated_at', { ascending: false }); 
         
         if (rErr) throw rErr;
 
-        // 4. 重建全域變數 allStudentRecords (這是最核心的一步)
-        // 我們需要把資料庫的格式，轉回 App 認得的格式
-        
-        // 先生成名單字串填入 textarea (為了相容性)
-        const namesListStr = students.map(s => {
-            return s.student_number ? `${s.student_number}-${s.name}` : s.name;
-        }).join('\n');
+        // 4. 重建 allStudentRecords
+        const namesListStr = students.map(s => s.student_number ? `${s.student_number}-${s.name}` : s.name).join('\n');
         document.getElementById('student-names').value = namesListStr;
 
-        // 重建物件陣列
         allStudentRecords = students.map(s => {
-            // 組合原始名字格式 (例如 "12-陳大文")
             const originalName = s.student_number ? `${s.student_number}-${s.name}` : s.name;
+            const res = results.find(r => r.student_id === s.id); 
             
-            // 找找看這個學生有沒有成績
-            const res = results.find(r => r.student_id === s.id);
-
             return {
                 number: s.student_number ? parseInt(s.student_number) : null,
                 name: s.name,
                 originalName: originalName,
-                // 如果有成績，就填入 data；沒有就是 null
                 data: res ? {
-                    class: className,
-                    topic: topic,
-                    uniqueComment: "", // 資料庫若沒存這個欄位暫時留空
-                    scores: {
-                        content: res.content_score,
-                        expression: res.expression_score,
-                        structure: res.structure_score,
-                        punctuation: res.punctuation_score,
-                        typos: 0, // 如果資料庫沒存錯別字數量，暫設0
-                        total: res.total_score
+                    class: className, topic: topic, uniqueComment: "",
+                    scores: { 
+                        content: res.content_score, expression: res.expression_score, structure: res.structure_score, 
+                        punctuation: res.punctuation_score, typos: 0, total: res.total_score 
                     },
-                    typos: [], // 若無詳細錯別字資料，暫留空
-                    checkedCritiques: res.comment_data || [], // 這是最重要的評語勾選紀錄
-                    fullComment: res.comment_full || "",
-                    studentComment: "", 
-                    pureFullComment: res.comment_full || "",
-                    pureStudentComment: ""
+                    typos: [], checkedCritiques: res.comment_data || [],
+                    fullComment: res.comment_full || "", studentComment: "", pureFullComment: res.comment_full || "", pureStudentComment: ""
                 } : null
             };
         });
 
-        // 5. 更新下拉選單 UI
-        // 我們不呼叫 updateStudentDropdown() 因為它會重置 allStudentRecords
-        // 而是手動更新選單
-        const studentSelect = document.getElementById('student-select');
-        studentSelect.innerHTML = '';
-        allStudentRecords.forEach(r => {
-            const opt = document.createElement('option');
-            opt.value = r.originalName;
-            opt.innerText = r.originalName;
-            studentSelect.appendChild(opt);
-        });
+        // 5. 更新選單
+        updateStudentDropdown(); 
 
-        // 6. 找出最後一位編輯過的學生 (Resume Position)
-        let lastEditedStudentName = "";
-        
+        // 6. 找出「最後編輯」的學生
+        let lastEditedName = "";
         if (results.length > 0) {
-            // 因為 results 已經按時間倒序排列，第一個就是最後修改的
             const lastResult = results[0]; 
             const targetStudent = students.find(s => s.id === lastResult.student_id);
             if (targetStudent) {
-                lastEditedStudentName = targetStudent.student_number ? `${targetStudent.student_number}-${targetStudent.name}` : targetStudent.name;
-            }
-        } else {
-            // 如果完全沒改過，就選第一個學生
-            if (allStudentRecords.length > 0) {
-                lastEditedStudentName = allStudentRecords[0].originalName;
+                lastEditedName = targetStudent.student_number ? `${targetStudent.student_number}-${targetStudent.name}` : targetStudent.name;
             }
         }
 
-        // 7. 跳轉頁面並選取學生
+        // 7. 跳轉與選取
         showPage('page2');
         
-        if (lastEditedStudentName) {
-            studentSelect.value = lastEditedStudentName;
-            // 強制觸發 change 事件，讓畫面載入該學生的評語和分數
-            // 注意：這裡會呼叫 loadStudentData，它會把我們剛剛塞進 allStudentRecords 的資料填入輸入框
-            loadStudentData(lastEditedStudentName); 
-            
-            showToast(`已回到上次進度：${lastEditedStudentName}`, "success");
+        if (lastEditedName) {
+            setTimeout(() => {
+                const selectEl = document.getElementById('student-select');
+                selectEl.value = lastEditedName;
+                selectEl.dispatchEvent(new Event('change'));
+                showToast(`已回到上次進度：${lastEditedName}`, "success");
+            }, 100);
         } else {
+            // 若無進度，選第一位
+            const selectEl = document.getElementById('student-select');
+            if(selectEl.options.length > 1) {
+                selectEl.selectedIndex = 0;
+                selectEl.dispatchEvent(new Event('change'));
+            }
             showToast(`已載入專案：${className}`, "success");
         }
 
     } catch (err) {
-        console.error("載入專案失敗:", err);
+        console.error("載入失敗:", err);
         alert("載入失敗: " + err.message);
     }
 }
-
 // 輔助功能：開啟建立班級 Modal (簡單版：直接用 prompt 示範，你可以改成漂亮的 Modal)
 function openCreateClassModal() {
     const className = prompt("請輸入新班級名稱 (例如 6B):");
@@ -7608,6 +7457,272 @@ function openCreateClassModal() {
     document.getElementById('student-class').value = className;
     document.getElementById('topic').value = topic;
     showPage('page1');
+}
+async function runRegressionAnalysis() {
+    const classId = document.getElementById('analysis-class-select').value;
+    const container = document.getElementById('regression-analysis-result');
+    if (!classId) return;
+    
+    container.innerHTML = '分析中...';
+
+    // 撈最近 3 次作業
+    const { data: assigns } = await supabaseClient.from('assignments').select('id').eq('class_id', classId).order('date', { ascending: false }).limit(3);
+    
+    if (!assigns || assigns.length < 3) {
+        container.innerHTML = '數據不足 (少於3次作業)'; return;
+    }
+
+    // 撈成績
+    const { data: results } = await supabaseClient.from('results')
+        .select('student_id, total_score, assignment_id, students(name)')
+        .in('assignment_id', assigns.map(a => a.id));
+    
+    const history = {};
+    results.forEach(r => {
+        if (!history[r.student_id]) history[r.student_id] = { name: r.students.name, scores: [] };
+        // 確保按時間順序放入
+        const idx = assigns.findIndex(a => a.id === r.assignment_id);
+        history[r.student_id].scores[idx] = r.total_score;
+    });
+
+    let html = '<ul style="padding-left:20px;">';
+    let found = false;
+    Object.values(history).forEach(stu => {
+        const s = stu.scores;
+        // s[0]是最新, s[1]是上次, s[2]是上上次
+        if (s[0] !== undefined && s[1] !== undefined && s[2] !== undefined) {
+            if (s[0] < s[1] && s[1] < s[2]) { // 連續下降
+                html += `<li style="color:#c86a5a;">⚠️ <strong>${stu.name}</strong>: ${s[2]} -> ${s[1]} -> ${s[0]}</li>`;
+                found = true;
+            }
+        }
+    });
+    html += '</ul>';
+    container.innerHTML = found ? html : '<p style="color:green">✅ 無連續退步學生</p>';
+}
+// ---------------------------------------------------------
+// 修復 3: 班級編輯功能
+// ---------------------------------------------------------
+
+// 打開編輯視窗
+async function openEditClassModal() {
+    const select = document.getElementById('dashboard-class-select');
+    const classId = select.value;
+    if (!classId) return alert("請先選擇一個班級！");
+
+    // 獲取當前班級資料
+    const { data: cls, error } = await supabaseClient
+        .from('classes')
+        .select('*')
+        .eq('id', classId)
+        .single();
+
+    if (error) return alert("讀取班級失敗");
+
+    document.getElementById('edit-class-id').value = cls.id;
+    document.getElementById('edit-class-name').value = cls.class_name;
+    document.getElementById('edit-class-year').value = cls.academic_year || '';
+    
+    document.getElementById('edit-class-modal').classList.add('active');
+}
+
+// 提交編輯
+async function submitEditClass() {
+    const id = document.getElementById('edit-class-id').value;
+    const name = document.getElementById('edit-class-name').value.trim();
+    const year = document.getElementById('edit-class-year').value.trim();
+
+    if (!name) return alert("班級名稱不能為空");
+
+    const { error } = await supabaseClient
+        .from('classes')
+        .update({ class_name: name, academic_year: year })
+        .eq('id', id);
+
+    if (error) {
+        alert("更新失敗：" + error.message);
+    } else {
+        showToast("班級資料已更新", "success");
+        document.getElementById('edit-class-modal').classList.remove('active');
+        initDashboard(); // 刷新列表
+    }
+}
+// ---------------------------------------------------------
+// 修復 2: 退步預警分析 (只在 Page 5 執行)
+// ---------------------------------------------------------
+
+// 載入班級到 Page 5 的下拉選單
+async function loadClassesForAnalysis() {
+    if (!currentUser) return;
+    const { data: classes } = await supabaseClient
+        .from('classes')
+        .select('id, class_name')
+        .eq('user_id', currentUser.id)
+        .order('created_at', { ascending: false });
+    
+    const select = document.getElementById('analysis-class-select');
+    if(!select) return;
+    
+    select.innerHTML = '<option value="">請選擇班級以分析...</option>';
+    if (classes) {
+        classes.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c.id;
+            opt.textContent = c.class_name;
+            select.appendChild(opt);
+        });
+    }
+}
+
+// 執行退步分析 (連續 3 次下降)
+async function runRegressionAnalysis() {
+    const classId = document.getElementById('analysis-class-select').value;
+    const container = document.getElementById('regression-analysis-result');
+    if (!classId) return;
+
+    container.innerHTML = '<p>正在分析數據...</p>';
+
+    // 1. 撈取該班最近 4 次作業 (至少要3次才能比對)
+    const { data: assignments } = await supabaseClient
+        .from('assignments')
+        .select('id, title, date')
+        .eq('class_id', classId)
+        .order('date', { ascending: false }) // 最新的在前面
+        .limit(4);
+
+    if (!assignments || assignments.length < 3) {
+        container.innerHTML = '<div class="empty-state-message">數據不足：該班級至少需要 3 次作業記錄才能進行趨勢分析。</div>';
+        return;
+    }
+
+    // 2. 撈取這些作業的成績
+    const { data: results } = await supabaseClient
+        .from('results')
+        .select('student_id, total_score, assignment_id, students(name)')
+        .in('assignment_id', assignments.map(a => a.id));
+
+    // 3. 整理每個學生的成績歷程
+    // Map: studentId -> [score_latest, score_prev, score_prev2]
+    const studentHistory = {};
+    
+    results.forEach(r => {
+        if (!studentHistory[r.student_id]) {
+            studentHistory[r.student_id] = { name: r.students.name, scores: [] };
+        }
+        // 按時間順序放入分數 (Assignment 陣列已經是倒序，我們對應 index)
+        const assignIndex = assignments.findIndex(a => a.id === r.assignment_id);
+        studentHistory[r.student_id].scores[assignIndex] = r.total_score;
+    });
+
+    // 4. 判斷退步 (Score[0] < Score[1] < Score[2])
+    const regressionList = [];
+    
+    Object.values(studentHistory).forEach(student => {
+        const s = student.scores;
+        // 確保最近三次都有分數
+        if (s[0] !== undefined && s[1] !== undefined && s[2] !== undefined) {
+            if (s[0] < s[1] && s[1] < s[2]) {
+                regressionList.push({
+                    name: student.name,
+                    trend: `${s[2]} → ${s[1]} → ${s[0]}`
+                });
+            }
+        }
+    });
+
+    // 5. 顯示結果
+    if (regressionList.length === 0) {
+        container.innerHTML = '<div style="padding:15px; background:#f0f9eb; color:#67c23a; border-radius:8px;">✅ 很好！該班級近期沒有發現「連續三次成績下降」的學生。</div>';
+    } else {
+        let html = '<ul style="list-style:none; padding:0;">';
+        regressionList.forEach(item => {
+            html += `
+                <li style="background:#fff; border:1px solid #ffcccc; padding:10px; margin-bottom:8px; border-radius:8px; display:flex; justify-content:space-between;">
+                    <strong style="color:#c86a5a;">${escapeHtml(item.name)}</strong>
+                    <span style="color:#666;">走勢：${item.trend} 📉</span>
+                </li>`;
+        });
+        html += '</ul>';
+        container.innerHTML = html;
+    }
+}
+
+async function submitEditClass() {
+    const id = document.getElementById('edit-class-id').value;
+    const name = document.getElementById('edit-class-name').value;
+    const year = document.getElementById('edit-class-year').value;
+    
+    await supabaseClient.from('classes').update({ class_name: name, academic_year: year }).eq('id', id);
+    
+    document.getElementById('edit-class-modal').classList.remove('active');
+    initDashboard(); // 重新整理列表
+}
+
+// --- 補丁：待辦事項點擊與班級編輯邏輯 ---
+
+// 1. 渲染待辦事項 (覆蓋舊版，加入點擊功能)
+function renderTodoList(classes, assignments, results, allStudents) {
+    const container = document.getElementById('widget-todo-list');
+    container.innerHTML = '';
+    const activeAssignments = assignments.slice(0, 5); // 最近5個
+
+    if (activeAssignments.length === 0) {
+        container.innerHTML = '<p style="color:#999;">暫無待辦作業</p>';
+        return;
+    }
+
+    activeAssignments.forEach(assign => {
+        const cls = classes.find(c => c.id === assign.class_id);
+        const className = cls ? cls.class_name : '未知';
+        const totalStudents = allStudents.filter(s => s.class_id === assign.class_id).length;
+        const gradedCount = results.filter(r => r.assignment_id === assign.id).length;
+        const percent = totalStudents > 0 ? Math.round((gradedCount / totalStudents) * 100) : 0;
+
+        const div = document.createElement('div');
+        div.className = 'todo-item';
+        div.style.cursor = 'pointer';
+        div.title = "點擊繼續批改";
+        div.onclick = () => loadProjectContext(assign.id, assign.class_id, assign.title, className);
+
+        div.innerHTML = `
+            <div class="todo-info"><strong>${escapeHtml(className)} - ${escapeHtml(assign.title)}</strong><span>${gradedCount}/${totalStudents}</span></div>
+            <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: ${percent}%"></div></div>
+        `;
+        container.appendChild(div);
+    });
+}
+
+// 2. 打開編輯班級視窗
+async function openEditClassModal() {
+    const select = document.getElementById('dashboard-class-select');
+    const classId = select.value;
+    if (!classId) return alert("請先在下拉選單選擇一個班級！");
+
+    const { data: cls, error } = await supabaseClient.from('classes').select('*').eq('id', classId).single();
+    if (error) return alert("讀取失敗");
+
+    document.getElementById('edit-class-id').value = cls.id;
+    document.getElementById('edit-class-name').value = cls.class_name;
+    document.getElementById('edit-class-year').value = cls.academic_year || '';
+    document.getElementById('edit-class-modal').classList.add('active');
+}
+
+// 3. 提交班級修改
+async function submitEditClass() {
+    const id = document.getElementById('edit-class-id').value;
+    const name = document.getElementById('edit-class-name').value.trim();
+    const year = document.getElementById('edit-class-year').value.trim();
+
+    if (!name) return alert("班名不能為空");
+
+    const { error } = await supabaseClient.from('classes').update({ class_name: name, academic_year: year }).eq('id', id);
+
+    if (error) alert("更新失敗: " + error.message);
+    else {
+        if(typeof showToast === 'function') showToast("班級資料已更新", "success");
+        document.getElementById('edit-class-modal').classList.remove('active');
+        initDashboard(); // 刷新
+    }
 }
 </script>
 
