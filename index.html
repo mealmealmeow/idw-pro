@@ -7465,24 +7465,135 @@ function renderProjectList(classes, assignments) {
 }
 
 // 輔助功能：載入專案並跳轉
-// 當用戶點擊「繼續批改」時，我們需要把資料填回 Page 1 並跳轉 Page 2
+// 輔助功能：載入專案並跳轉 (增強版：自動恢復進度 + 顯示Header)
 async function loadProjectContext(assignmentId, classId, topic, className) {
-    // 1. 設定全域變數或 UI
-    document.getElementById('student-class').value = className;
-    document.getElementById('topic').value = topic;
-    
-    // 2. 觸發學生名單載入 (如果我們有實作 loadStudentsFromDB)
-    // 這裡假設你上一段代碼有 loadStudentsFromDB 函式
-    if (typeof loadStudentsFromDB === 'function') {
-        await loadStudentsFromDB(classId);
+    if(typeof showToast === 'function') showToast("正在恢復專案進度...", "info");
+
+    try {
+        // 1. 設定基本 UI 狀態
+        document.getElementById('student-class').value = className;
+        document.getElementById('topic').value = topic;
+        
+        // --- 關鍵：顯示頂部 Header 專案資訊 ---
+        // 這樣老師就可以隨時點擊頂部按鈕切換其他專案
+        updateHeaderInfo(); 
+        const headerInfo = document.getElementById('project-header-info');
+        if (headerInfo) {
+            headerInfo.style.display = 'inline-flex';
+            // 確保文字更新
+            document.getElementById('ph-class').innerText = className;
+            document.getElementById('ph-topic').innerText = topic;
+        }
+
+        // 2. 從資料庫撈取學生名單
+        const { data: students, error: sErr } = await supabaseClient
+            .from('students')
+            .select('*')
+            .eq('class_id', classId)
+            .order('student_number', { ascending: true }); // 按學號排
+        
+        if (sErr) throw sErr;
+
+        // 3. 從資料庫撈取成績 (為了知道改過什麼，以及最後改的是誰)
+        const { data: results, error: rErr } = await supabaseClient
+            .from('results')
+            .select('*')
+            .eq('assignment_id', assignmentId)
+            .order('updated_at', { ascending: false }); // 時間由新到舊排序
+        
+        if (rErr) throw rErr;
+
+        // 4. 重建全域變數 allStudentRecords (這是最核心的一步)
+        // 我們需要把資料庫的格式，轉回 App 認得的格式
+        
+        // 先生成名單字串填入 textarea (為了相容性)
+        const namesListStr = students.map(s => {
+            return s.student_number ? `${s.student_number}-${s.name}` : s.name;
+        }).join('\n');
+        document.getElementById('student-names').value = namesListStr;
+
+        // 重建物件陣列
+        allStudentRecords = students.map(s => {
+            // 組合原始名字格式 (例如 "12-陳大文")
+            const originalName = s.student_number ? `${s.student_number}-${s.name}` : s.name;
+            
+            // 找找看這個學生有沒有成績
+            const res = results.find(r => r.student_id === s.id);
+
+            return {
+                number: s.student_number ? parseInt(s.student_number) : null,
+                name: s.name,
+                originalName: originalName,
+                // 如果有成績，就填入 data；沒有就是 null
+                data: res ? {
+                    class: className,
+                    topic: topic,
+                    uniqueComment: "", // 資料庫若沒存這個欄位暫時留空
+                    scores: {
+                        content: res.content_score,
+                        expression: res.expression_score,
+                        structure: res.structure_score,
+                        punctuation: res.punctuation_score,
+                        typos: 0, // 如果資料庫沒存錯別字數量，暫設0
+                        total: res.total_score
+                    },
+                    typos: [], // 若無詳細錯別字資料，暫留空
+                    checkedCritiques: res.comment_data || [], // 這是最重要的評語勾選紀錄
+                    fullComment: res.comment_full || "",
+                    studentComment: "", 
+                    pureFullComment: res.comment_full || "",
+                    pureStudentComment: ""
+                } : null
+            };
+        });
+
+        // 5. 更新下拉選單 UI
+        // 我們不呼叫 updateStudentDropdown() 因為它會重置 allStudentRecords
+        // 而是手動更新選單
+        const studentSelect = document.getElementById('student-select');
+        studentSelect.innerHTML = '';
+        allStudentRecords.forEach(r => {
+            const opt = document.createElement('option');
+            opt.value = r.originalName;
+            opt.innerText = r.originalName;
+            studentSelect.appendChild(opt);
+        });
+
+        // 6. 找出最後一位編輯過的學生 (Resume Position)
+        let lastEditedStudentName = "";
+        
+        if (results.length > 0) {
+            // 因為 results 已經按時間倒序排列，第一個就是最後修改的
+            const lastResult = results[0]; 
+            const targetStudent = students.find(s => s.id === lastResult.student_id);
+            if (targetStudent) {
+                lastEditedStudentName = targetStudent.student_number ? `${targetStudent.student_number}-${targetStudent.name}` : targetStudent.name;
+            }
+        } else {
+            // 如果完全沒改過，就選第一個學生
+            if (allStudentRecords.length > 0) {
+                lastEditedStudentName = allStudentRecords[0].originalName;
+            }
+        }
+
+        // 7. 跳轉頁面並選取學生
+        showPage('page2');
+        
+        if (lastEditedStudentName) {
+            studentSelect.value = lastEditedStudentName;
+            // 強制觸發 change 事件，讓畫面載入該學生的評語和分數
+            // 注意：這裡會呼叫 loadStudentData，它會把我們剛剛塞進 allStudentRecords 的資料填入輸入框
+            loadStudentData(lastEditedStudentName); 
+            
+            showToast(`已回到上次進度：${lastEditedStudentName}`, "success");
+        } else {
+            showToast(`已載入專案：${className}`, "success");
+        }
+
+    } catch (err) {
+        console.error("載入專案失敗:", err);
+        alert("載入失敗: " + err.message);
     }
-
-    // 3. 更新標頭
-    updateHeaderInfo();
-
-    // 4. 跳轉
-    showPage('page2');
-    showToast(`已載入專案：${className} - ${topic}`, 'success');
 }
 
 // 輔助功能：開啟建立班級 Modal (簡單版：直接用 prompt 示範，你可以改成漂亮的 Modal)
