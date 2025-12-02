@@ -7058,15 +7058,11 @@ if ('serviceWorker' in navigator) {
     });
 }
 // -------------------------------------------------------------
-// --- 全域變數用來暫存 Email ---
-
 // 1. 打開登入視窗
 function handleLogin() {
   const modal = document.getElementById('pop-login-modal');
-  // 清空輸入框
   document.getElementById('login-email').value = "";
   document.getElementById('login-password').value = "";
-  
   modal.classList.add('active');
 }
 
@@ -7079,18 +7075,23 @@ function closeLoginModal() {
 async function handlePasswordAuth(action) {
   const email = document.getElementById('login-email').value.trim();
   const password = document.getElementById('login-password').value.trim();
+  const authStatus = document.getElementById('auth-status');
 
   if (!email || !password) {
     alert("請輸入 Email 及 密碼");
     return;
   }
 
-  const authStatus = document.getElementById('auth-status');
-  
+  // 簡單鎖定 UI
+  const btn = event.target;
+  const originalText = btn.innerText;
+  btn.innerText = "處理中...";
+  btn.disabled = true;
+  authStatus.textContent = "處理中...";
+
   try {
     if (action === 'signup') {
       // --- 註冊流程 ---
-      authStatus.textContent = "正在註冊...";
       const { data, error } = await supabaseClient.auth.signUp({
         email: email,
         password: password,
@@ -7098,18 +7099,19 @@ async function handlePasswordAuth(action) {
       
       if (error) throw error;
       
-      // 檢查是否需要 Email 確認 (視乎 Supabase 設定，通常預設要)
-      if (data.user && !data.session) {
-        alert(`註冊成功！\n\n請去 Email (${email}) 收信並點擊確認連結，然後再回來登入。`);
+      // 因為關閉了 Confirm Email，這裡通常會直接登入成功
+      if (data.user && data.session) {
+        if (typeof showToast === 'function') showToast("註冊成功，已自動登入！", "success");
+        else alert("註冊成功，已自動登入！");
         closeLoginModal();
       } else {
-        alert("註冊並登入成功！");
+        // 萬一佢仲係要你收信 (極少數情況)
+        alert("請檢查 Email 進行驗證。");
         closeLoginModal();
       }
 
     } else {
       // --- 登入流程 ---
-      authStatus.textContent = "正在登入...";
       const { data, error } = await supabaseClient.auth.signInWithPassword({
         email: email,
         password: password,
@@ -7117,17 +7119,19 @@ async function handlePasswordAuth(action) {
 
       if (error) throw error;
 
-      // 成功！UI 會自動經由 onAuthStateChange 更新
       if (typeof showToast === 'function') showToast("登入成功！", "success");
       else alert("登入成功！");
-      
       closeLoginModal();
     }
 
   } catch (err) {
     console.error(err);
-    alert(`${action === 'login' ? '登入' : '註冊'}失敗：\n` + err.message);
+    alert("操作失敗：" + err.message);
     authStatus.textContent = "操作失敗";
+  } finally {
+    // 解鎖按鈕
+    btn.innerText = originalText;
+    btn.disabled = false;
   }
 }
 
