@@ -2314,6 +2314,8 @@
         <!-- 右邊區域：字體控制 (保持在右上角) -->
         <div class="font-controls" style="align-self: flex-start;">
             <button class="font-control-btn" onclick="showHotkeyHelp()" title="鍵盤快捷鍵">⌨️</button> 
+            <!-- 放在 <header> 裡面的 .font-controls div 入面 -->
+<button class="font-control-btn" onclick="forceAppUpdate()" title="強制更新 App (清除緩存)">🔄</button>
           <button class="font-control-btn" onclick="adjustFontSize('decrease')" title="縮小字體">A-</button>
           <button class="font-control-btn" onclick="adjustFontSize('reset')" title="重設字體大小">重設</button>
           <button class="font-control-btn" onclick="adjustFontSize('increase')" title="放大字體">A+</button>
@@ -7233,6 +7235,30 @@ supabaseClient.auth.onAuthStateChange(async (event, session) => {
     }
   }
 });
+// --- 強制更新 App (解決鬼打牆專用) ---
+async function forceAppUpdate() {
+  if (!confirm("這將會清除 App 的緩存並強制下載最新版本。\n(你的學生資料不會遺失，因為已在雲端/LocalStorage)\n\n確定更新？")) return;
+
+  // 1. 註銷 Service Worker
+  if ('serviceWorker' in navigator) {
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    for (const registration of registrations) {
+      await registration.unregister();
+    }
+  }
+
+  // 2. 清除 Cache Storage
+  if ('caches' in window) {
+    const keys = await caches.keys();
+    for (const key of keys) {
+      await caches.delete(key);
+    }
+  }
+
+  // 3. 強制重新載入
+  alert("緩存已清除，正在重新載入最新版...");
+  window.location.reload(true);
+}
 
 </script> <!-- 呢個係原本全個檔案唯一的結尾，保留佢 -->
 
