@@ -3139,21 +3139,34 @@ function updateHeaderInfo() {
 }
 // --- Supabase 核心功能 ---
 
+
+// 完整版 checkUser (包含重設密碼邏輯)
 async function checkUser() {
   const { data: { session } } = await supabaseClient.auth.getSession();
   currentUser = session ? session.user : null;
   updateUIBasedOnAuthState();
+  
   if (currentUser) {
     loadDataFromCloud();
+    // 確保載入 Dashboard
+    if (typeof loadDashboard === 'function') loadDashboard(); 
   } else {
     renderCommonTypoList();
+    // 確保載入 Dashboard (離線版)
+    if (typeof loadDashboard === 'function') loadDashboard();
   }
-  supabaseClient.auth.onAuthStateChange((event, session) => {
+
+  // 監聽狀態改變
+  supabaseClient.auth.onAuthStateChange(async (event, session) => {
+    console.log("Auth Event:", event);
     currentUser = session ? session.user : null;
     updateUIBasedOnAuthState();
+
     if (event === 'SIGNED_IN') {
       loadDataFromCloud();
-    } else if (event === 'SIGNED_OUT') {
+      if (typeof loadDashboard === 'function') loadDashboard();
+    } 
+    else if (event === 'SIGNED_OUT') {
       sessionStorage.removeItem('projectPromptShownThisSession');
       commonTypos = [];
       allStudentRecords = [];
@@ -3164,13 +3177,19 @@ async function checkUser() {
       renderStudentOverviewTable();
       clearAllCore();
       alert("已登出，所有雲端資料已清除。");
+      if (typeof loadDashboard === 'function') loadDashboard();
+    }
+    // 🔥 處理重設密碼
+    else if (event === 'PASSWORD_RECOVERY') {
+      const newPassword = prompt("🔐 驗證成功！\n\n請輸入您的新密碼以完成設定：");
+      if (newPassword) {
+        const { error } = await supabaseClient.auth.updateUser({ password: newPassword });
+        if (error) alert("更新失敗: " + error.message);
+        else alert("✅ 密碼已更新！下次請使用新密碼登入。");
+      }
     }
   });
 }
-
-// --- 全域變數用來暫存 Email ---
-let tempLoginEmail = "";
-let loginStep = "email"; // 'email' 或 'token'
 
 // 1. 啟動登入流程 (打開 Modal)
 function handleLogin() {
@@ -7134,6 +7153,68 @@ async function handlePasswordAuth(action) {
   }
 }
 
+// 4. 處理「忘記密碼 / 設定新密碼」
+async function handleForgotPassword() {
+  const email = document.getElementById('login-email').value.trim();
+  if (!email) {
+    alert("請先在上方輸入您的電郵地址，然後再按「忘記密碼」。");
+    return;
+  }
+
+  if (!confirm(`系統將會發送一封「重設密碼」郵件到：\n${email}\n\n確定嗎？`)) return;
+
+  const authStatus = document.getElementById('auth-status');
+  authStatus.textContent = "正在發送...";
+
+  try {
+    // 發送重設信，並指定登入後跳轉回本頁
+    const { data, error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.href,
+    });
+    
+    if (error) throw error;
+
+    alert("✅ 郵件已發送！\n請去 Email 點擊連結，系統會帶你回來設定新密碼。");
+    closeLoginModal();
+    authStatus.textContent = "等待重設...";
+
+  } catch (err) {
+    alert("發送失敗：" + err.message);
+    authStatus.textContent = "操作失敗";
+  }
+}
+
+// 5. 監聽「重設密碼」事件 (當用戶撳完 Email Link 返嚟)
+supabaseClient.auth.onAuthStateChange(async (event, session) => {
+  // 原本的 checkUser 邏輯
+  currentUser = session ? session.user : null;
+  updateUIBasedOnAuthState();
+
+  if (event === 'SIGNED_IN') {
+    loadDataFromCloud(); // 正常登入載入資料
+  } else if (event === 'SIGNED_OUT') {
+    // ... (保持你原本的登出邏輯) ...
+  } 
+  
+  // 🔥 新增：處理重設密碼事件
+  else if (event === 'PASSWORD_RECOVERY') {
+    const newPassword = prompt("🔐 歡迎回來！\n\n請輸入您的新密碼：");
+    
+    if (newPassword) {
+      const { data, error } = await supabaseClient.auth.updateUser({ 
+        password: newPassword 
+      });
+
+      if (error) {
+        alert("密碼更新失敗：" + error.message);
+      } else {
+        alert("🎉 密碼已成功更新！\n您現在可以使用新密碼登入了。");
+        // 更新成功後，通常已經係登入狀態，可以順便儲存一下
+        if (typeof showToast === 'function') showToast("密碼已更新", "success");
+      }
+    }
+  }
+});
 
 </script> <!-- 呢個係原本全個檔案唯一的結尾，保留佢 -->
 
