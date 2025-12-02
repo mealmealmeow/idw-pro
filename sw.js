@@ -1,4 +1,4 @@
-const CACHE_NAME = 'marking-app-v1';
+const CACHE_NAME = 'marking-app-v2';
 const urlsToCache = [
   './',
   './index.html',
