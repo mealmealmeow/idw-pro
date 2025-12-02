@@ -1,4 +1,4 @@
-const CACHE_NAME = 'marking-app-v2';
+const CACHE_NAME = 'marking-app-v2-0212'; // 改成 v2 或者今日日期
 const urlsToCache = [
   './',
   './index.html',
