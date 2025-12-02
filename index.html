@@ -3003,33 +3003,32 @@
   </div>
 </div>
 
-<!-- 自定義登入 Modal (Email + 密碼版) -->
+
+<!-- 自定義登入 Modal (完整版：含忘記密碼) -->
 <div id="pop-login-modal" class="pop-overlay">
   <div class="pop-modal">
     <div class="pop-icon">🔐</div>
     <h3>帳戶登入</h3>
     <p class="pop-desc">
-      建議使用「Email + 密碼」登入，體驗最穩定。<br>
-      <span style="font-size:0.85rem; color:#999;">(如未有密碼，請填好資料後按「註冊」)</span>
+      請使用 Email 及密碼登入。<br>
+      <span style="font-size:0.85rem; color:#999;">(舊用戶如未有密碼，請點擊「忘記密碼」以設定)</span>
     </p>
     
-    <!-- Email 輸入框 -->
     <input type="text" id="login-email" class="pop-input" placeholder="電郵地址 (Email)" autocomplete="email" style="margin-bottom: 10px;">
-    
-    <!-- 密碼輸入框 -->
     <input type="password" id="login-password" class="pop-input" placeholder="密碼 (Password)" autocomplete="current-password">
+
+    <!-- 新增：忘記密碼連結 -->
+    <div style="text-align: right; width: 80%; margin: -10px auto 20px auto;">
+      <a href="javascript:void(0)" onclick="handleForgotPassword()" style="color: #888; font-size: 0.85rem; text-decoration: underline;">忘記密碼 / 設定新密碼？</a>
+    </div>
 
     <div class="pop-footer" style="flex-wrap: wrap; gap: 10px;">
       <button class="pop-btn pop-btn-cancel" onclick="closeLoginModal()">取消</button>
-      <!-- 註冊按鈕 -->
-      <button class="pop-btn" style="background:#e0e0e0; color:#555;" onclick="handlePasswordAuth('signup')">註冊 / 設定密碼</button>
-      <!-- 登入按鈕 -->
+      <button class="pop-btn" style="background:#e0e0e0; color:#555;" onclick="handlePasswordAuth('signup')">註冊</button>
       <button class="pop-btn pop-btn-confirm" onclick="handlePasswordAuth('login')">登入</button>
     </div>
   </div>
 </div>
-<!-- ✅✅✅ 貼到呢度為止 ✅✅✅ -->
-
 
 <script>
 // --- Supabase 初始化與設定 ---
