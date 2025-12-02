@@ -2504,55 +2504,69 @@
 </div>
 
 
-      <!-- ==================== 第一頁：基本設定 (新) ==================== -->
-      <div id="page1" class="page-content active">
-        <div class="section-box">
-            <h2>步驟一：基本設定</h2>
-            <div class="two-column-grid">
-                <div class="input-group">
-                    <label for="topic">作文題目</label>
-                    <input type="text" id="topic" placeholder="例如：記一次難忘的經歷">
-                </div>
-                <div class="input-group">
-                    <label for="student-class">班別 / 組別 (可選)</label>
-                    <input type="text" id="student-class" placeholder="例如：6A, S.3A">
-                </div>
+    <!-- 第一頁：基本設定 (已更新：加入學年) -->
+<div id="page1" class="page-content active">
+<div class="section-box">
+    <h2>步驟一：基本設定</h2>
+    
+    <!-- 第一行：題目 (全寬) -->
+    <div class="input-group">
+        <label for="topic">作文題目</label>
+        <input type="text" id="topic" placeholder="例如：記一次難忘的經歷">
+    </div>
+
+    <!-- 第二行：班別 + 學年 (並排) -->
+    <div class="two-column-grid">
+        <div class="input-group">
+            <label for="student-class">班別 / 組別</label>
+            <input type="text" id="student-class" placeholder="例如：6A">
+        </div>
+        <div class="input-group">
+            <label for="academic-year">學年 (Academic Year)</label>
+            <div style="display:flex; gap:5px;">
+                <input type="text" id="academic-year" placeholder="例如：2024-2025">
+                <button class="light-btn" style="padding:0 10px; min-width:auto;" onclick="fillPage1Year()" title="填入當前學年">📅</button>
             </div>
         </div>
-        <div class="section-box">
-            <h2>步驟二：選擇評語庫</h2>
-            <p style="font-size:0.9rem;color:#777; margin-top:-0.7rem;">請選擇一種方式來建立本次批改的評語庫。評語庫建立後，將自動跳轉至「批改頁」。</p>
-            
-            <details class="io-details" open>
-                <summary><h3>選項 A：使用預設罐頭評語</h3></summary>
-                <div class="io-details-content">
-                    <p>請選擇文章主要類型（可多選），系統將為您載入相關的通用評語。</p>
-                    <div id="genre-selection" class="checkbox-group">
-                        <label><input type="checkbox" name="genre" value="narrative"> 記敘</label>
-                        <label><input type="checkbox" name="genre" value="lyrical"> 抒情</label>
-                        <label><input type="checkbox" name="genre" value="descriptive"> 描寫</label>
-                        <label><input type="checkbox" name="genre" value="argumentative"> 議論</label>
-                    </div>
-                    <div class="btn-group" style="margin-top: 1rem;">
-                        <button class="action-btn" onclick="loadCannedCritiquesAndFocus()">確定並載入預設評語</button>
-                    </div>
-                </div>
-            </details>
+    </div>
+</div>
 
-            <details class="io-details">
-                <summary><h3>選項 B：從雲端讀取或手動建立</h3></summary>
-                <div class="io-details-content">
-                    <p>您可以從雲端讀取之前儲存的整個專案（包含學生名單及進度），或跳至其他頁面手動建立/導入評語庫。</p>
-                    <div class="btn-group">
-                        <button id="select-project-btn" class="secondary-btn" style="display: none;">從雲端選取專案</button>
-                        <button class="light-btn brown" onclick="showPage('page6', 'ai-student-level')">前往 AI 評語庫生成</button>
-                        <button class="light-btn" onclick="showPage('page3', 'overview-controls')">前往手動修訂評語庫</button>
-                        <button id="restore-backup-btn" class="danger-btn" style="display: none;" onclick="restoreFromLocalBackup()">♻️ 發現未儲存的備份，點此還原</button>
-                    </div>
-                </div>
-            </details>
+<!-- 下面保留原本的「步驟二：選擇評語庫」... (不需要改動) -->
+<div class="section-box">
+    <h2>步驟二：選擇評語庫</h2>
+    <!-- ... 保留你原本的代碼 ... -->
+    <p style="font-size:0.9rem;color:#777; margin-top:-0.7rem;">請選擇一種方式來建立本次批改的評語庫。評語庫建立後，將自動跳轉至「批改頁」。</p>
+    
+    <details class="io-details" open>
+        <summary><h3>選項 A：使用預設罐頭評語</h3></summary>
+        <div class="io-details-content">
+            <p>請選擇文章主要類型（可多選），系統將為您載入相關的通用評語。</p>
+            <div id="genre-selection" class="checkbox-group">
+                <label><input type="checkbox" name="genre" value="narrative"> 記敘</label>
+                <label><input type="checkbox" name="genre" value="lyrical"> 抒情</label>
+                <label><input type="checkbox" name="genre" value="descriptive"> 描寫</label>
+                <label><input type="checkbox" name="genre" value="argumentative"> 議論</label>
+            </div>
+            <div class="btn-group" style="margin-top: 1rem;">
+                <button class="action-btn" onclick="loadCannedCritiquesAndFocus()">確定並載入預設評語</button>
+            </div>
         </div>
-      </div>
+    </details>
+
+    <details class="io-details">
+        <summary><h3>選項 B：從雲端讀取或手動建立</h3></summary>
+        <div class="io-details-content">
+            <p>您可以從雲端讀取之前儲存的整個專案（包含學生名單及進度），或跳至其他頁面手動建立/導入評語庫。</p>
+            <div class="btn-group">
+                <button id="select-project-btn" class="secondary-btn" style="display: none;">從雲端選取專案</button>
+                <button class="light-btn brown" onclick="showPage('page6', 'ai-student-level')">前往 AI 評語庫生成</button>
+                <button class="light-btn" onclick="showPage('page3', 'overview-controls')">前往手動修訂評語庫</button>
+                <button id="restore-backup-btn" class="danger-btn" style="display: none;" onclick="restoreFromLocalBackup()">♻️ 發現未儲存的備份，點此還原</button>
+            </div>
+        </div>
+    </details>
+</div>
+
 
       <!-- ==================== 第二頁：批改頁 (新) ==================== -->
       <div id="page2" class="page-content">
@@ -3590,28 +3604,28 @@ async function loadProjectById(projectId) {
     }
 }
 // --- 重要的修改：雲端同步函式 ---
-/* === 全新版本 syncDataToCloud (放寬儲存條件) === */
+// ==========================================
+// ====== 雲端同步核心 (升級版：支援班級歸檔) ======
+// ==========================================
 async function syncDataToCloud() {
-  // 1. 檢查是否登入
   if (!currentUser) {
     showToast("尚未登入，請先登入帳戶以使用雲端同步功能。", "warning");
     window.scrollTo({ top: 0, behavior: 'smooth' });
     return;
   }
 
-  // 2. 獲取當前輸入資料
   const className = document.getElementById('student-class').value.trim();
+  const academicYear = document.getElementById('academic-year').value.trim(); // 新增
+  assignment.classes.academic_year || ''; // <--- 新增這行
   const topic = document.getElementById('topic').value.trim();
-  const hasStudents = allStudentRecords.length > 0; // 是否有名單
+  const hasStudents = allStudentRecords.length > 0;
 
-  // 3. 檢查：只要符合其中一個條件就可以儲存
-  // 條件：有班別 OR 有題目 OR 有學生名單
   if (!className && !topic && !hasStudents) {
-     showToast("無法儲存：請至少填寫「班別」、「作文題目」或「學生名單」其中一項，才可建立專案。", "warning");
+     showToast("請至少填寫「班別」、「作文題目」或「學生名單」。", "warning");
      return;
   }
 
-  // 4. UI 鎖定
+  // UI 鎖定
   const syncBtn = document.getElementById('sync-btn');
   const originalText = syncBtn.textContent;
   syncBtn.textContent = '同步中...';
@@ -3620,75 +3634,167 @@ async function syncDataToCloud() {
   showToast("正在同步至雲端...", "info");
 
   try {
-    // --- A. 儲存評語庫 (Critiques) ---
-    const dataContainer = document.getElementById('critique-data');
-    const critiquesToUpsert = Array.from(dataContainer.children).map(div => ({
-      user_id: currentUser.id, 
-      critique_id: div.dataset.id, 
-      category: div.dataset.category,
-      type: div.dataset.type, 
-      title: div.querySelector('h4').textContent,
-      strength_summary: div.dataset.strengthSummary, 
-      problem_core: div.dataset.problemCore,
-      suggestion: div.dataset.suggestion, 
-      example: div.dataset.example,
-      options: div.dataset.options, 
-      options_label: div.dataset.optionsLabel,
-      updated_at: new Date().toISOString()
-    }));
-    // 先刪除舊的，再插入新的 (簡單做法)
-    await supabaseClient.from('critiques').delete().eq('user_id', currentUser.id);
-    const { error: critiquesError } = await supabaseClient.from('critiques').upsert(critiquesToUpsert);
-    if (critiquesError) throw critiquesError;
-
-    // --- B. 儲存錯別字庫 (Typos) ---
-    const typosToUpsert = commonTypos.map(t => ({
-      user_id: currentUser.id, 
-      typo_id: t.id, 
-      wrong: t.wrong, 
-      correct: t.correct
-    }));
-    await supabaseClient.from('common_typos').delete().eq('user_id', currentUser.id);
-    const { error: typosError } = await supabaseClient.from('common_typos').upsert(typosToUpsert);
-    if (typosError) throw typosError;
-
-    // --- C. 儲存專案 (Project) ---
-    // 邏輯：嘗試用「班別 + 題目」去搵有無舊專案。
-    // 如果搵到就更新 (Update)，搵唔到就新增 (Insert)。
+    // 1. 處理班級 (Classes)
+    // 邏輯：先找有沒有這個班 (Name + Year)，沒有就 Create
+    let classId = null;
     
-    let projectIdToUpdate = undefined;
+    if (className) {
+        // 嘗試尋找現有班級
+        const { data: existingClasses, error: findClassError } = await supabaseClient
+            .from('classes')
+            .select('id')
+            .eq('user_id', currentUser.id)
+            .eq('class_name', className)
+            .eq('academic_year', academicYear || '2024-2025'); // 預設年份，防止空值
 
-    // 只有當班別或題目有填寫時，才嘗試去匹配舊專案
-    if (className || topic) {
-        // 構建查詢條件
-        let query = supabaseClient.from('student_projects').select('id').eq('user_id', currentUser.id);
-        
-        // 如果有班別，就必須 match 班別 (空字串 match 空字串)
-        query = query.eq('class_name', className);
-        // 如果有題目，就必須 match 題目
-        query = query.eq('topic', topic);
+        if (findClassError) throw findClassError;
 
-        const { data: existingProject, error: findError } = await query.maybeSingle();
-        
-        if (!findError && existingProject) {
-            projectIdToUpdate = existingProject.id;
+        if (existingClasses && existingClasses.length > 0) {
+            classId = existingClasses[0].id;
+        } else {
+            // 建立新班級
+            const { data: newClass, error: createClassError } = await supabaseClient
+                .from('classes')
+                .insert([{
+                    user_id: currentUser.id,
+                    class_name: className,
+                    academic_year: academicYear || '2024-2025'
+                }])
+                .select()
+                .single();
+            
+            if (createClassError) throw createClassError;
+            classId = newClass.id;
         }
     }
 
-    const projectToUpsert = {
-        id: projectIdToUpdate, // 如果係 undefined，Supabase 會自動當係新資料插入
+    // 2. 處理作業 (Assignments)
+    // 如果已經有 ID (更新模式)，否則新增
+    let assignmentId = window.currentAssignmentId; 
+
+    const assignmentPayload = {
+        class_id: classId, // 連結到班級
+        title: topic,
+        total_score_max: 100, // 暫時寫死或從設定拿
+        date: new Date().toISOString()
+    };
+
+    if (assignmentId) {
+        // 更新現有
+        const { error: updateAssignError } = await supabaseClient
+            .from('assignments')
+            .update(assignmentPayload)
+            .eq('id', assignmentId);
+        if (updateAssignError) throw updateAssignError;
+    } else {
+        // 插入新作業
+        // 檢查是否已存在同名同班作業 (防止重複)
+        const { data: existingAssign } = await supabaseClient
+            .from('assignments')
+            .select('id')
+            .eq('class_id', classId)
+            .eq('title', topic)
+            .maybeSingle();
+
+        if (existingAssign) {
+            assignmentId = existingAssign.id;
+            // 更新它
+             await supabaseClient.from('assignments').update(assignmentPayload).eq('id', assignmentId);
+        } else {
+            const { data: newAssign, error: insertAssignError } = await supabaseClient
+                .from('assignments')
+                .insert([assignmentPayload])
+                .select()
+                .single();
+            if (insertAssignError) throw insertAssignError;
+            assignmentId = newAssign.id;
+        }
+        window.currentAssignmentId = assignmentId; // 記住它
+    }
+
+    // 3. 處理學生與成績 (Students & Results)
+    // 這是最繁重的一步，我們需要確保學生存在，然後寫入成績
+    
+    // 為了效能，我們先讀取該班所有學生
+    const { data: dbStudents } = await supabaseClient
+        .from('students')
+        .select('id, name, student_number')
+        .eq('class_id', classId);
+    
+    const dbStudentMap = new Map(); // name -> id
+    dbStudents.forEach(s => dbStudentMap.set(s.name, s.id));
+
+    // 準備批量寫入成績
+    const resultsToUpsert = [];
+
+    for (const record of allStudentRecords) {
+        let studentDbId = record.dbId;
+
+        // 如果這個學生在 DB 還沒 ID，或者名字對不上
+        if (!studentDbId) {
+            // 嘗試用名對應
+            if (dbStudentMap.has(record.name)) {
+                studentDbId = dbStudentMap.get(record.name);
+            } else {
+                // 真係新學生，插入 DB
+                const { data: newStu, error: newStuError } = await supabaseClient
+                    .from('students')
+                    .insert([{
+                        class_id: classId,
+                        name: record.name,
+                        student_number: record.number
+                    }])
+                    .select()
+                    .single();
+                if (!newStuError) {
+                    studentDbId = newStu.id;
+                    dbStudentMap.set(record.name, studentDbId); // 更新 Map
+                }
+            }
+        }
+        record.dbId = studentDbId; // 更新本地紀錄
+
+        // 只有當該學生有成績數據時，才寫入 results 表
+        if (record.data && studentDbId) {
+            const s = record.data.scores || {};
+            resultsToUpsert.push({
+                assignment_id: assignmentId,
+                student_id: studentDbId,
+                total_score: parseFloat(s.total) || 0,
+                content_score: parseFloat(s.content) || 0,
+                expression_score: parseFloat(s.expression) || 0,
+                structure_score: parseFloat(s.structure) || 0,
+                punctuation_score: parseFloat(s.punctuation) || 0,
+                comment_full: record.data.fullComment,
+                comment_data: record.data, // 儲存完整的 JSON 以供還原
+                updated_at: new Date().toISOString()
+            });
+        }
+    }
+
+    if (resultsToUpsert.length > 0) {
+        const { error: resultsError } = await supabaseClient
+            .from('results')
+            .upsert(resultsToUpsert, { onConflict: 'assignment_id, student_id' });
+        if (resultsError) throw resultsError;
+    }
+
+    // 4. 順便儲存舊版 JSON Blob (作為備份，雙重保險)
+    // (保留原本的 student_projects 表，以防萬一)
+    await supabaseClient.from('student_projects').upsert({
         user_id: currentUser.id,
-        class_name: className, 
-        topic: topic, 
+        class_name: className,
+        topic: topic,
         project_data: allStudentRecords,
         updated_at: new Date().toISOString()
-    };
-    
-    const { error: projectError } = await supabaseClient.from('student_projects').upsert(projectToUpsert);
-    if (projectError) throw projectError;
+    }, { onConflict: 'user_id, class_name, topic' }); // 注意：這裡的 Unique Key 可能要視你的 DB 設定而定
 
+    // 成功！
     isDataDirty = false;
-    showToast("同步成功！專案已儲存到雲端。", "success");
+    showToast("同步成功！Dashboard 已更新。", "success");
+    
+    // 刷新 Dashboard 數字
+    loadDashboard();
 
   } catch (error) {
     showToast(`同步失敗: ${error.message}`, "error");
@@ -3699,6 +3805,8 @@ async function syncDataToCloud() {
     updateUIBasedOnAuthState();
   }
 }
+
+
 function updateUIBasedOnAuthState() {
     const authStatus = document.getElementById('auth-status');
     const loginBtn = document.getElementById('login-btn');
@@ -7039,7 +7147,7 @@ async function openAssignment(assignmentId) {
     try {
         const { data: assignment, error } = await supabaseClient
             .from('assignments')
-            .select(`*, classes(class_name)`)
+            .select(`*, classes(class_name, academic_year)`)
             .eq('id', assignmentId)
             .single();
         
@@ -7365,6 +7473,15 @@ async function forceAppUpdate() {
   // 3. 強制重新載入
   alert("緩存已清除，正在重新載入最新版...");
   window.location.reload(true);
+}
+// 自動填入當前學年到 Page 1
+function fillPage1Year() {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = d.getMonth() + 1;
+    // 邏輯：9月開學，所以 9月後是 "2025-2026"，8月前是 "2024-2025"
+    const ay = m >= 9 ? `${y}-${y+1}` : `${y-1}-${y}`;
+    document.getElementById('academic-year').value = ay;
 }
 
 </script> <!-- 呢個係原本全個檔案唯一的結尾，保留佢 -->
