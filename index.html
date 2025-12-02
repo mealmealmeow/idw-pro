@@ -5973,6 +5973,7 @@ function handleStudentListImport(event) {
             textarea.value = studentList;
             textarea.dispatchEvent(new Event('input', { bubbles: true }));
             alert(`成功匯入 ${jsonData.length} 位學生！`);
+              loadDashboard(); 
         } catch (error) { alert(`匯入學生名單失敗: ${error.message}`); } finally { event.target.value = ''; }
     };
     reader.readAsArrayBuffer(file);
@@ -6059,6 +6060,7 @@ function handleProgressImportExcel(event) {
       isDataDirty = true;
       updateUIBasedOnAuthState();
       alert('評語進度已成功匯入。');
+         loadDashboard(); 
     } catch (err) { alert('匯入進度失敗：' + err.message); } finally { event.target.value = ''; }
   };
   reader.readAsArrayBuffer(file);
@@ -6627,195 +6629,276 @@ let dashboardData = [];
 //   showPage('page-home'); // <--- 登入後預設去 Dashboard
 // }
 
-// 2. 載入 Dashboard 資料
-// 優化版 loadDashboard
+// 優化版 loadDashboard：支援離線/Local Storage
 async function loadDashboard() {
     const grid = document.getElementById('dashboard-grid');
-    const badge = document.getElementById('active-count-badge');
-    
-    // 1. 如果未登入，顯示提示畫面，而不是卡在 Loading
-    if (!currentUser) {
-        if(grid) {
-            grid.innerHTML = `
-                <div class="empty-state-message" style="background: #f0f0f0; border: none;">
-                    <div style="font-size: 2rem; margin-bottom: 1rem;">🔒</div>
-                    <h3>請先登入</h3>
-                    <p style="color: #666;">登入後即可查看您的批改進度與分析數據。</p>
-                </div>
-            `;
-        }
-        if(badge) badge.textContent = '-';
-        return; 
-    }
-    
-    // 2. 已登入，顯示 Loading 並開始撈資料
-    if(grid) grid.innerHTML = '<div class="empty-state-message"><div class="spinner"></div> 正在從雲端讀取進度...</div>';
+    if (!grid) return;
+
+    // 清空並顯示 Loading
+    grid.innerHTML = '<div class="empty-state-message"><div class="spinner"></div> 正在分析進度...</div>';
+
+    dashboardItems = []; // 重置資料
 
     try {
-        const { data, error } = await supabaseClient
-            .from('dashboard_stats_view')
-            .select('*'); 
+        if (currentUser) {
+            // --- A. 線上模式：讀取 Cloud SQL ---
+            const { data, error } = await supabaseClient
+                .from('dashboard_stats_view')
+                .select('*')
+                .order('last_updated', { ascending: false });
 
-        if (error) throw error;
-        
-        dashboardItems = data || [];
+            if (error) throw error;
+            dashboardItems = data || [];
+        } else {
+            // --- B. 離線模式：讀取 Local Storage 或 記憶體 ---
+            loadOfflineData();
+        }
+
+        // 渲染結果
         renderDashboard();
         updateWelcomeMessage();
 
     } catch (error) {
         console.error('Dashboard Error:', error);
-        if(grid) grid.innerHTML = `<div class="empty-state-message" style="color:var(--problem-color)">讀取失敗：${error.message} <br><button class="btn secondary-btn" onclick="loadDashboard()">重試</button></div>`;
+        grid.innerHTML = `<div class="empty-state-message" style="color:var(--problem-color)">讀取失敗：${error.message} <br><button class="btn secondary-btn" onclick="loadDashboard()">重試</button></div>`;
     }
 }
 
-// 3. 渲染卡片牆
-function renderDashboardGrid() {
-    const grid = document.getElementById('dashboard-grid');
-    const badge = document.getElementById('active-count-badge');
-    
-    if (dashboardData.length === 0) {
-        grid.innerHTML = `
-            <div style="grid-column: 1/-1; text-align: center; padding: 3rem; background: #fdfbf7; border-radius: 16px; border: 2px dashed #e0e0e0;">
-                <p style="font-size: 1.2rem; color: #888;">暫時沒有進行中的批改項目。</p>
-                <button class="action-btn" onclick="showPage('page1')">🌱 開始第一個耕耘</button>
-            </div>
-        `;
-        badge.textContent = 0;
+// 輔助函數：讀取離線資料
+function loadOfflineData() {
+    // 1. 檢查當前記憶體 (例如剛匯入了 Excel)
+    if (allStudentRecords && allStudentRecords.length > 0) {
+        const className = document.getElementById('student-class').value || '未命名班別';
+        const topic = document.getElementById('topic').value || '未命名題目';
+        const total = allStudentRecords.length;
+        const graded = allStudentRecords.filter(r => r.data).length;
+
+        dashboardItems.push({
+            assignment_id: 'local_memory', // 特殊 ID
+            class_name: className,
+            topic: topic,
+            total_students: total,
+            graded_count: graded,
+            last_updated: new Date().toISOString(), // 當下
+            is_offline: true,
+            source: 'memory'
+        });
         return;
     }
 
-    // 更新數量 Badge
-    badge.textContent = dashboardData.length;
+    // 2. 如果記憶體無野，檢查 LocalStorage 備份
+    const backupKey = 'idw_grading_backup_v1'; // 確保同你 saveToLocalBackup 用同一個 Key
+    const backupStr = localStorage.getItem(backupKey);
     
+    if (backupStr) {
+        try {
+            const backup = JSON.parse(backupStr);
+            // 簡單驗證資料有效性
+            if (backup.students && Array.isArray(backup.students)) {
+                const total = backup.students.length;
+                const graded = backup.students.filter(r => r.data).length;
+                
+                dashboardItems.push({
+                    assignment_id: 'local_backup', // 特殊 ID
+                    class_name: backup.className || '未命名班別 (備份)',
+                    topic: backup.topic || '未命名題目',
+                    total_students: total,
+                    graded_count: graded,
+                    last_updated: new Date(backup.timestamp || Date.now()).toISOString(),
+                    is_offline: true,
+                    source: 'backup'
+                });
+            }
+        } catch (e) {
+            console.warn("離線備份損壞，無法讀取", e);
+        }
+    }
+}
+
+// 修改版 renderDashboard
+function renderDashboard() {
+    const grid = document.getElementById('dashboard-grid');
+    const badge = document.getElementById('active-count-badge');
+    
+    // 如果完全無資料
+    if (dashboardItems.length === 0) {
+        const isOffline = !currentUser;
+        grid.innerHTML = `
+            <div style="grid-column: 1 / -1; text-align: center; padding: 4rem 2rem; background: #fdfbf7; border: 2px dashed #e0e0e0; border-radius: 16px;">
+                <div style="font-size: 3rem; margin-bottom: 1rem;">🌱</div>
+                <h3 style="color: #888;">${isOffline ? '暫無離線進度' : '暫無進行中的任務'}</h3>
+                <p style="color: #999; margin-bottom: 1.5rem;">
+                    ${isOffline ? '您可以「匯入 Excel」或「登入」以查看更多。' : '點擊右上角的「＋」開始您的第一個耕耘吧。'}
+                </p>
+                <button class="action-btn" onclick="showPage('page1')">開新批改</button>
+            </div>
+        `;
+        if(badge) badge.textContent = 0;
+        return;
+    }
+
+    if(badge) badge.textContent = dashboardItems.length;
     let html = '';
-    dashboardData.forEach(item => {
+
+    dashboardItems.forEach(item => {
         const total = item.total_students || 0;
         const done = item.graded_count || 0;
-        const percent = total > 0 ? Math.round((done / total) * 100) : 0;
-        const isCompleted = (done >= total && total > 0);
+        const percentage = total > 0 ? Math.round((done / total) * 100) : 0;
+        const isFinished = (done >= total && total > 0);
         
         // 日期格式化
         const dateObj = new Date(item.last_updated);
-        const dateStr = `${dateObj.getMonth()+1}/${dateObj.getDate()} ${dateObj.getHours()}:${String(dateObj.getMinutes()).padStart(2, '0')}`;
+        const dateStr = `${dateObj.getMonth() + 1}月${dateObj.getDate()}日 ${String(dateObj.getHours()).padStart(2,'0')}:${String(dateObj.getMinutes()).padStart(2,'0')}`;
+
+        // 離線標籤樣式
+        let statusBadge = '';
+        if (item.is_offline) {
+            statusBadge = `<span style="float:right; font-size:0.75rem; background:#eee; color:#666; padding:2px 6px; border-radius:4px;">📁 本機檔案</span>`;
+        } else {
+            statusBadge = `<span style="float:right; font-size:0.8rem; color:${isFinished?'var(--excellent-color)':'#ccc'}">${isFinished ? '已完成' : ''}</span>`;
+        }
 
         html += `
-        <div class="proj-card ${isCompleted ? 'completed' : ''}" onclick="openAssignment('${item.assignment_id}')">
+        <div class="proj-card ${isFinished ? 'completed' : ''}" onclick="openAssignment('${item.assignment_id}')">
             <div>
-                <span class="proj-class-badge">${escapeHtml(item.class_name)}</span>
+                <div class="proj-header">
+                    <span class="proj-class-tag">${escapeHtml(item.class_name)}</span>
+                    ${statusBadge}
+                </div>
                 <h4 class="proj-title">${escapeHtml(item.topic)}</h4>
-                <div class="proj-meta">最後編輯：${dateStr}</div>
+                <div class="proj-date">最後編輯：${dateStr}</div>
             </div>
             
-            <div class="proj-progress-area">
-                <div class="proj-progress-info">
-                    <span>${isCompleted ? '已完成 🎉' : '批改進度'}</span>
+            <div style="margin-top: 1.5rem;">
+                <div class="proj-progress-stats">
+                    <span>進度</span>
                     <span>${done} / ${total}</span>
                 </div>
-                <div class="proj-progress-track">
-                    <div class="proj-progress-fill" style="width: ${percent}%"></div>
+                <div class="proj-progress-bg">
+                    <div class="proj-progress-bar" style="width: ${percentage}%"></div>
                 </div>
             </div>
         </div>
         `;
     });
-    
+
     grid.innerHTML = html;
 }
 
-// 4. 打開作業 (Load Project)
-// 這是一個關鍵功能，它取代了原本「從 JSON Blob Load」的邏輯
+// 修改版 openAssignment：處理離線跳轉
 async function openAssignment(assignmentId) {
-    if (!currentUser) return;
     
-    showToast("正在載入作業...", "info");
+    // === 1. 處理離線檔案 ===
+    if (assignmentId === 'local_memory') {
+        // 資料已經在 allStudentRecords 裡面，直接跳轉
+        showPage('page2');
+        showToast("已開啟當前匯入的專案", "success");
+        return;
+    }
+
+    if (assignmentId === 'local_backup') {
+        // 觸發還原備份邏輯 (重用你現有的 restoreFromLocalBackup 邏輯，但改為靜默執行)
+        try {
+            const backupStr = localStorage.getItem('idw_grading_backup_v1');
+            if (backupStr) {
+                const data = JSON.parse(backupStr);
+                
+                // 還原基本資料
+                document.getElementById('student-class').value = data.className || '';
+                document.getElementById('topic').value = data.topic || '';
+                document.getElementById('student-names').value = data.namesText || '';
+                if(data.students) allStudentRecords = data.students;
+                if(data.typos) commonTypos = data.typos;
+                // 注意：這裡不還原 Critiques，因為假設用 Default 或現有的
+                
+                updateStudentDropdown();
+                renderStudentOverviewTable();
+                updateHeaderInfo();
+                
+                showPage('page2');
+                showToast("已載入本機備份專案", "success");
+            }
+        } catch(e) {
+            alert("載入備份失敗：" + e.message);
+        }
+        return;
+    }
+
+    // === 2. 處理線上檔案 (原本的 Supabase 邏輯) ===
+    if (!currentUser) {
+        showToast("請先登入以開啟雲端專案", "warning");
+        return;
+    }
+    
+    showToast("正在載入雲端作業...", "info");
     
     try {
-        // A. 讀取 Assignment 及 Class 資料
         const { data: assignment, error: assignError } = await supabaseClient
             .from('assignments')
-            .select(`
-                *,
-                classes (class_name)
-            `)
+            .select(`*, classes(class_name)`)
             .eq('id', assignmentId)
             .single();
-            
         if (assignError) throw assignError;
 
-        // B. 讀取 Students (為了確保名單完整，即使未改都要有)
         const { data: students, error: studentError } = await supabaseClient
             .from('students')
             .select('*')
-            .eq('class_id', assignment.class_id);
-            
+            .eq('class_id', assignment.class_id)
+            .order('student_number', { ascending: true }); 
         if (studentError) throw studentError;
 
-        // C. 讀取 Results (已改好的成績)
         const { data: results, error: resultError } = await supabaseClient
             .from('results')
             .select('*')
             .eq('assignment_id', assignmentId);
-
         if (resultError) throw resultError;
 
-        // --- D. 數據轉換 (Transform to App State) ---
-        // 將 DB 格式轉返做前端一直用開嘅 allStudentRecords 格式
+        clearAllCore(false); 
         
-        // 1. 清空舊資料
-        clearAllCore(false);
-        allStudentRecords = [];
-        
-        // 2. 填充基本資訊
         document.getElementById('student-class').value = assignment.classes.class_name;
         document.getElementById('topic').value = assignment.title;
-        // 儲存 Assignment ID 方便之後 Update (建議加個 hidden input 或 global variable)
-        window.currentAssignmentId = assignment.id; 
+        window.currentAssignmentId = assignment.id;
         window.currentClassId = assignment.class_id;
 
-        // 3. 合併 Students 同 Results
         allStudentRecords = students.map(st => {
             const res = results.find(r => r.student_id === st.id);
-            
             let dataObj = null;
             if (res) {
-                // 如果有成績紀錄，還原 data 物件
+                const extraData = res.comment_data || {}; 
                 dataObj = {
                     class: assignment.classes.class_name,
                     topic: assignment.title,
-                    uniqueComment: res.comment_data?.uniqueComment || '', // 假設你 JSONB 結構係咁
+                    uniqueComment: extraData.uniqueComment || '',
                     scores: {
                         content: res.content_score,
                         expression: res.expression_score,
                         structure: res.structure_score,
                         punctuation: res.punctuation_score,
                         total: res.total_score,
-                        // ... 其他需要還原的欄位
+                        typos: extraData.typosCount || 0
                     },
-                    typos: res.comment_data?.typos || [],
-                    checkedCritiques: res.comment_data?.checkedCritiques || [],
+                    typos: extraData.typos || [],
+                    checkedCritiques: extraData.checkedCritiques || [],
                     fullComment: res.comment_full || '',
-                    studentComment: res.comment_data?.studentComment || '', // 假設
-                    // ...
+                    studentComment: extraData.studentComment || '',
+                    pureStudentComment: extraData.pureStudentComment || '',
+                    pureFullComment: extraData.pureFullComment || ''
                 };
             }
-
             return {
                 number: st.student_number,
                 name: st.name,
                 originalName: st.student_number ? `${st.student_number}-${st.name}` : st.name,
-                // 記得存埋 Database ID，之後 Update 用
-                dbId: st.id, 
+                dbId: st.id,
                 data: dataObj
             };
         });
 
-        // E. 刷新 UI
         document.getElementById('student-names').value = allStudentRecords.map(r => r.originalName).join('\n');
         updateStudentDropdown();
         renderStudentOverviewTable();
-        updateHeaderInfo(); // 更新頂部 Header 顯示
+        updateHeaderInfo();
         
-        // F. 跳轉
         showPage('page2');
         showToast(`已載入：${assignment.title}`, "success");
 
@@ -6824,7 +6907,6 @@ async function openAssignment(assignmentId) {
         alert(`載入失敗：${error.message}`);
     }
 }
-
 // 5. 更新歡迎訊息 (裝飾用)
 function updateWelcomeMessage() {
     const hours = new Date().getHours();
