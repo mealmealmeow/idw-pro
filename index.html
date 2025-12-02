@@ -1,6 +1,3 @@
-
-
-
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
@@ -3006,23 +3003,31 @@
   </div>
 </div>
 
-<!-- 自定義登入 Modal -->
+<!-- 自定義登入 Modal (Email + 密碼版) -->
 <div id="pop-login-modal" class="pop-overlay">
   <div class="pop-modal">
-    <div class="pop-icon" id="login-icon">📧</div>
-    <h3 id="login-title">登入 / 註冊</h3>
-    <p id="login-desc" class="pop-desc">請輸入電郵地址，系統將發送 6 位數驗證碼給你。</p>
+    <div class="pop-icon">🔐</div>
+    <h3>帳戶登入</h3>
+    <p class="pop-desc">
+      建議使用「Email + 密碼」登入，體驗最穩定。<br>
+      <span style="font-size:0.85rem; color:#999;">(如未有密碼，請填好資料後按「註冊」)</span>
+    </p>
     
-    <!-- 輸入框 -->
-    <input type="text" id="login-input" class="pop-input" placeholder="輸入電郵..." autocomplete="email">
+    <!-- Email 輸入框 -->
+    <input type="text" id="login-email" class="pop-input" placeholder="電郵地址 (Email)" autocomplete="email" style="margin-bottom: 10px;">
+    
+    <!-- 密碼輸入框 -->
+    <input type="password" id="login-password" class="pop-input" placeholder="密碼 (Password)" autocomplete="current-password">
 
-    <div class="pop-footer">
+    <div class="pop-footer" style="flex-wrap: wrap; gap: 10px;">
       <button class="pop-btn pop-btn-cancel" onclick="closeLoginModal()">取消</button>
-      <button class="pop-btn pop-btn-confirm" id="login-confirm-btn" onclick="processLoginStep()">發送驗證碼</button>
+      <!-- 註冊按鈕 -->
+      <button class="pop-btn" style="background:#e0e0e0; color:#555;" onclick="handlePasswordAuth('signup')">註冊 / 設定密碼</button>
+      <!-- 登入按鈕 -->
+      <button class="pop-btn pop-btn-confirm" onclick="handlePasswordAuth('login')">登入</button>
     </div>
   </div>
 </div>
-
 <!-- ✅✅✅ 貼到呢度為止 ✅✅✅ -->
 
 
@@ -7054,114 +7059,79 @@ if ('serviceWorker' in navigator) {
 }
 // -------------------------------------------------------------
 // --- 全域變數用來暫存 Email ---
-let tempLoginEmail = "";
-let loginStep = "email"; // 'email' 或 'token'
 
-// 1. 啟動登入流程 (打開 Modal)
+// 1. 打開登入視窗
 function handleLogin() {
   const modal = document.getElementById('pop-login-modal');
-  const input = document.getElementById('login-input');
-  const btn = document.getElementById('login-confirm-btn');
-  const title = document.getElementById('login-title');
-  const desc = document.getElementById('login-desc');
-  const icon = document.getElementById('login-icon');
-
-  // 重置介面做「輸入 Email」狀態
-  loginStep = "email";
-  tempLoginEmail = "";
+  // 清空輸入框
+  document.getElementById('login-email').value = "";
+  document.getElementById('login-password').value = "";
   
-  input.value = "";
-  input.placeholder = "輸入電郵地址...";
-  input.type = "email";
-  
-  title.textContent = "登入 / 註冊";
-  desc.textContent = "請輸入電郵地址，驗證碼將發送到你的信箱。";
-  icon.textContent = "📧";
-  btn.textContent = "發送驗證碼";
-  btn.disabled = false;
-
   modal.classList.add('active');
-  setTimeout(() => input.focus(), 100);
 }
 
-// 2. 處理按鈕點擊 (分兩步)
-async function processLoginStep() {
-  const input = document.getElementById('login-input');
-  const btn = document.getElementById('login-confirm-btn');
-  const val = input.value.trim();
+// 2. 關閉視窗
+function closeLoginModal() {
+  document.getElementById('pop-login-modal').classList.remove('active');
+}
 
-  if (!val) {
-    alert("請輸入內容");
+// 3. 處理 登入 或 註冊
+async function handlePasswordAuth(action) {
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value.trim();
+
+  if (!email || !password) {
+    alert("請輸入 Email 及 密碼");
     return;
   }
 
-  // 鎖定按鈕避免重複撳
-  btn.disabled = true;
-  btn.textContent = "處理中...";
-
-  if (loginStep === "email") {
-    // --- 步驟 A: 發送 OTP ---
-    try {
-      const { error } = await supabaseClient.auth.signInWithOtp({ email: val });
+  const authStatus = document.getElementById('auth-status');
+  
+  try {
+    if (action === 'signup') {
+      // --- 註冊流程 ---
+      authStatus.textContent = "正在註冊...";
+      const { data, error } = await supabaseClient.auth.signUp({
+        email: email,
+        password: password,
+      });
+      
       if (error) throw error;
+      
+      // 檢查是否需要 Email 確認 (視乎 Supabase 設定，通常預設要)
+      if (data.user && !data.session) {
+        alert(`註冊成功！\n\n請去 Email (${email}) 收信並點擊確認連結，然後再回來登入。`);
+        closeLoginModal();
+      } else {
+        alert("註冊並登入成功！");
+        closeLoginModal();
+      }
 
-      // 成功發送，切換介面去 Step 2
-      tempLoginEmail = val; // 記低個 Email
-      loginStep = "token";
-      
-      // 更新 UI 叫人入 Token
-      document.getElementById('login-title').textContent = "輸入驗證碼";
-      document.getElementById('login-desc').innerHTML = `驗證碼已發送至 <b>${val}</b>。<br>請去 Email 查看，回來輸入 6 位數字。`;
-      document.getElementById('login-icon').textContent = "🔢";
-      
-      input.value = ""; // 清空畀人填數字
-      input.placeholder = "6 位數字 Token";
-      input.type = "number"; // 彈出數字鍵盤
-      input.focus();
-      
-      btn.textContent = "登入";
-      btn.disabled = false;
-      
-      if (typeof showToast === 'function') showToast("驗證碼已發送！請檢查 Email", "success");
-
-    } catch (err) {
-      alert("發送失敗：" + err.message);
-      btn.disabled = false;
-      btn.textContent = "重試發送";
-    }
-
-  } else if (loginStep === "token") {
-    // --- 步驟 B: 驗證 Token ---
-    try {
-      const { data, error } = await supabaseClient.auth.verifyOtp({
-        email: tempLoginEmail,
-        token: val,
-        type: 'email'
+    } else {
+      // --- 登入流程 ---
+      authStatus.textContent = "正在登入...";
+      const { data, error } = await supabaseClient.auth.signInWithPassword({
+        email: email,
+        password: password,
       });
 
       if (error) throw error;
 
-      // 成功！
-      closeLoginModal();
+      // 成功！UI 會自動經由 onAuthStateChange 更新
       if (typeof showToast === 'function') showToast("登入成功！", "success");
       else alert("登入成功！");
       
-      // UI 會由 onAuthStateChange 自動更新
-
-    } catch (err) {
-      alert("驗證失敗，請檢查驗證碼是否正確。(" + err.message + ")");
-      btn.disabled = false;
-      btn.textContent = "重試登入";
-      input.value = "";
-      input.focus();
+      closeLoginModal();
     }
+
+  } catch (err) {
+    console.error(err);
+    alert(`${action === 'login' ? '登入' : '註冊'}失敗：\n` + err.message);
+    authStatus.textContent = "操作失敗";
   }
 }
 
-// 3. 關閉 Modal
-function closeLoginModal() {
-  document.getElementById('pop-login-modal').classList.remove('active');
-}
+
 </script> <!-- 呢個係原本全個檔案唯一的結尾，保留佢 -->
 
 
