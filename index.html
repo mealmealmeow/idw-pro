@@ -6242,8 +6242,8 @@ function restoreFromLocalBackup() {
         alert("還原失敗，資料可能已損壞。\n錯誤訊息：" + e.message);
     }
 }
-<script>
-  if ('serviceWorker' in navigator) {
+// --- PWA Service Worker 設定 (直接寫喺 JS 入面，唔使加 <script> 標籤) ---
+if ('serviceWorker' in navigator) {
     window.addEventListener('load', function() {
       navigator.serviceWorker.register('./sw.js').then(function(registration) {
         console.log('ServiceWorker registration successful with scope: ', registration.scope);
@@ -6251,11 +6251,10 @@ function restoreFromLocalBackup() {
         console.log('ServiceWorker registration failed: ', err);
       });
     });
-  }
-</script>
+}
+// -------------------------------------------------------------
 
-
-</script>
+</script> <!-- 呢個係原本全個檔案唯一的結尾，保留佢 -->
 
 </body>
 </html>
