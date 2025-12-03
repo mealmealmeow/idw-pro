@@ -2466,9 +2466,20 @@
     <div id="setup-manual-panel" style="display:none;">
       <div class="two-column-grid">
         <div class="input-group">
-          <label>班別 / 組別</label>
-          <input type="text" id="student-class-manual" placeholder="例如：6A">
-        </div>
+         <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:0.5rem;">
+             <label for="student-names-manual" style="margin-bottom:0;">學生名單</label>
+             <!-- ✅ 新增下載範本按鈕 -->
+             <button class="btn light-btn" style="font-size:0.8rem; padding:4px 10px;" onclick="downloadManualTemplate()">
+                📥 下載名單範本
+             </button>
+         </div>
+         <!-- 提示文字 -->
+         <p style="font-size:0.85rem; color:#666; margin-top:0; margin-bottom:0.5rem;">
+            請將學生名單貼在下方 (支援 Excel 直接複製貼上)。<br>
+            格式：每行一位，例如「01 陳大文」或「陳大文」。
+         </p>
+         <textarea id="student-names-manual" rows="8" placeholder="01 陳大文&#10;02 張小美&#10;03 李明..."></textarea>
+      </div>
       </div>
       <div class="input-group">
          <label>學生名單（每行一位）</label>
@@ -3280,15 +3291,42 @@ async function checkUser() {
     }
   });
 }
-function handleLogout() {
-  confirmUI("確定要登出嗎？所有未同步的變更將會遺失。", async () => {
-    try {
-      const { error } = await supabaseClient.auth.signOut();
-      if (error) throw error;
-    } catch (error) {
-      alert(`登出失敗: ${error.message}`);
-    }
-  });
+// 修正版登出：無論 Server 發生什麼事，本地都強制登出
+async function handleLogout() {
+  if (!confirm("確定要登出嗎？所有未同步的變更將會遺失。")) return;
+
+  const authStatus = document.getElementById('auth-status');
+  if (authStatus) authStatus.textContent = "正在登出...";
+
+  try {
+    // 嘗試通知伺服器 (即使失敗也不要緊)
+    await supabaseClient.auth.signOut();
+  } catch (error) {
+    console.warn("雲端登出回報錯誤 (已忽略):", error.message);
+  } finally {
+    // 🔥 重點：無論如何都執行本地清理
+    currentUser = null;
+    allStudentRecords = [];
+    commonTypos = [];
+    
+    // 清除緩存標記
+    sessionStorage.removeItem('projectPromptShownThisSession');
+    
+    // 重置介面
+    resetToDefaultCritiques(false);
+    buildChecklist();
+    buildOverviewPage();
+    renderCommonTypoList();
+    renderStudentOverviewTable();
+    clearAllCore();
+    
+    updateUIBasedOnAuthState();
+    
+    if (typeof loadDashboard === 'function') loadDashboard();
+    
+    if (typeof showToast === 'function') showToast("已安全登出", "success");
+    else alert("已登出");
+  }
 }
 
 async function loadDataFromCloud() {
@@ -8272,6 +8310,27 @@ function startGradingWithSetup(actionType) {
     }
 }
 
+
+// 下載「手動模式」專用的簡單範本
+function downloadManualTemplate() {
+    if (typeof XLSX === 'undefined') {
+        alert('Excel 功能未就緒，請稍後再試。');
+        return;
+    }
+    
+    // 簡單的單欄或雙欄格式
+    const templateData = [
+        { "學號": "01", "姓名": "陳大文 (範例)" },
+        { "學號": "02", "姓名": "李小美 (範例)" },
+        { "學號": "03", "姓名": "張志明 (範例)" }
+    ];
+
+    const ws = XLSX.utils.json_to_sheet(templateData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "學生名單");
+    
+    XLSX.writeFile(wb, "學生名單範本_手動輸入用.xlsx");
+}
 </script> <!-- 呢個係原本全個檔案唯一的結尾，保留佢 -->
 
 
