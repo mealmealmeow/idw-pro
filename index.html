@@ -6896,107 +6896,6 @@ async function confirmAddClass() {
     }
 }
 
-// ==========================================
-// ====== 打開作業 (完整邏輯版) ======
-// ==========================================
-async function openAssignment(assignmentId) {
-    if (assignmentId === 'local_memory') { showPage('page2'); return; }
-    if (!currentUser) { showToast("請先登入", "warning"); return; }
-    
-    showToast("載入中...", "info");
-    try {
-        // 1. 讀取作業資料
-        const { data: assignment, error } = await supabaseClient
-            .from('assignments')
-            .select(`*, classes(class_name, academic_year)`)
-            .eq('id', assignmentId)
-            .single();
-        if (error) throw error;
-
-        // 2. 讀取該班學生
-        const { data: students, error: stError } = await supabaseClient
-            .from('students')
-            .select('*')
-            .eq('class_id', assignment.class_id)
-            .order('student_number', { ascending: true });
-        if (stError) throw stError;
-
-        // 3. 讀取成績
-        const { data: results, error: resError } = await supabaseClient
-            .from('results')
-            .select('*')
-            .eq('assignment_id', assignmentId);
-        if (resError) throw resError;
-
-        // --- 轉換數據 ---
-        clearAllCore(false);
-
-        // 填寫基本資料
-        const clsName = assignment.classes?.class_name || '未命名班別'; 
-        const acYear = assignment.classes?.academic_year || ''; 
-
-        document.getElementById('student-class').value = clsName;
-        document.getElementById('academic-year').value = acYear;
-        document.getElementById('topic').value = assignment.title;
-        
-        window.currentAssignmentId = assignment.id;
-
-        // 構建學生名單
-        allStudentRecords = students.map(st => {
-            const res = results.find(r => r.student_id === st.id);
-            let dataObj = null;
-            if (res) {
-                // 如果有 comment_data (JSON) 就用，否則從 scores 欄位還原
-                const extraData = res.comment_data || {};
-                dataObj = {
-                    class: clsName,
-                    topic: assignment.title,
-                    uniqueComment: extraData.uniqueComment || '',
-                    scores: {
-                        content: res.content_score,
-                        expression: res.expression_score,
-                        structure: res.structure_score,
-                        punctuation: res.punctuation_score,
-                        total: res.total_score,
-                        typos: extraData.typosCount || 0 // 兼容
-                    },
-                    typos: extraData.typos || [],
-                    checkedCritiques: extraData.checkedCritiques || [],
-                    fullComment: res.comment_full || '',
-                    studentComment: extraData.studentComment || '',
-                    pureStudentComment: extraData.pureStudentComment || '',
-                    pureFullComment: extraData.pureFullComment || ''
-                };
-            }
-            return {
-                number: st.student_number,
-                name: st.name,
-                originalName: st.student_number ? `${st.student_number}-${st.name}` : st.name,
-                dbId: st.id,
-                data: dataObj
-            };
-        });
-
-        // 更新介面
-        document.getElementById('student-names').value = allStudentRecords.map(r => r.originalName).join('\n');
-        updateStudentDropdown();
-        renderStudentOverviewTable();
-        updateHeaderInfo();
-
-        if (!acYear) {
-            showPage('page1'); // 如果冇年份，去 Page 1 補填
-            showToast("請補填「學年」", "info");
-        } else {
-            showPage('page2');
-            showToast(`已開啟：${assignment.title}`, "success");
-        }
-
-    } catch (e) {
-        console.error(e);
-        alert("載入錯誤：" + e.message);
-    }
-}
-
 
 // 5. 歡迎訊息更新
 function updateWelcomeMessage() {
@@ -7140,18 +7039,20 @@ async function syncDataToCloud() {
     }
 
     // 3. 處理學生與成績
-    const { data: dbStudents } = await supabaseClient
-        .from('students').select('id, name, student_number').eq('class_id', classId);
-    
-    const dbStudentMap = new Map();
-    (dbStudents || []).forEach(s => dbStudentMap.set(s.name, s.id));
+    let dbStudentMap = new Map();
+    if (classId) {
+        const { data: dbStudents } = await supabaseClient
+            .from('students').select('id, name, student_number').eq('class_id', classId);
+        (dbStudents || []).forEach(s => dbStudentMap.set(s.name, s.id));
+    }
 
     const resultsToUpsert = [];
 
     for (const record of allStudentRecords) {
         let studentDbId = record.dbId;
-        // 嘗試匹配或新增學生
-        if (!studentDbId) {
+        
+        // 如果本地冇 ID，嘗試去 Map 搵，搵唔到就 Insert 新學生
+        if (!studentDbId && classId) {
             if (dbStudentMap.has(record.name)) {
                 studentDbId = dbStudentMap.get(record.name);
             } else {
@@ -7162,14 +7063,15 @@ async function syncDataToCloud() {
                         name: record.name,
                         student_number: record.number
                     }]).select().single();
-                if (!newStuError) {
+                if (!newStuError && newStu) {
                     studentDbId = newStu.id;
                     dbStudentMap.set(record.name, studentDbId);
                 }
             }
         }
-        record.dbId = studentDbId;
+        record.dbId = studentDbId; // 更新本地紀錄
 
+        // 只有有數據嘅先 upload results
         if (record.data && studentDbId) {
             const s = record.data.scores || {};
             resultsToUpsert.push({
@@ -7181,7 +7083,7 @@ async function syncDataToCloud() {
                 structure_score: parseFloat(s.structure) || 0,
                 punctuation_score: parseFloat(s.punctuation) || 0,
                 comment_full: record.data.fullComment,
-                comment_data: record.data,
+                comment_data: record.data, // JSON
                 updated_at: new Date().toISOString()
             });
         }
@@ -7193,7 +7095,7 @@ async function syncDataToCloud() {
         if (resultsError) throw resultsError;
     }
 
-    // 4. 備份到 student_projects (雙重保險)
+    // 4. 寫入 student_projects 作為備份 (兼容舊版)
     await supabaseClient.from('student_projects').upsert({
         user_id: currentUser.id,
         class_name: className,
@@ -7204,7 +7106,8 @@ async function syncDataToCloud() {
 
     isDataDirty = false;
     showToast("同步成功！Dashboard 已更新。", "success");
-    loadDashboard();
+    
+    if (typeof loadDashboard === 'function') loadDashboard();
 
   } catch (error) {
     showToast(`同步失敗: ${error.message}`, "error");
@@ -7216,6 +7119,107 @@ async function syncDataToCloud() {
   }
 }
 
+
+// ==========================================
+// ====== 打開作業 (完整邏輯版) ======
+// ==========================================
+async function openAssignment(assignmentId) {
+    if (assignmentId === 'local_memory') { showPage('page2'); return; }
+    if (!currentUser) { showToast("請先登入", "warning"); return; }
+    
+    showToast("載入中...", "info");
+    try {
+        // 1. 讀取作業資料
+        const { data: assignment, error } = await supabaseClient
+            .from('assignments')
+            .select(`*, classes(class_name, academic_year)`)
+            .eq('id', assignmentId)
+            .single();
+        if (error) throw error;
+
+        // 2. 讀取該班學生
+        const { data: students, error: stError } = await supabaseClient
+            .from('students')
+            .select('*')
+            .eq('class_id', assignment.class_id)
+            .order('student_number', { ascending: true });
+        if (stError) throw stError;
+
+        // 3. 讀取成績
+        const { data: results, error: resError } = await supabaseClient
+            .from('results')
+            .select('*')
+            .eq('assignment_id', assignmentId);
+        if (resError) throw resError;
+
+        // --- 轉換數據 ---
+        clearAllCore(false);
+
+        // 填寫基本資料
+        // 使用 ?. 防止舊數據結構報錯
+        const clsName = assignment.classes?.class_name || '未命名班別'; 
+        const acYear = assignment.classes?.academic_year || ''; 
+
+        document.getElementById('student-class').value = clsName;
+        document.getElementById('academic-year').value = acYear;
+        document.getElementById('topic').value = assignment.title;
+        
+        window.currentAssignmentId = assignment.id;
+
+        // 構建學生名單
+        allStudentRecords = students.map(st => {
+            const res = results.find(r => r.student_id === st.id);
+            let dataObj = null;
+            if (res) {
+                const extraData = res.comment_data || {};
+                dataObj = {
+                    class: clsName,
+                    topic: assignment.title,
+                    uniqueComment: extraData.uniqueComment || '',
+                    scores: {
+                        content: res.content_score,
+                        expression: res.expression_score,
+                        structure: res.structure_score,
+                        punctuation: res.punctuation_score,
+                        total: res.total_score,
+                        typos: extraData.typosCount || 0
+                    },
+                    typos: extraData.typos || [],
+                    checkedCritiques: extraData.checkedCritiques || [],
+                    fullComment: res.comment_full || '',
+                    studentComment: extraData.studentComment || '',
+                    pureStudentComment: extraData.pureStudentComment || '',
+                    pureFullComment: extraData.pureFullComment || ''
+                };
+            }
+            return {
+                number: st.student_number,
+                name: st.name,
+                originalName: st.student_number ? `${st.student_number}-${st.name}` : st.name,
+                dbId: st.id,
+                data: dataObj
+            };
+        });
+
+        // 更新介面
+        document.getElementById('student-names').value = allStudentRecords.map(r => r.originalName).join('\n');
+        updateStudentDropdown();
+        renderStudentOverviewTable();
+        updateHeaderInfo();
+
+        if (!acYear) {
+            showPage('page1'); 
+            showToast("請補填「學年」", "info");
+        } else {
+            showPage('page2');
+            showToast(`已開啟：${assignment.title}`, "success");
+        }
+
+    } catch (e) {
+        console.error(e);
+        alert("載入錯誤：" + e.message);
+    }
+}
 </script> <!-- 呢個係原本全個檔案唯一的結尾，保留佢 -->
 
 
