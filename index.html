@@ -104,7 +104,12 @@
   background: #ffffff;
   width: 90%;
   max-width: 500px;
-  /* 關鍵：圓角 + 實心橙黃色陰影 */
+  /* ✅ 新增：限制最大高度為螢幕的 90%，並允許垂直捲動 */
+  max-height: 90vh;
+  overflow-y: auto; 
+  /* ----------------------------------------------- */
+  
+  /* 原有的樣式保留... */
   border-radius: 30px;
   box-shadow: -8px 8px 0px 0px #F2C037; 
   border: 2px solid #F2C037;
@@ -115,7 +120,6 @@
   transform: scale(0.95);
   transition: transform 0.2s;
 }
-
 .pop-overlay.active .pop-modal {
   transform: scale(1);
 }
@@ -6657,15 +6661,19 @@ function triggerAutoSave() {
     }, 1000); 
 }
 
-// 2. 執行備份
+// 2. 執行備份 (修正版：只在批改頁執行)
 function saveToLocalBackup() {
-    // A. 獲取當前正在編輯的學生資料 (即使未按儲存)
-    // 這樣做可以確保「打到一半」的內容都被備份
+    // ✅ 新增檢查：如果現在不是在 Page 2，就不要執行備份，防止報錯
+    const page2 = document.getElementById('page2');
+    if (!page2 || !page2.classList.contains('active')) {
+        return;
+    }
+
+    // A. 獲取當前正在編輯的學生資料
     let currentEditingData = null;
     const currentStudentName = document.getElementById('student-select')?.value;
     
     if (currentStudentName) {
-        // 嘗試抓取 Page 2 的所有輸入框狀態
         const checkedCritiques = [];
         document.querySelectorAll('#checklist-container input[type="checkbox"]:checked').forEach(cb => {
             const id = cb.id;
@@ -6685,24 +6693,27 @@ function saveToLocalBackup() {
             checkedCritiques.push({ id, selectValues });
         });
 
+        // 安全獲取數值
+        const getVal = (id) => document.getElementById(id) ? document.getElementById(id).value : '';
+
         currentEditingData = {
             name: currentStudentName,
             data: {
-                class: document.getElementById('student-class').value,
-                topic: document.getElementById('topic').value,
-                uniqueComment: document.getElementById('unique-comment').value,
+                class: getVal('student-class'),
+                topic: getVal('topic'),
+                uniqueComment: getVal('unique-comment'),
                 scores: {
-                    content: document.getElementById('score-content').value,
-                    expression: document.getElementById('score-expression').value,
-                    structure: document.getElementById('score-structure').value,
-                    punctuation: document.getElementById('score-punctuation').value,
-                    typos: document.getElementById('score-typos').value,
-                    total: document.getElementById('score-total').value,
+                    content: getVal('score-content'),
+                    expression: getVal('score-expression'),
+                    structure: getVal('score-structure'),
+                    punctuation: getVal('score-punctuation'),
+                    typos: getVal('score-typos'),
+                    total: getVal('score-total'),
                 },
                 typos: [...currentTypos],
                 checkedCritiques: checkedCritiques,
-                fullComment: document.getElementById('full-output').value,
-                studentComment: document.getElementById('student-report-output').value
+                fullComment: getVal('full-output'),
+                studentComment: getVal('student-report-output')
             }
         };
     }
@@ -6710,14 +6721,14 @@ function saveToLocalBackup() {
     // B. 準備備份包
     const backupData = {
         timestamp: Date.now(),
-        className: document.getElementById('student-class').value,
-        topic: document.getElementById('topic').value,
-        namesText: document.getElementById('student-names').value, // 直接存文本，保證名單一致
+        className: document.getElementById('student-class') ? document.getElementById('student-class').value : '',
+        topic: document.getElementById('topic') ? document.getElementById('topic').value : '',
+        namesText: document.getElementById('student-names') ? document.getElementById('student-names').value : '',
         students: allStudentRecords, 
-        critiques: collectExportData(),
+        critiques: typeof collectExportData === 'function' ? collectExportData() : [],
         typos: commonTypos, 
         currentStudent: currentStudentName,
-        liveEdit: currentEditingData // 這是關鍵：存下正在編輯的狀態
+        liveEdit: currentEditingData
     };
 
     try {
@@ -8118,7 +8129,7 @@ function toggleAllSetupStudents(checked) {
     });
 }
 
-// 5. 核心橋接函數 (超級安全版 - 解決卡死)
+// 5. 核心橋接函數 (終極修復版)
 function startGradingWithSetup(actionType) {
     const modeRadio = document.querySelector('input[name="setup-mode"]:checked');
     const mode = modeRadio ? modeRadio.value : 'manual';
@@ -8130,25 +8141,27 @@ function startGradingWithSetup(actionType) {
         return;
     }
 
-    // 🔥 1. 嘗試獲取目標輸入框 (Page 2 的那個)
+    // 🔥 關鍵修正：主動去 Page 2 尋找目標 Textarea
     let legacyInput = document.getElementById('student-names');
     
-    // 🔥 2. 如果找不到，嘗試去 Page 2 裡面搜
+    // 如果 getElementById 找不到，嘗試用 querySelector 進入 Page 2 內部找
     if (!legacyInput) {
-        console.warn("找不到 #student-names，嘗試搜尋備用...");
-        const page2Section = document.getElementById('grading-section-student');
-        if (page2Section) {
-            legacyInput = page2Section.querySelector('textarea');
-            if (legacyInput) legacyInput.id = 'student-names'; // 強制賦予 ID
+        const page2Container = document.getElementById('grading-section-student');
+        if (page2Container) {
+            // 尋找 Page 2 裡面的 textarea
+            legacyInput = page2Container.querySelector('textarea');
+            // 如果找到了，強制幫它加上 ID，方便之後使用
+            if (legacyInput) legacyInput.id = 'student-names';
         }
     }
 
     if (!legacyInput) {
-        alert("系統錯誤：找不到 Page 2 的名單輸入框，請重新整理頁面。");
+        console.error("Critical Error: 無法找到 Page 2 的學生名單輸入框。");
+        alert("系統錯誤：找不到目標欄位，請重新整理頁面後再試。");
         return;
     }
 
-    // 邏輯開始
+    // --- 邏輯開始 ---
     if (mode === 'registry') {
         const select = document.getElementById('setup-class-select');
         if (!select || !select.value) {
@@ -8156,32 +8169,28 @@ function startGradingWithSetup(actionType) {
             return;
         }
         
-        const checkedCards = document.querySelectorAll('#setup-student-checklist .student-check-card.checked'); // 注意 class 選擇器
-        
-        // 如果是用 input checkbox 的方式
-        const checkedInputs = document.querySelectorAll('#setup-student-checklist input:checked');
+        const checkedCards = document.querySelectorAll('#setup-student-checklist .student-check-card.checked');
+        const checkedInputs = document.querySelectorAll('#setup-student-checklist input:checked'); // 雙重保險
 
         if (checkedCards.length === 0 && checkedInputs.length === 0) {
-            alert("⚠️ 請至少勾選一位學生！\n(如果名單是空的，請先到「班級管理」加入學生)");
+            alert("⚠️ 請至少勾選一位學生！");
             return;
         }
 
         let listStr = "";
-        // 優先處理卡片樣式 (checked class)
+        // 優先用 card class
         if (checkedCards.length > 0) {
-             checkedCards.forEach(div => {
-                if (div.dataset.info) listStr += div.dataset.info + "\n";
-            });
+             checkedCards.forEach(div => { if (div.dataset.info) listStr += div.dataset.info + "\n"; });
         } else {
-            // 後備處理 checkbox
              checkedInputs.forEach(cb => {
                 const div = cb.closest('.student-check-card');
                 if (div && div.dataset.info) listStr += div.dataset.info + "\n";
             });
         }
 
-        // 填入 Page 2
         legacyInput.value = listStr.trim();
+        
+        // 嘗試填入班別
         const legacyClass = document.getElementById('student-class');
         if(legacyClass && select.options[select.selectedIndex]) {
              legacyClass.value = select.options[select.selectedIndex].dataset.className || '';
@@ -8198,19 +8207,27 @@ function startGradingWithSetup(actionType) {
         }
         
         legacyInput.value = manualVal;
+        
+        // 手動模式的班別
         const manualClass = document.getElementById('student-class-manual');
         const legacyClass = document.getElementById('student-class');
         if(legacyClass && manualClass) legacyClass.value = manualClass.value;
     }
 
-    // 觸發更新
+    // 🔥 觸發更新：這一步最重要，它會生成學生選單
     legacyInput.dispatchEvent(new Event('input')); 
+    
     if (typeof updateStudentDropdown === 'function') updateStudentDropdown();
     if (typeof updateHeaderInfo === 'function') updateHeaderInfo();
 
-    // 跳轉
+    // 執行跳轉
     if (actionType === 'default') {
-        loadCannedCritiquesAndFocus();
+        if (typeof loadCannedCritiquesAndFocus === 'function') {
+            loadCannedCritiquesAndFocus();
+        } else {
+            // 如果找不到函數，直接跳轉 (保底)
+            showPage('page2', 'student-select');
+        }
     } else if (actionType === 'manual') {
         const cData = document.getElementById('critique-data');
         if(cData) cData.innerHTML = '';
