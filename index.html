@@ -3308,48 +3308,7 @@ async function checkUser() {
   });
 }
 
-// 1. 啟動登入流程 (打開 Modal)
-function handleLogin() {
-  const modal = document.getElementById('pop-login-modal');
-  const input = document.getElementById('login-input');
-  const btn = document.getElementById('login-confirm-btn');
-  const title = document.getElementById('login-title');
-  const desc = document.getElementById('login-desc');
-  const icon = document.getElementById('login-icon');
 
-  // 重置介面做「輸入 Email」狀態
-  loginStep = "email";
-  tempLoginEmail = "";
-  
-  input.value = "";
-  input.placeholder = "輸入電郵地址...";
-  input.type = "email";
-  
-  title.textContent = "登入 / 註冊";
-  desc.textContent = "請輸入電郵地址，驗證碼將發送到你的信箱。";
-  icon.textContent = "📧";
-  btn.textContent = "發送驗證碼";
-  btn.disabled = false;
-
-  modal.classList.add('active');
-  setTimeout(() => input.focus(), 100);
-}
-
-// 3. 關閉 Modal
-function closeLoginModal() {
-  document.getElementById('pop-login-modal').classList.remove('active');
-}
-
-function handleLogout() {
-  confirmUI("確定要登出嗎？所有未同步的變更將會遺失。", async () => {
-    try {
-      const { error } = await supabaseClient.auth.signOut();
-      if (error) throw error;
-    } catch (error) {
-      alert(`登出失敗: ${error.message}`);
-    }
-  });
-}
 
 async function loadDataFromCloud() {
   if (!currentUser) return;
