@@ -3026,17 +3026,7 @@
 
 
 
-  <!-- 自製確認對話框 -->
-  <div id="modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-hidden="true">
-    <div class="modal-card" role="document">
-      <div class="modal-title" id="modal-title">請確認</div>
-      <div id="modal-text" style="white-space: pre-wrap;">確認執行？</div>
-      <div class="modal-actions">
-        <button class="btn btn-secondary" id="modal-cancel">取消</button>
-        <button class="btn btn-danger" id="modal-ok">確定</button>
-      </div>
-    </div>
-  </div>
+ 
 
   <!-- 評語資料來源 -->
   <div id="critique-data" style="display:none;">
@@ -3210,32 +3200,11 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 
-/* ====== 小型 Confirm UI ====== */
-const modal = {
-  el: null, okBtn: null, cancelBtn: null, textEl: null, resolve: null,
-  init() {
-    this.el = document.getElementById('modal');
-    this.okBtn = document.getElementById('modal-ok');
-    this.cancelBtn = document.getElementById('modal-cancel');
-    this.textEl = document.getElementById('modal-text');
-    this.okBtn.addEventListener('click', ()=>{ this.hide(); if (this.resolve) this.resolve(true); });
-    this.cancelBtn.addEventListener('click', ()=>{ this.hide(); if (this.resolve) this.resolve(false); });
-    this.el.addEventListener('click', (e)=>{ if (e.target===this.el) { this.hide(); if (this.resolve) this.resolve(false); }});
-  },
-  show(message) {
-    if (!this.el) this.init();
-    this.textEl.textContent = message || '請確認';
-    this.el.classList.add('active');
-    this.el.setAttribute('aria-hidden', 'false');
-    return new Promise(res => { this.resolve = res; });
-  },
-  hide() {
-    this.el.classList.remove('active');
-    this.el.setAttribute('aria-hidden', 'true');
-  }
-};
+// 簡單版確認框 (直接用瀏覽器原生 confirm，最穩陣)
 function confirmUI(message, onOk) {
-  modal.show(message).then(ok => { if (ok && typeof onOk === 'function') onOk(); });
+    if (confirm(message)) {
+        if (typeof onOk === 'function') onOk();
+    }
 }
 
 // --- 新增：Toast Notification Function ---
@@ -8019,13 +7988,12 @@ async function createNewClass() {
     }
 }
 
-// 3. 刪除班級
+// 3. 刪除班級 (修復版)
 async function deleteClass(classId, className) {
-    if (!confirm(`⚠️ 嚴重警告 ⚠️\n\n確定要刪除「${className}」嗎？\n\n這將會同時刪除：\n1. 該班級的所有資料\n2. 該班級的所有學生名單\n\n(已批改的作業記錄通常會保留，但連結可能會失效)\n\n確定要繼續？`)) return;
+    // 這裡不再用 confirmUI，直接用 confirm 以免依賴舊 HTML
+    if (!confirm(`⚠️ 嚴重警告 ⚠️\n\n確定要刪除「${className}」嗎？\n\n這將會同時刪除該班級的所有學生名單！\n(已批改的作業記錄可能會保留，但連結會失效)`)) return;
 
     try {
-        // Supabase 如果有設 Cascade Delete，刪除 Class 會自動刪除 Students
-        // 如果沒有，就要手動刪。假設你有設 Cascade。
         const { error } = await supabaseClient
             .from('classes')
             .delete()
@@ -8033,7 +8001,12 @@ async function deleteClass(classId, className) {
 
         if (error) throw error;
         
-        loadAllClasses(); // 刷新
+        if(typeof showToast === 'function') showToast(`已刪除 ${className}`, "success");
+        loadAllClasses(); // 刷新列表
+        
+        // 順便刷新 Page 1
+        const p1Select = document.getElementById('setup-class-select');
+        if(p1Select) { p1Select.innerHTML = ''; loadPage1ClassDropdown(); }
 
     } catch (error) {
         alert("刪除失敗：" + error.message);
@@ -8056,16 +8029,19 @@ document.addEventListener('click', (e) => {
 // ====== Phase 2.2: 開新批改流程 (修正版) ======
 // ==========================================
 
-// 1. 切換模式 (UI Toggle)
+// 1. 切換模式 (修復版)
 function toggleSetupMode() {
-    const mode = document.querySelector('input[name="setup-mode"]:checked').value;
+    const modeRadio = document.querySelector('input[name="setup-mode"]:checked');
+    const mode = modeRadio ? modeRadio.value : 'registry'; // 預設 registry
+    
     const regPanel = document.getElementById('setup-registry-panel');
     const manPanel = document.getElementById('setup-manual-panel');
     
     if (mode === 'registry') {
         regPanel.style.display = 'block';
         manPanel.style.display = 'none';
-        loadPage1ClassDropdown(); // 載入班級
+        // 🔥 關鍵：切換過來時，強制重新讀取一次
+        loadPage1ClassDropdown();
     } else {
         regPanel.style.display = 'none';
         manPanel.style.display = 'block';
@@ -8083,8 +8059,6 @@ async function loadPage1ClassDropdown() {
         return;
     }
     
-    // 避免重複讀取，如果有資料就保留
-    if (select.options.length > 1) return; 
 
     select.innerHTML = '<option>讀取中...</option>';
 
