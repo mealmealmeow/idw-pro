@@ -2304,6 +2304,7 @@
               <button id="login-btn" class="btn light-btn">登入/註冊</button>
               <button id="logout-btn" class="btn danger-btn" style="display: none;">登出</button>
               <button id="sync-btn" class="btn action-btn" style="display: none;" disabled>同步至雲端</button>
+              <button id="restore-backup-btn" class="btn secondary-btn" style="display: none;" onclick="restoreFromLocalBackup()">♻️ 還原備份</button>
             </div>
           </div>
 
@@ -6793,11 +6794,13 @@ function checkLocalBackup() {
     }
 }
 
-// 4. 還原備份 (修復版)
+// ==========================================
+// ====== 離線防災備份功能 (安全修復版) ======
+// ==========================================
 function restoreFromLocalBackup() {
     if (!confirm("確定要還原備份嗎？\n這將會覆蓋當前頁面上的所有資料。")) return;
 
-    const backup = localStorage.getItem(BACKUP_KEY);
+    const backup = localStorage.getItem('idw_grading_backup_v1'); // 確保 key 與上面一致
     if (!backup) {
         alert("找不到備份資料。");
         return;
@@ -6808,14 +6811,17 @@ function restoreFromLocalBackup() {
 
         // A. 還原評語庫
         if (data.critiques && data.critiques.length > 0) {
-            document.getElementById('critique-data').innerHTML = '';
-            applyCritiquesToDOM(data.critiques);
+            const cContainer = document.getElementById('critique-data');
+            if (cContainer) {
+                cContainer.innerHTML = '';
+                applyCritiquesToDOM(data.critiques);
+            }
         }
 
-        // B. 還原基礎資料
-        document.getElementById('student-class').value = data.className || '';
-        document.getElementById('topic').value = data.topic || '';
-        document.getElementById('student-names').value = data.namesText || '';
+        // B. 還原基礎資料 (加強檢查元素是否存在)
+        if(document.getElementById('student-class')) document.getElementById('student-class').value = data.className || '';
+        if(document.getElementById('topic')) document.getElementById('topic').value = data.topic || '';
+        if(document.getElementById('student-names')) document.getElementById('student-names').value = data.namesText || '';
         commonTypos = data.typos || [];
 
         // C. 還原學生資料庫
@@ -6832,56 +6838,49 @@ function restoreFromLocalBackup() {
         allStudentRecords = restoredRecords;
 
         // D. 重建 UI
-        updateStudentDropdown();
-        buildChecklist();
-        buildOverviewPage();
-        renderCommonTypoList();
-        renderStudentOverviewTable();
+        if (typeof updateStudentDropdown === 'function') updateStudentDropdown();
+        if (typeof buildChecklist === 'function') buildChecklist();
+        if (typeof buildOverviewPage === 'function') buildOverviewPage();
+        if (typeof renderCommonTypoList === 'function') renderCommonTypoList();
+        if (typeof renderStudentOverviewTable === 'function') renderStudentOverviewTable();
 
         // E. 跳轉回上次編輯的學生
         if (data.currentStudent) {
             const select = document.getElementById('student-select');
-            let optionExists = false;
-            for(let i=0; i<select.options.length; i++) {
-                if(select.options[i].value === data.currentStudent) {
-                    optionExists = true;
-                    break;
+            if (select) {
+                let optionExists = false;
+                for(let i=0; i<select.options.length; i++) {
+                    if(select.options[i].value === data.currentStudent) {
+                        optionExists = true;
+                        break;
+                    }
+                }
+                if (optionExists) {
+                    select.value = data.currentStudent;
+                    loadStudentData(data.currentStudent);
+                    showPage('page2');
                 }
             }
-
-            if (optionExists) {
-                select.value = data.currentStudent;
-                loadStudentData(data.currentStudent);
-                
-                if (data.liveEdit && data.liveEdit.name === data.currentStudent && data.liveEdit.data) {
-                     const d = data.liveEdit.data;
-                     if(d.uniqueComment) document.getElementById('unique-comment').value = d.uniqueComment;
-                     if(d.fullComment) document.getElementById('full-output').value = d.fullComment;
-                     if(d.studentComment) document.getElementById('student-report-output').value = d.studentComment;
-                     if(d.typos) {
-                         currentTypos = [...d.typos];
-                         renderTypoList();
-                         renderCommonTyposCheckedState();
-                     }
-                }
-                
-                showPage('page2');
-                alert(`備份還原成功！已回到學生：${data.currentStudent}`);
-            } else {
-                alert("備份還原成功！(但上次編輯的學生不在名單中，請手動選擇)");
-            }
-        } else {
-            alert("備份還原成功！");
         }
-        document.getElementById('restore-backup-btn').style.display = 'none';
-        loadDashboard(); // 還原後刷新首頁
+        
+        // F. ✅ 安全地隱藏備份按鈕 (修復重點)
+        const restoreBtn = document.getElementById('restore-backup-btn');
+        if (restoreBtn) {
+            restoreBtn.style.display = 'none';
+        }
+
+        // G. 刷新首頁
+        if (typeof loadDashboard === 'function') loadDashboard();
+
+        // 成功提示
+        if (typeof showToast === 'function') showToast("備份還原成功！", "success");
+        else alert("備份還原成功！");
 
     } catch (e) {
         console.error(e);
         alert("還原失敗，資料可能已損壞。\n錯誤訊息：" + e.message);
     }
 }
-
 /* ==========================================
    ====== Dashboard 2.0 (防重複終極版) ======
    ========================================== */
@@ -7960,7 +7959,7 @@ async function loadAllClasses() {
     }
 }
 
-// 2. 新增班級
+// 2. 新增班級 (已修正：成功後自動刷新 Page 1 選單)
 async function createNewClass() {
     if (!currentUser) {
         alert("請先登入！");
@@ -7974,9 +7973,6 @@ async function createNewClass() {
     const className = prompt("請輸入班別名稱 (例如 6A):");
     if (!className) return;
 
-    // 檢查是否已存在 (簡單前端檢查)
-    // 略，直接交給 Backend 或 Insert error handle
-
     try {
         const { error } = await supabaseClient
             .from('classes')
@@ -7988,21 +7984,26 @@ async function createNewClass() {
 
         if (error) throw error;
 
-        alert("班級建立成功！\n現在請點擊「管理名單」來加入學生。");
-        loadAllClasses(); // 刷新
+        // 成功提示
+        if (typeof showToast === 'function') showToast("班級建立成功！", "success");
+        else alert("班級建立成功！");
+
+        // 🔄 刷新 Page 8 列表
+        loadAllClasses(); 
+        
+        // 🔄 🔥 同步刷新 Page 1 的下拉選單 (True 代表強制刷新)
+        loadPage1ClassDropdown(true);
 
     } catch (error) {
         alert("建立失敗：" + error.message);
     }
 }
 
-// 3. 刪除班級
+// 3. 刪除班級 (已修正：成功後自動刷新 Page 1 選單)
 async function deleteClass(classId, className) {
-    if (!confirm(`⚠️ 嚴重警告 ⚠️\n\n確定要刪除「${className}」嗎？\n\n這將會同時刪除：\n1. 該班級的所有資料\n2. 該班級的所有學生名單\n\n(已批改的作業記錄通常會保留，但連結可能會失效)\n\n確定要繼續？`)) return;
+    if (!confirm(`⚠️ 嚴重警告 ⚠️\n\n確定要刪除「${className}」嗎？\n\n這將會同時刪除：\n1. 該班級的所有資料\n2. 該班級的所有學生名單\n\n確定要繼續？`)) return;
 
     try {
-        // Supabase 如果有設 Cascade Delete，刪除 Class 會自動刪除 Students
-        // 如果沒有，就要手動刪。假設你有設 Cascade。
         const { error } = await supabaseClient
             .from('classes')
             .delete()
@@ -8010,7 +8011,11 @@ async function deleteClass(classId, className) {
 
         if (error) throw error;
         
-        loadAllClasses(); // 刷新
+        if (typeof showToast === 'function') showToast("已刪除班級", "success");
+
+        // 🔄 刷新兩邊
+        loadAllClasses(); 
+        loadPage1ClassDropdown(true);
 
     } catch (error) {
         alert("刪除失敗：" + error.message);
@@ -8049,10 +8054,9 @@ function toggleSetupMode() {
     }
 }
 
-// 2. 載入班級到 Dropdown
-async function loadPage1ClassDropdown() {
+// ✅ 加入 forceReload 參數，允許強制刷新
+async function loadPage1ClassDropdown(forceReload = false) {
     const select = document.getElementById('setup-class-select');
-    // 如果元素不存在 (例如在其他頁面)，直接返回
     if (!select) return;
 
     if (!currentUser) {
@@ -8060,8 +8064,8 @@ async function loadPage1ClassDropdown() {
         return;
     }
     
-    // 避免重複讀取，如果有資料就保留
-    if (select.options.length > 1) return; 
+    // 如果不是強制刷新，且已經有資料，就跳過 (節省資源)
+    if (!forceReload && select.options.length > 1) return; 
 
     select.innerHTML = '<option>讀取中...</option>';
 
@@ -8083,9 +8087,9 @@ async function loadPage1ClassDropdown() {
         select.innerHTML = '<option value="">-- 請選擇班級 --</option>';
         classes.forEach(c => {
             const opt = document.createElement('option');
-            opt.value = c.id; // 這是 Database 的 uuid
+            opt.value = c.id; 
             opt.textContent = `${c.class_name} (${c.academic_year})`;
-            opt.dataset.className = c.class_name; // 存個名方便用
+            opt.dataset.className = c.class_name; 
             select.appendChild(opt);
         });
 
