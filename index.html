@@ -7064,6 +7064,43 @@ async function deleteProject() {
     }
 }
 
+
+  /* ==========================================
+   ====== 🚑 強制偵測重設密碼 (補丁) ======
+   ========================================== */
+window.addEventListener('load', async () => {
+    // 檢查網址 Hash (網址 # 後面的部分) 是否包含 type=recovery
+    const hash = window.location.hash;
+    
+    if (hash && hash.includes('type=recovery')) {
+        console.log("正在處理密碼重設流程...");
+
+        // 延遲 0.5 秒，確保 Supabase session 已載入
+        setTimeout(async () => {
+            const newPassword = prompt("🔐 檢測到重設密碼請求！\n\n請輸入您的新密碼：");
+            
+            if (newPassword) {
+                // 顯示處理中
+                if(typeof showToast === 'function') showToast("正在更新密碼...", "info");
+                
+                const { error } = await supabaseClient.auth.updateUser({ password: newPassword });
+
+                if (error) {
+                    alert("❌ 更新失敗：" + error.message);
+                } else {
+                    alert("✅ 密碼已更新成功！\n\n請使用新密碼重新登入。");
+                    
+                    // 清除網址上的敏感 token，讓網址變回乾淨
+                    window.history.replaceState(null, '', window.location.pathname);
+                    
+                    // 為了安全，更新完後可以選擇登出，或者直接讓用戶繼續使用
+                    // 這裡我們選擇重新載入頁面，確保狀態最新
+                    window.location.reload();
+                }
+            }
+        }, 500);
+    }
+});
 </script> <!-- 呢個係原本全個檔案唯一的結尾，保留佢 -->
 
 
