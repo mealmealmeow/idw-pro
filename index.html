@@ -1988,39 +1988,193 @@
 
 
 
-/* === Dashboard Compact List Styles === */
+/* === Dashboard Grid & Card Styles (New) === */
+
+/* 1. 網格容器：自動適應闊度，電腦版一行3-4個，手機一行1個 */
+.task-list-container, .class-group-content {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.2rem;
+    padding: 0.5rem 0;
+}
+
+/* 2. 卡片本體 */
 .task-item {
+    background: #fff;
+    border: 1px solid #e1d8c8;
+    border-radius: 12px;
+    padding: 1.2rem;
+    position: relative; /* 為了定位選單 */
+    display: flex;
+    flex-direction: column; /* 垂直排列內容 */
+    justify-content: space-between;
+    min-height: 140px; /* 卡片高度 */
+    transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+    cursor: pointer;
+    overflow: visible; /* 讓選單可以彈出卡片外 */
+}
+
+/* 文青風裝飾線 (扮書脊/標籤) */
+.task-item::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 1.5rem; right: 1.5rem;
+    height: 4px;
+    background-color: var(--accent-color);
+    border-radius: 0 0 4px 4px;
+    opacity: 0.7;
+}
+
+.task-item:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 20px rgba(90, 143, 123, 0.15);
+    border-color: var(--accent-color);
+}
+
+/* 3. 卡片內容排版 */
+.task-meta {
+    margin-top: 0.8rem;
+    margin-bottom: 1rem;
+}
+
+.task-class-badge {
+    display: inline-block;
+    font-size: 0.75rem; 
+    background: #f4ede2; 
+    color: #8d775f; 
+    padding: 3px 8px; 
+    border-radius: 6px; 
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+    letter-spacing: 0.05em;
+}
+
+.task-topic { 
+    display: block;
+    font-weight: 600; 
+    color: var(--title-color); 
+    font-size: 1.15rem; 
+    line-height: 1.4;
+    
+    /* 限制標題最多顯示兩行，太多字出... */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* 4. 進度條與日期 (底部) */
+.task-footer {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.task-progress { 
+    flex: 1; 
+    margin: 0; /* 重置舊設定 */
+    display: flex; 
+    flex-direction: column; 
+    gap: 6px; 
+}
+
+.task-progress-bar-bg { height: 5px; background: #eee; border-radius: 99px; width: 100%; }
+.task-progress-bar-fill { height: 100%; background: var(--accent-color); border-radius: 99px; }
+
+.task-date { 
+    font-size: 0.75rem; 
+    color: #aaa; 
+    white-space: nowrap; 
+}
+
+/* === Kebab Menu (三點選單) === */
+.kebab-menu-container {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 20;
+}
+
+.kebab-btn {
+    background: transparent;
+    border: none;
+    font-size: 1.4rem;
+    color: #ccc;
+    cursor: pointer;
+    padding: 0 8px;
+    line-height: 1;
+    border-radius: 4px;
+    transition: color 0.2s;
+}
+
+.task-item:hover .kebab-btn {
+    color: #999; /* 滑鼠指住卡片時，三點變深色 */
+}
+.kebab-btn:hover {
+    color: var(--accent-color) !important;
+    background-color: rgba(0,0,0,0.03);
+}
+
+/* 選單彈出層 */
+.kebab-dropdown {
+    display: none; /* 預設隱藏 */
+    position: absolute;
+    top: 100%;
+    right: 0;
+    width: 140px;
+    background: white;
+    border: 1px solid #e1d8c8;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    overflow: hidden;
+    animation: fadeInMenu 0.15s ease-out;
+}
+
+.kebab-dropdown.show {
+    display: block;
+}
+
+.kebab-item {
     display: flex;
     align-items: center;
-    background: white;
-    padding: 1rem;
-    border-radius: 10px;
-    border: 1px solid #eee;
-    margin-bottom: 0.8rem;
-    transition: all 0.2s;
+    gap: 8px;
+    width: 100%;
+    padding: 10px 12px;
+    border: none;
+    background: transparent;
+    text-align: left;
+    font-size: 0.9rem;
+    color: #555;
     cursor: pointer;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+    font-family: inherit;
+    transition: background 0.1s;
 }
-.task-item:hover {
-    border-color: var(--accent-color);
-    transform: translateX(4px);
-    box-shadow: 0 4px 12px rgba(90, 143, 123, 0.15);
-}
-.task-meta { flex: 1; }
-.task-class-badge {
-    font-size: 0.75rem; background: #f0f0f0; color: #666; padding: 2px 6px; 
-    border-radius: 4px; margin-right: 8px; font-weight: bold;
-}
-.task-topic { font-weight: 600; color: #333; font-size: 1.05rem; }
-.task-progress { width: 120px; margin: 0 1.5rem; display: flex; flex-direction: column; gap: 4px; }
-.task-progress-bar-bg { height: 6px; background: #eee; border-radius: 3px; width: 100%; }
-.task-progress-bar-fill { height: 100%; background: var(--accent-color); border-radius: 3px; }
-.task-date { font-size: 0.8rem; color: #999; width: 80px; text-align: right; }
 
-/* Class Accordion Styles */
+.kebab-item:hover {
+    background-color: #f7f3eb;
+    color: var(--accent-color);
+}
+
+.kebab-item.delete {
+    color: #c86a5a;
+    border-top: 1px solid #f0f0f0;
+}
+.kebab-item.delete:hover {
+    background-color: #fff0f0;
+}
+
+@keyframes fadeInMenu {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+
+/* === Class Accordion Styles (網格兼容版) === */
 .class-group-header {
     background: #fdfbf7;
-    padding: 1rem;
+    padding: 1rem 1.2rem;
     border: 1px solid #e1d8c8;
     border-radius: 8px;
     margin-bottom: 0.5rem;
@@ -2028,23 +2182,35 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-weight: bold;
+    font-weight: 600;
     color: var(--title-color);
-    transition: background 0.2s;
+    transition: all 0.2s;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.02);
 }
-.class-group-header:hover { background: #fbf6ea; }
+
+.class-group-header:hover { 
+    background: #f4ede2; 
+    transform: translateX(2px);
+}
+
 .class-group-content {
-    padding: 0.5rem 0 1.5rem 1rem;
+    /* 預設隱藏 */
     display: none; 
+    padding: 0.5rem 0 2rem 0;
     animation: fadeIn 0.3s ease;
 }
-.class-group-content.active { display: block; }
-@keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
 
-@media (max-width: 600px) {
-    .task-item { flex-wrap: wrap; }
-    .task-progress { width: 100%; margin: 0.5rem 0; order: 3; }
-    .task-date { display: none; }
+/* 當加上 .active class 時，變成網格顯示 (這是關鍵！) */
+.class-group-content.active { 
+    display: grid; 
+    /* 確保與上面的 grid 設定一致 */
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.2rem;
+}
+
+@keyframes fadeIn { 
+    from { opacity: 0; transform: translateY(-5px); } 
+    to { opacity: 1; transform: translateY(0); } 
 }
 
 </style>
@@ -6558,51 +6724,26 @@ function getOfflineProjectMeta() {
     return null;
 }
 
-// --- Helper: 渲染 Focus List (更新版：加入編輯按鈕) ---
+// --- Helper: 渲染 Focus List (卡片網格版) ---
 function renderFocusList(items, container) {
     if (items.length === 0) {
-        container.innerHTML = `<div style="padding:1.5rem; text-align:center; color:#999; border:1px dashed #ddd; border-radius:10px;">🎉 目前沒有待辦作業，去下方看看舊紀錄吧！</div>`;
+        // 保持空狀態樣式，但稍微調整以適應網格
+        container.style.display = 'block'; 
+        container.innerHTML = `<div style="padding:2rem; text-align:center; color:#999; border:2px dashed #e0e0e0; border-radius:12px; background:#f9f9f9;">🎉 目前沒有待辦作業，去下方看看舊紀錄吧！</div>`;
         return;
     }
+    
+    // 恢復 Grid 佈局
+    container.style.display = 'grid'; 
 
     let html = '';
-    items.forEach(item => {
-        const dateStr = new Date(item.last_updated).toLocaleDateString();
-        // 點擊卡片本體：開啟作業
-        let clickAction = '';
-        if (item.source_type === 'new') clickAction = `openAssignment('${item.id}')`;
-        else if (item.source_type === 'legacy') clickAction = `loadProjectById('${item.id}')`;
-        else clickAction = `openAssignment('${item.id}')`;
-
-        // 點擊編輯按鈕：開啟編輯 Modal (注意 event.stopPropagation)
-        // 將 item 物件轉為字串傳入 (需要小心引號)
-        const itemSafe = JSON.stringify(item).replace(/"/g, '&quot;');
-
-        html += `
-        <div class="task-item" onclick="${clickAction}">
-            <div class="task-meta">
-                <div style="display:flex; align-items:center;">
-                    <span class="task-class-badge">${escapeHtml(item.class_name)}</span>
-                    <span class="task-topic">${escapeHtml(item.topic)}</span>
-                    <!-- 編輯按鈕 -->
-                    <button class="dashboard-edit-btn" onclick="event.stopPropagation(); openEditModal(${itemSafe})">✎</button>
-                </div>
-            </div>
-            <div class="task-progress">
-                <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:#888;">
-                    <span>${item.graded_count || 0} / ${item.total_students || 0}</span>
-                    <span>${item.progress}%</span>
-                </div>
-                <div class="task-progress-bar-bg">
-                    <div class="task-progress-bar-fill" style="width: ${item.progress}%"></div>
-                </div>
-            </div>
-            <div class="task-date">${dateStr}</div>
-        </div>`;
+    items.forEach((item, index) => {
+        const uniqueId = `focus-${index}`; // 唯一的 ID 用於選單
+        const htmlCard = buildCardHtml(item, uniqueId);
+        html += htmlCard;
     });
     container.innerHTML = html;
 }
-
 // --- Helper: 渲染 Empty State ---
 function renderEmptyState(container) {
     container.innerHTML = `
@@ -6652,25 +6793,24 @@ function groupByYearAndClass(projects) {
     return groups;
 }
 
-// --- Helper: 渲染手風琴 (更新版：加入編輯按鈕) ---
+// --- Helper: 渲染手風琴 (卡片網格版) ---
 function renderClassAccordion(groups, container) {
     if(Object.keys(groups).length === 0) {
         container.innerHTML = '<div style="color:#ccc; text-align:center; padding:1rem;">(暫無歸檔資料)</div>';
         return;
     }
     
-    // 排序年份 (最新的在上面)
     const years = Object.keys(groups).sort().reverse();
 
-    years.forEach(year => {
+    years.forEach((year, yIndex) => {
         const yearDiv = document.createElement('div');
-        yearDiv.innerHTML = `<h4 style="margin: 1.5rem 0 0.5rem 0; color:#aaa; font-size:0.85rem; text-transform:uppercase; letter-spacing:1px; border-bottom:1px solid #eee; padding-bottom:4px;">📅 ${year} 學年</h4>`;
+        yearDiv.innerHTML = `<h4 style="margin: 2rem 0 0.8rem 0; color:#aaa; font-size:0.85rem; text-transform:uppercase; letter-spacing:1px; border-bottom:1px solid #eee; padding-bottom:4px;">📅 ${year} 學年</h4>`;
         container.appendChild(yearDiv);
 
         const classesObj = groups[year];
         const classNames = Object.keys(classesObj).sort();
 
-        classNames.forEach(className => {
+        classNames.forEach((className, cIndex) => {
             const classProjects = classesObj[className];
             
             // Header
@@ -6681,32 +6821,14 @@ function renderClassAccordion(groups, container) {
                 <span style="font-weight:normal; color:#888; font-size:0.9rem;">${classProjects.length} 份作業 ▼</span>
             `;
             
-            // Content
+            // Content (Grid)
             const content = document.createElement('div');
             content.className = 'class-group-content';
             
             let listHtml = '';
-            classProjects.forEach(p => {
-                let clickAction = '';
-                if (p.source_type === 'new') clickAction = `openAssignment('${p.id}')`;
-                else if (p.source_type === 'legacy') clickAction = `loadProjectById('${p.id}')`;
-                else clickAction = `openAssignment('${p.id}')`;
-
-                const icon = p.isCompleted ? '✅' : '📝';
-                const dateStr = new Date(p.last_updated).toLocaleDateString();
-                const itemSafe = JSON.stringify(p).replace(/"/g, '&quot;');
-
-                listHtml += `
-                <div style="padding: 10px 0; border-bottom: 1px dashed #eee; display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="${clickAction}">
-                    <div style="display:flex; align-items:center; gap:8px;">
-                        <span style="color:#444; font-weight:500;">${icon} ${escapeHtml(p.topic)}</span>
-                        <button class="dashboard-edit-btn" onclick="event.stopPropagation(); openEditModal(${itemSafe})">✎</button>
-                    </div>
-                    <div style="display:flex; flex-direction:column; align-items:flex-end;">
-                         <span style="font-size:0.75rem; color:#aaa;">完成度: ${p.progress}%</span>
-                         <span style="font-size:0.8rem; color:#999;">${dateStr}</span>
-                    </div>
-                </div>`;
+            classProjects.forEach((p, pIndex) => {
+                const uniqueId = `archive-${yIndex}-${cIndex}-${pIndex}`;
+                listHtml += buildCardHtml(p, uniqueId);
             });
             content.innerHTML = listHtml;
 
@@ -6721,6 +6843,57 @@ function renderClassAccordion(groups, container) {
             container.appendChild(content);
         });
     });
+}
+
+// --- [新] 通用卡片 HTML 產生器 ---
+// 將重複的 HTML 代碼提取出來，方便管理
+function buildCardHtml(item, uniqueId) {
+    const dateStr = new Date(item.last_updated).toLocaleDateString();
+    
+    // 點擊卡片動作
+    let clickAction = '';
+    if (item.source_type === 'new') clickAction = `openAssignment('${item.id}')`;
+    else if (item.source_type === 'legacy') clickAction = `loadProjectById('${item.id}')`;
+    else clickAction = `openAssignment('${item.id}')`;
+
+    // 準備物件給 Modal 用
+    const itemSafe = JSON.stringify(item).replace(/"/g, '&quot;');
+
+    return `
+    <div class="task-item" onclick="${clickAction}">
+        <!-- 1. 三點選單按鈕 -->
+        <div class="kebab-menu-container">
+            <button class="kebab-btn" onclick="toggleKebabMenu(event, '${uniqueId}')">⋮</button>
+            <div id="kebab-dropdown-${uniqueId}" class="kebab-dropdown">
+                <button class="kebab-item" onclick="event.stopPropagation(); openEditModal(${itemSafe}); closeAllKebabMenus();">
+                    ✏️ 編輯資訊
+                </button>
+                <button class="kebab-item delete" onclick="event.stopPropagation(); openEditModal(${itemSafe}); setTimeout(deleteProject, 200); closeAllKebabMenus();">
+                    🗑️ 刪除
+                </button>
+            </div>
+        </div>
+
+        <!-- 2. 卡片內容 -->
+        <div class="task-meta">
+            <span class="task-class-badge">${escapeHtml(item.class_name)}</span>
+            <span class="task-topic" title="${escapeHtml(item.topic)}">${escapeHtml(item.topic)}</span>
+        </div>
+
+        <!-- 3. 底部資訊 -->
+        <div class="task-footer">
+            <div class="task-progress">
+                <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:#888;">
+                    <span>進度 ${item.progress}%</span>
+                    <span>${item.graded_count}/${item.total_students}</span>
+                </div>
+                <div class="task-progress-bar-bg">
+                    <div class="task-progress-bar-fill" style="width: ${item.progress}%"></div>
+                </div>
+            </div>
+            <div class="task-date">${dateStr}</div>
+        </div>
+    </div>`;
 }
 
 // 2. 修改 openAssignment (支援 Local Backup & Memory)
@@ -7151,6 +7324,34 @@ supabaseClient.auth.onAuthStateChange(async (event, session) => {
             }
         };
     }
+});
+
+// ==========================================
+// ====== Kebab Menu (三點選單) 控制邏輯 ======
+// ==========================================
+
+// 切換選單顯示/隱藏
+function toggleKebabMenu(event, uniqueId) {
+    event.stopPropagation(); // 防止觸發卡片點擊
+    
+    // 1. 先關閉所有其他已打開的選單
+    closeAllKebabMenus();
+
+    // 2. 打開當前選單
+    const menu = document.getElementById(`kebab-dropdown-${uniqueId}`);
+    if (menu) {
+        menu.classList.add('show');
+    }
+}
+
+// 關閉所有選單
+function closeAllKebabMenus() {
+    document.querySelectorAll('.kebab-dropdown').forEach(el => el.classList.remove('show'));
+}
+
+// 全域監聽：點擊畫面任何地方都關閉選單
+document.addEventListener('click', () => {
+    closeAllKebabMenus();
 });
 
 </script> <!-- 呢個係原本全個檔案唯一的結尾，保留佢 -->
