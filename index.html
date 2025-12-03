@@ -2173,9 +2173,16 @@
       <input type="text" id="edit-topic" class="pop-input" style="margin:5px 0 15px 0; width:100%; box-sizing:border-box;" placeholder="作文題目">
     </div>
 
-    <div class="pop-footer">
-      <button class="pop-btn pop-btn-cancel" onclick="document.getElementById('pop-edit-modal').classList.remove('active')">取消</button>
-      <button class="pop-btn pop-btn-confirm" onclick="saveProjectMeta()">儲存變更</button>
+    <!-- 修改後的 Footer，加入 justify-content: space-between 以便將刪除按鈕推到左邊 -->
+    <div class="pop-footer" style="justify-content: space-between;">
+      <!-- 左邊：刪除按鈕 -->
+      <button class="pop-btn danger-btn" onclick="deleteProject()" style="background:#ffebee; color:#c62828; border:1px solid #ffcdd2;">🗑️ 刪除</button>
+      
+      <!-- 右邊：取消與儲存 -->
+      <div style="display:flex; gap:10px;">
+          <button class="pop-btn pop-btn-cancel" onclick="document.getElementById('pop-edit-modal').classList.remove('active')">取消</button>
+          <button class="pop-btn pop-btn-confirm" onclick="saveProjectMeta()">儲存變更</button>
+      </div>
     </div>
   </div>
 </div>
@@ -6583,12 +6590,14 @@ function renderEmptyState(container) {
     `;
 }
 
-// --- Helper: 資料分組 ---
+// --- Helper: 資料分組 (已修正：加入 .trim() 防止重複 Header) ---
 function groupByYearAndClass(projects) {
     const groups = {};
     projects.forEach(p => {
-        const y = p.normalizedYear;
-        const c = p.class_name || '未分類';
+        // 強制去除頭尾空格，避免 "2025-2026 " 和 "2025-2026" 分開
+        const y = (p.normalizedYear || p.academic_year || '未知年份').trim();
+        const c = (p.class_name || '未分類').trim();
+        
         if (!groups[y]) groups[y] = {};
         if (!groups[y][c]) groups[y][c] = [];
         groups[y][c].push(p);
@@ -7174,6 +7183,60 @@ async function saveProjectMeta() {
         btn.textContent = originalText;
         btn.disabled = false;
     }
+}
+
+
+// 刪除專案功能
+async function deleteProject() {
+    const id = document.getElementById('edit-project-id').value;
+    const sourceType = document.getElementById('edit-source-type').value;
+    const title = document.getElementById('edit-topic').value;
+
+    // Double Confirm UI
+    confirmUI(`⚠️ 危險操作\n\n確定要永久刪除「${title}」嗎？\n刪除後無法復原！`, async () => {
+        
+        // 鎖定按鈕避免重複點擊
+        const btn = document.querySelector('#pop-edit-modal .danger-btn');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = "刪除中...";
+        btn.disabled = true;
+
+        try {
+            if (sourceType === 'legacy') {
+                const { error } = await supabaseClient
+                    .from('student_projects')
+                    .delete()
+                    .eq('id', id);
+                if (error) throw error;
+            } 
+            else if (sourceType === 'new') {
+                // 刪除 assignment，由於有 Cascade 設定，results 應該會自動刪除
+                const { error } = await supabaseClient
+                    .from('assignments')
+                    .delete()
+                    .eq('id', id);
+                if (error) throw error;
+            }
+            else if (sourceType === 'local_memory') {
+                alert("這是當前編輯中的暫存檔，請直接按「清空當前」或開新專案即可。");
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                return;
+            }
+
+            if (typeof showToast === 'function') showToast("專案已刪除", "success");
+            else alert("專案已刪除");
+
+            document.getElementById('pop-edit-modal').classList.remove('active');
+            loadDashboard(); // 重新整理列表
+
+        } catch (error) {
+            console.error(error);
+            alert("刪除失敗：" + error.message);
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    });
 }
 
 </script> <!-- 呢個係原本全個檔案唯一的結尾，保留佢 -->
