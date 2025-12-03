@@ -2304,7 +2304,6 @@
               <button id="login-btn" class="btn light-btn">登入/註冊</button>
               <button id="logout-btn" class="btn danger-btn" style="display: none;">登出</button>
               <button id="sync-btn" class="btn action-btn" style="display: none;" disabled>同步至雲端</button>
-              <button id="restore-backup-btn" class="btn secondary-btn" style="display: none;" onclick="restoreFromLocalBackup()">♻️ 還原備份</button>
             </div>
           </div>
 
@@ -3175,10 +3174,6 @@
 
 
 <script>
-
-
-
-
 // --- Supabase 初始化與設定 ---
 const SUPABASE_URL = 'https://wtcegbkfuklnkurrouka.supabase.co'; 
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind0Y2VnYmtmdWtsbmt1cnJvdWthIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM0MTU5MjgsImV4cCI6MjA3ODk5MTkyOH0.mQT2TXLR6m41D1WzmqH35mKdoGDGqHaHhZm-sTpPmpQ';
@@ -3191,13 +3186,8 @@ let isDataDirty = false;
 let allStudentRecords = [];
 let currentTypos = [];
 let commonTypos = [];
-let cannedCritiques = {}; 
+let cannedCritiques = {}; // 用於儲存預設評語
 const CATEGORY_ORDER = ['扣題與立意', '取材與刻畫', '結構與鋪排', '語言與表達'];
-
-// ✅✅✅ [Step 1 新增] 身份定義變數 ✅✅✅
-window.currentProjectType = null; 
-window.currentAssignmentId = null;
-window.currentClassId = null;
 
 // --- 程式入口 ---
 document.addEventListener('DOMContentLoaded', () => {
@@ -6794,13 +6784,11 @@ function checkLocalBackup() {
     }
 }
 
-// ==========================================
-// ====== 離線防災備份功能 (安全修復版) ======
-// ==========================================
+// 4. 還原備份 (修復版)
 function restoreFromLocalBackup() {
     if (!confirm("確定要還原備份嗎？\n這將會覆蓋當前頁面上的所有資料。")) return;
 
-    const backup = localStorage.getItem('idw_grading_backup_v1'); // 確保 key 與上面一致
+    const backup = localStorage.getItem(BACKUP_KEY);
     if (!backup) {
         alert("找不到備份資料。");
         return;
@@ -6811,17 +6799,14 @@ function restoreFromLocalBackup() {
 
         // A. 還原評語庫
         if (data.critiques && data.critiques.length > 0) {
-            const cContainer = document.getElementById('critique-data');
-            if (cContainer) {
-                cContainer.innerHTML = '';
-                applyCritiquesToDOM(data.critiques);
-            }
+            document.getElementById('critique-data').innerHTML = '';
+            applyCritiquesToDOM(data.critiques);
         }
 
-        // B. 還原基礎資料 (加強檢查元素是否存在)
-        if(document.getElementById('student-class')) document.getElementById('student-class').value = data.className || '';
-        if(document.getElementById('topic')) document.getElementById('topic').value = data.topic || '';
-        if(document.getElementById('student-names')) document.getElementById('student-names').value = data.namesText || '';
+        // B. 還原基礎資料
+        document.getElementById('student-class').value = data.className || '';
+        document.getElementById('topic').value = data.topic || '';
+        document.getElementById('student-names').value = data.namesText || '';
         commonTypos = data.typos || [];
 
         // C. 還原學生資料庫
@@ -6838,49 +6823,56 @@ function restoreFromLocalBackup() {
         allStudentRecords = restoredRecords;
 
         // D. 重建 UI
-        if (typeof updateStudentDropdown === 'function') updateStudentDropdown();
-        if (typeof buildChecklist === 'function') buildChecklist();
-        if (typeof buildOverviewPage === 'function') buildOverviewPage();
-        if (typeof renderCommonTypoList === 'function') renderCommonTypoList();
-        if (typeof renderStudentOverviewTable === 'function') renderStudentOverviewTable();
+        updateStudentDropdown();
+        buildChecklist();
+        buildOverviewPage();
+        renderCommonTypoList();
+        renderStudentOverviewTable();
 
         // E. 跳轉回上次編輯的學生
         if (data.currentStudent) {
             const select = document.getElementById('student-select');
-            if (select) {
-                let optionExists = false;
-                for(let i=0; i<select.options.length; i++) {
-                    if(select.options[i].value === data.currentStudent) {
-                        optionExists = true;
-                        break;
-                    }
-                }
-                if (optionExists) {
-                    select.value = data.currentStudent;
-                    loadStudentData(data.currentStudent);
-                    showPage('page2');
+            let optionExists = false;
+            for(let i=0; i<select.options.length; i++) {
+                if(select.options[i].value === data.currentStudent) {
+                    optionExists = true;
+                    break;
                 }
             }
-        }
-        
-        // F. ✅ 安全地隱藏備份按鈕 (修復重點)
-        const restoreBtn = document.getElementById('restore-backup-btn');
-        if (restoreBtn) {
-            restoreBtn.style.display = 'none';
-        }
 
-        // G. 刷新首頁
-        if (typeof loadDashboard === 'function') loadDashboard();
-
-        // 成功提示
-        if (typeof showToast === 'function') showToast("備份還原成功！", "success");
-        else alert("備份還原成功！");
+            if (optionExists) {
+                select.value = data.currentStudent;
+                loadStudentData(data.currentStudent);
+                
+                if (data.liveEdit && data.liveEdit.name === data.currentStudent && data.liveEdit.data) {
+                     const d = data.liveEdit.data;
+                     if(d.uniqueComment) document.getElementById('unique-comment').value = d.uniqueComment;
+                     if(d.fullComment) document.getElementById('full-output').value = d.fullComment;
+                     if(d.studentComment) document.getElementById('student-report-output').value = d.studentComment;
+                     if(d.typos) {
+                         currentTypos = [...d.typos];
+                         renderTypoList();
+                         renderCommonTyposCheckedState();
+                     }
+                }
+                
+                showPage('page2');
+                alert(`備份還原成功！已回到學生：${data.currentStudent}`);
+            } else {
+                alert("備份還原成功！(但上次編輯的學生不在名單中，請手動選擇)");
+            }
+        } else {
+            alert("備份還原成功！");
+        }
+        document.getElementById('restore-backup-btn').style.display = 'none';
+        loadDashboard(); // 還原後刷新首頁
 
     } catch (e) {
         console.error(e);
         alert("還原失敗，資料可能已損壞。\n錯誤訊息：" + e.message);
     }
 }
+
 /* ==========================================
    ====== Dashboard 2.0 (防重複終極版) ======
    ========================================== */
@@ -7959,7 +7951,7 @@ async function loadAllClasses() {
     }
 }
 
-// 2. 新增班級 (已修正：成功後自動刷新 Page 1 選單)
+// 2. 新增班級
 async function createNewClass() {
     if (!currentUser) {
         alert("請先登入！");
@@ -7973,6 +7965,9 @@ async function createNewClass() {
     const className = prompt("請輸入班別名稱 (例如 6A):");
     if (!className) return;
 
+    // 檢查是否已存在 (簡單前端檢查)
+    // 略，直接交給 Backend 或 Insert error handle
+
     try {
         const { error } = await supabaseClient
             .from('classes')
@@ -7984,26 +7979,21 @@ async function createNewClass() {
 
         if (error) throw error;
 
-        // 成功提示
-        if (typeof showToast === 'function') showToast("班級建立成功！", "success");
-        else alert("班級建立成功！");
-
-        // 🔄 刷新 Page 8 列表
-        loadAllClasses(); 
-        
-        // 🔄 🔥 同步刷新 Page 1 的下拉選單 (True 代表強制刷新)
-        loadPage1ClassDropdown(true);
+        alert("班級建立成功！\n現在請點擊「管理名單」來加入學生。");
+        loadAllClasses(); // 刷新
 
     } catch (error) {
         alert("建立失敗：" + error.message);
     }
 }
 
-// 3. 刪除班級 (已修正：成功後自動刷新 Page 1 選單)
+// 3. 刪除班級
 async function deleteClass(classId, className) {
-    if (!confirm(`⚠️ 嚴重警告 ⚠️\n\n確定要刪除「${className}」嗎？\n\n這將會同時刪除：\n1. 該班級的所有資料\n2. 該班級的所有學生名單\n\n確定要繼續？`)) return;
+    if (!confirm(`⚠️ 嚴重警告 ⚠️\n\n確定要刪除「${className}」嗎？\n\n這將會同時刪除：\n1. 該班級的所有資料\n2. 該班級的所有學生名單\n\n(已批改的作業記錄通常會保留，但連結可能會失效)\n\n確定要繼續？`)) return;
 
     try {
+        // Supabase 如果有設 Cascade Delete，刪除 Class 會自動刪除 Students
+        // 如果沒有，就要手動刪。假設你有設 Cascade。
         const { error } = await supabaseClient
             .from('classes')
             .delete()
@@ -8011,11 +8001,7 @@ async function deleteClass(classId, className) {
 
         if (error) throw error;
         
-        if (typeof showToast === 'function') showToast("已刪除班級", "success");
-
-        // 🔄 刷新兩邊
-        loadAllClasses(); 
-        loadPage1ClassDropdown(true);
+        loadAllClasses(); // 刷新
 
     } catch (error) {
         alert("刪除失敗：" + error.message);
@@ -8054,9 +8040,10 @@ function toggleSetupMode() {
     }
 }
 
-// ✅ 加入 forceReload 參數，允許強制刷新
-async function loadPage1ClassDropdown(forceReload = false) {
+// 2. 載入班級到 Dropdown
+async function loadPage1ClassDropdown() {
     const select = document.getElementById('setup-class-select');
+    // 如果元素不存在 (例如在其他頁面)，直接返回
     if (!select) return;
 
     if (!currentUser) {
@@ -8064,8 +8051,8 @@ async function loadPage1ClassDropdown(forceReload = false) {
         return;
     }
     
-    // 如果不是強制刷新，且已經有資料，就跳過 (節省資源)
-    if (!forceReload && select.options.length > 1) return; 
+    // 避免重複讀取，如果有資料就保留
+    if (select.options.length > 1) return; 
 
     select.innerHTML = '<option>讀取中...</option>';
 
@@ -8087,9 +8074,9 @@ async function loadPage1ClassDropdown(forceReload = false) {
         select.innerHTML = '<option value="">-- 請選擇班級 --</option>';
         classes.forEach(c => {
             const opt = document.createElement('option');
-            opt.value = c.id; 
+            opt.value = c.id; // 這是 Database 的 uuid
             opt.textContent = `${c.class_name} (${c.academic_year})`;
-            opt.dataset.className = c.class_name; 
+            opt.dataset.className = c.class_name; // 存個名方便用
             select.appendChild(opt);
         });
 
@@ -8165,9 +8152,7 @@ function toggleAllSetupStudents(checked) {
     });
 }
 
-// ==========================================
-// ====== 核心橋接函數 (Step 1: 身份定義版) ======
-// ==========================================
+// 5. 核心橋接函數 (終極防彈版 v3 - 自動修復缺失欄位)
 function startGradingWithSetup(actionType) {
     const modeRadio = document.querySelector('input[name="setup-mode"]:checked');
     const mode = modeRadio ? modeRadio.value : 'manual';
@@ -8179,23 +8164,50 @@ function startGradingWithSetup(actionType) {
         return;
     }
 
-    // 🔥 [Step 1] 重置所有身份 ID，防止殘留
-    window.currentAssignmentId = null;
-    
-    // 準備一個暫存名單陣列
-    let rawStudentList = "";
-    let sourceClass = "";
+    // --- 🔥 核心修復：確保目標欄位一定存在 🔥 ---
+    let legacyInput = document.getElementById('student-names');
+    let legacyClass = document.getElementById('student-class');
 
-    // === 分流邏輯 ===
+    // 如果找不到，我們嘗試去 Page 2 區域找
+    const p2Section = document.getElementById('grading-section-student');
+    
+    if (!legacyInput && p2Section) {
+        // 嘗試找 textarea，如果沒有就由 JS 創建一個隱藏的
+        legacyInput = p2Section.querySelector('textarea');
+        if (!legacyInput) {
+            legacyInput = document.createElement('textarea');
+            legacyInput.id = 'student-names';
+            legacyInput.style.display = 'none';
+            p2Section.appendChild(legacyInput);
+        } else {
+            legacyInput.id = 'student-names'; // 強制賦予 ID
+        }
+    }
+
+    if (!legacyClass && p2Section) {
+        // 補回遺失的 class input
+        legacyClass = document.createElement('input');
+        legacyClass.type = 'hidden';
+        legacyClass.id = 'student-class';
+        p2Section.appendChild(legacyClass);
+    }
+
+    if (!legacyInput) {
+        alert("系統嚴重錯誤：無法建立資料橋接。請重新整理頁面。");
+        return;
+    }
+    // -------------------------------------------
+
+    // 邏輯開始
     if (mode === 'registry') {
-        // [Track B: 班級模式 -> 新系統]
+        // 註冊模式
         const select = document.getElementById('setup-class-select');
         if (!select || !select.value) {
-            alert("請選擇班級！(或切換至手動模式)");
+            alert("請選擇班級！");
             return;
         }
         
-        // 獲取勾選的學生
+        // 檢查勾選 (兼容 class 和 input 兩種選法)
         const checkedCards = document.querySelectorAll('#setup-student-checklist .student-check-card.checked');
         const checkedInputs = document.querySelectorAll('#setup-student-checklist input:checked');
 
@@ -8204,89 +8216,57 @@ function startGradingWithSetup(actionType) {
             return;
         }
 
-        // 組合名單字串
+        let listStr = "";
         if (checkedCards.length > 0) {
-             checkedCards.forEach(div => { if (div.dataset.info) rawStudentList += div.dataset.info + "\n"; });
+             checkedCards.forEach(div => { if (div.dataset.info) listStr += div.dataset.info + "\n"; });
         } else {
              checkedInputs.forEach(cb => {
                 const div = cb.closest('.student-check-card');
-                if (div && div.dataset.info) rawStudentList += div.dataset.info + "\n";
+                if (div && div.dataset.info) listStr += div.dataset.info + "\n";
             });
         }
-        
-        // 記錄班級名稱
-        sourceClass = select.options[select.selectedIndex].dataset.className || '';
-        
-        // ✅ [Step 1] 設定身份：新式作業
-        window.currentProjectType = 'new';
-        window.currentClassId = select.value;
-        console.log("已設定模式：新式作業 (New / SQL)", window.currentClassId);
 
-    } else {
-        // [Track A: 手動模式 -> 舊系統]
+        // 填入 Page 2
+        legacyInput.value = listStr.trim();
+        if(legacyClass && select.options[select.selectedIndex]) {
+             legacyClass.value = select.options[select.selectedIndex].dataset.className || '';
+        }
+    } 
+    else {
+        // 手動模式
         const manualInput = document.getElementById('student-names-manual');
-        rawStudentList = manualInput ? manualInput.value.trim() : '';
+        const manualVal = manualInput ? manualInput.value.trim() : '';
         
-        if (!rawStudentList) {
-            alert("請輸入學生名單！\n(支援 Excel 複製貼上，一行一位)");
+        if (!manualVal) {
+            alert("請輸入學生名單！");
             return;
         }
         
-        const manualClassInput = document.getElementById('student-class-manual');
-        sourceClass = manualClassInput ? manualClassInput.value.trim() : '未分類';
-
-        // ✅ [Step 1] 設定身份：舊式作業
-        window.currentProjectType = 'legacy';
-        window.currentClassId = null;
-        console.log("已設定模式：舊式作業 (Legacy / JSON)");
+        legacyInput.value = manualVal;
+        
+        const manualClass = document.getElementById('student-class-manual');
+        if(legacyClass && manualClass) legacyClass.value = manualClass.value;
     }
 
-    // === 數據注入 (The Injection) ===
-    // 1. 解析名單
-    const parsedNames = rawStudentList.split('\n')
-        .map(name => name.trim())
-        .filter(name => name)
-        .map(name => parseStudentName(name)); 
-
-    // 2. 更新全域變數
-    allStudentRecords = parsedNames.map(p => ({
-        number: p.number,
-        name: p.name,
-        originalName: p.originalName,
-        data: null 
-    }));
-
-    // 3. 嘗試同步 UI
-    // (確保即使 Page 2 的 input 被隱藏，資料也能寫入，防止之後出錯)
-    const p2Names = document.getElementById('student-names');
-    const p2Class = document.getElementById('student-class');
+    // 🔥 觸發更新事件 (這一步會生成 allStudentRecords)
+    legacyInput.dispatchEvent(new Event('input')); 
     
-    if (!p2Names) {
-        const hiddenArea = document.createElement('div');
-        hiddenArea.style.display = 'none';
-        hiddenArea.innerHTML = `<textarea id="student-names"></textarea><input id="student-class">`;
-        document.body.appendChild(hiddenArea);
-    }
-    
-    document.getElementById('student-names').value = rawStudentList;
-    if(document.getElementById('student-class')) document.getElementById('student-class').value = sourceClass;
+    // 安全調用更新函數
+    if (typeof updateStudentDropdown === 'function') updateStudentDropdown();
+    if (typeof updateHeaderInfo === 'function') updateHeaderInfo();
 
-    // 4. 刷新下拉選單 (Page 2)
-    updateStudentDropdown(); 
-    updateHeaderInfo();
-
-    // === 跳轉 ===
+    // 執行跳轉
     if (actionType === 'default') {
         if (typeof loadCannedCritiquesAndFocus === 'function') loadCannedCritiquesAndFocus();
-    } else {
+    } else if (actionType === 'manual') {
         const cData = document.getElementById('critique-data');
-        if(cData) cData.innerHTML = ''; 
+        if(cData) cData.innerHTML = '';
         
         if (typeof buildChecklist === 'function') buildChecklist();
         if (typeof buildOverviewPage === 'function') buildOverviewPage();
         
         showPage('page2', 'student-select');
-        if(typeof showToast === 'function') showToast(`已建立作業：${allStudentRecords.length} 位學生`, "success");
+        if(typeof showToast === 'function') showToast("名單已設定，請開始建立評語庫。", "info");
     }
 }
 
