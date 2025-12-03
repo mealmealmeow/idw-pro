@@ -2276,108 +2276,6 @@
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* --- Homepage 2.0 佈局 --- */
-.home-layout {
-    display: grid;
-    grid-template-columns: 240px 1fr; /* 左側固定 240px，右側自適應 */
-    min-height: 80vh;
-    gap: 2rem;
-    align-items: start;
-    padding: 2rem;
-}
-
-/* 左側 Sidebar */
-.home-sidebar {
-    background: rgba(255, 255, 255, 0.6);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255,255,255,0.8);
-    border-radius: 16px;
-    padding: 1.2rem;
-    position: sticky;
-    top: 80px; /* 貼住頂部 */
-}
-
-.sidebar-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 1px solid rgba(0,0,0,0.05);
-}
-
-.sidebar-header h3 { margin: 0; font-size: 1.1rem; color: var(--title-color); }
-
-.class-nav-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.75rem 1rem;
-    margin-bottom: 0.5rem;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.2s;
-    color: var(--text-color);
-    font-weight: 500;
-}
-
-.class-nav-item:hover { background-color: rgba(255,255,255,0.8); }
-.class-nav-item.active {
-    background-color: var(--accent-color);
-    color: white;
-    box-shadow: 0 4px 10px rgba(90, 143, 123, 0.3);
-}
-.class-nav-item .count-tag {
-    font-size: 0.75rem;
-    background: rgba(0,0,0,0.1);
-    padding: 2px 6px;
-    border-radius: 99px;
-}
-
-/* 右側 Main */
-.home-main {
-    flex: 1;
-}
-
-.home-hero {
-    background: linear-gradient(135deg, #fdfbf7, #f7f5f0);
-    border-radius: 16px;
-    padding: 2rem;
-    margin-bottom: 2rem;
-    border: 1px solid var(--border-color);
-}
-
-.stats-row {
-    display: flex;
-    gap: 1.5rem;
-    margin-top: 1rem;
-}
-
-.stat-card {
-    flex: 1;
-    background: white;
-    padding: 1rem;
-    border-radius: 10px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
-    text-align: center;
-}
-.stat-label { display: block; font-size: 0.8rem; color: #888; margin-bottom: 0.3rem; }
-.stat-value { font-size: 1.4rem; font-weight: bold; color: var(--accent-color); }
-
-.content-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
-}
-
-/* 響應式調整：手機變單欄 */
-@media (max-width: 768px) {
-    .home-layout { grid-template-columns: 1fr; padding: 1rem; }
-    .home-sidebar { position: static; margin-bottom: 1.5rem; }
-    .stats-row { flex-wrap: wrap; }
-}
-
 </style>
 </head>
 <body>
@@ -2441,132 +2339,147 @@
     <main>
 
 
-       <!-- ==================== 首頁：班級經營中心 ==================== -->
+        <!-- ==================== 第零頁：Dashboard (首頁) ==================== -->
 <div id="page-home" class="page-content">
-  <div class="overview-container" style="padding: 0; background: transparent; box-shadow: none; border: none;">
+  <div class="overview-container">
     
-    <div class="home-layout">
-      <!-- 左側：班級導航 -->
-      <aside class="home-sidebar">
-        <div class="sidebar-header">
-            <h3>🏫 我的班級</h3>
-            <span class="badge" id="total-active-badge">0</span>
-        </div>
-        <div id="class-nav-list" class="class-nav-list">
-            <!-- JS 動態生成： [全部] [6A] [5B] ... -->
-        </div>
-        <div class="sidebar-footer">
-          <button class="btn light-btn" style="width:100%; font-size:0.85rem;" onclick="openAddClassModal()">＋ 新增班級檔案</button>
-        </div>
-      </aside>
+    <!-- 歡迎與狀態區 -->
+    <div class="dashboard-header">
+      <div>
+        <h2 id="welcome-msg" style="margin-bottom: 0.5rem; color: var(--title-color);">早晨，老師。</h2>
+        <p style="color: #8c867a; font-size: 0.95rem;">
+          <span id="quote-text">「文章千古事，得失寸心知。」</span>
+        </p>
+      </div>
+      <div class="quick-actions">
+        <!-- 這個按鈕將跳轉到「開新作業」的 Wizard (原本的 Page 1) -->
+        <button class="action-btn" onclick="showPage('page1')">＋ 開新批改任務</button>
+      </div>
+    </div>
 
-      <!-- 右側：主內容區 -->
-      <main class="home-main">
-        <!-- 頂部歡迎 / 統計區 -->
-        <div id="home-hero-section" class="home-hero">
-            <h2 id="welcome-msg">早晨，老師。</h2>
-            <p id="quote-text" style="color: #8c867a;">「文章千古事，得失寸心知。」</p>
-            
-            <!-- 班級分析數據 (預設隱藏，選班級後顯示) -->
-            <div id="class-analytics-box" style="display:none; margin-top: 1.5rem;">
-                <div class="stats-row">
-                    <div class="stat-card">
-                        <span class="stat-label">進行中任務</span>
-                        <span class="stat-value" id="stat-active-tasks">-</span>
-                    </div>
-                    <div class="stat-card">
-                        <span class="stat-label">平均完成率</span>
-                        <span class="stat-value" id="stat-completion">-</span>
-                    </div>
-                    <div class="stat-card">
-                        <span class="stat-label">近期平均分</span>
-                        <span class="stat-value" id="stat-avg-score">-</span>
-                    </div>
-                </div>
+    <!-- 核心區域：耕耘中的作業 -->
+    <div class="section-box" style="background: transparent; padding: 0; border: none; box-shadow: none;">
+      <div style="display: flex; align-items: center; gap: 0.8rem; margin-bottom: 1.5rem;">
+        <h3 style="margin: 0;">📝 耕耘中</h3>
+        <span id="active-count-badge" style="background: var(--accent-color); color: white; padding: 2px 8px; border-radius: 99px; font-size: 0.8rem;">0</span>
+      </div>
+      
+      <!-- 卡片牆容器 -->
+      <div id="dashboard-grid" class="dashboard-grid">
+        <!-- 內容將由 JS 動態生成 -->
+        <div class="empty-state-message">
+            <div class="spinner"></div> 正在讀取進度...
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ==================== 首頁：教學儀表板 (Dashboard) ==================== -->
+<div id="page-home" class="page-content">
+  <div class="overview-container">
+    
+    <!-- 頂部歡迎區 -->
+    <div class="dashboard-header">
+      <div>
+        <h2 id="welcome-msg" style="margin-bottom: 0.5rem;">早晨，老師。</h2>
+        <p style="color: #777; font-size: 0.95rem;">
+          <span id="quote-text">「文章千古事，得失寸心知。」</span>
+        </p>
+      </div>
+      <!-- 快速動作 -->
+      <div class="quick-actions">
+        <button class="action-btn" onclick="showPage('page1')">＋ 開新批改</button>
+        <button class="secondary-btn" onclick="alert('功能開發中：班級管理')">🏫 管理班級</button>
+      </div>
+    </div>
+
+    <!-- 核心區域：耕耘中的作業 -->
+    <div class="section-box" style="background: transparent; padding: 0; border: none; box-shadow: none;">
+      <h3 style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
+        📝 耕耘中 
+        <span style="font-size: 0.8rem; background: var(--nav-bg); padding: 2px 8px; border-radius: 12px; color: #666;" id="active-count-badge">0</span>
+      </h3>
+      
+      <!-- 這裡顯示卡片 -->
+      <div id="dashboard-grid" class="dashboard-grid">
+        <!-- JS 會動態插入卡片，以下是 Loading 狀態 -->
+        <div class="dashboard-loading">
+            <div class="spinner"></div> 正在讀取進度...
+        </div>
+      </div>
+    </div>
+
+    <!-- 底部：統計小區 (裝飾用，增加專業感) -->
+    <div class="two-column-grid" style="margin-top: 2rem;">
+        <div class="section-box analysis-card">
+            <h4>📊 本週批改量</h4>
+            <div style="height: 150px; display: flex; align-items: center; justify-content: center; color: #999;">
+               (圖表區預留位置)
             </div>
         </div>
-
-        <!-- 下方：作業卡片牆 -->
-        <div class="content-header">
-            <h3 id="grid-title">📝 所有任務</h3>
-            <div class="view-filters">
-                <!-- 預留過濾器 -->
-            </div>
+        <div class="section-box analysis-card">
+            <h4>🔥 常用評語 Top 5</h4>
+             <ul id="dashboard-top-critiques" style="padding-left: 1.2rem; margin-top: 0.5rem; color: #555;">
+                <li>載入中...</li>
+             </ul>
         </div>
-        
-        <div id="dashboard-grid" class="dashboard-grid">
-             <div class="empty-state-message"><div class="spinner"></div> 讀取中...</div>
-        </div>
-      </main>
     </div>
 
   </div>
 </div>
 
 
-    <!-- 第一頁：基本設定 (已更新：加入學年) -->
-<div id="page1" class="page-content active">
-<div class="section-box">
-    <h2>步驟一：基本設定</h2>
-    
-    <!-- 第一行：題目 (全寬) -->
-    <div class="input-group">
-        <label for="topic">作文題目</label>
-        <input type="text" id="topic" placeholder="例如：記一次難忘的經歷">
-    </div>
-
-    <!-- 第二行：班別 + 學年 (並排) -->
-    <div class="two-column-grid">
-        <div class="input-group">
-            <label for="student-class">班別 / 組別</label>
-            <input type="text" id="student-class" placeholder="例如：6A">
-        </div>
-        <div class="input-group">
-            <label for="academic-year">學年 (Academic Year)</label>
-            <div style="display:flex; gap:5px;">
-                <input type="text" id="academic-year" placeholder="例如：2024-2025">
-                <button class="light-btn" style="padding:0 10px; min-width:auto;" onclick="fillPage1Year()" title="填入當前學年">📅</button>
+      <!-- ==================== 第一頁：基本設定 (新) ==================== -->
+      <div id="page1" class="page-content active">
+        <div class="section-box">
+            <h2>步驟一：基本設定</h2>
+            <div class="two-column-grid">
+                <div class="input-group">
+                    <label for="topic">作文題目</label>
+                    <input type="text" id="topic" placeholder="例如：記一次難忘的經歷">
+                </div>
+                <div class="input-group">
+                    <label for="student-class">班別 / 組別 (可選)</label>
+                    <input type="text" id="student-class" placeholder="例如：6A, S.3A">
+                </div>
             </div>
         </div>
-    </div>
-</div>
+        <div class="section-box">
+            <h2>步驟二：選擇評語庫</h2>
+            <p style="font-size:0.9rem;color:#777; margin-top:-0.7rem;">請選擇一種方式來建立本次批改的評語庫。評語庫建立後，將自動跳轉至「批改頁」。</p>
+            
+            <details class="io-details" open>
+                <summary><h3>選項 A：使用預設罐頭評語</h3></summary>
+                <div class="io-details-content">
+                    <p>請選擇文章主要類型（可多選），系統將為您載入相關的通用評語。</p>
+                    <div id="genre-selection" class="checkbox-group">
+                        <label><input type="checkbox" name="genre" value="narrative"> 記敘</label>
+                        <label><input type="checkbox" name="genre" value="lyrical"> 抒情</label>
+                        <label><input type="checkbox" name="genre" value="descriptive"> 描寫</label>
+                        <label><input type="checkbox" name="genre" value="argumentative"> 議論</label>
+                    </div>
+                    <div class="btn-group" style="margin-top: 1rem;">
+                        <button class="action-btn" onclick="loadCannedCritiquesAndFocus()">確定並載入預設評語</button>
+                    </div>
+                </div>
+            </details>
 
-<!-- 下面保留原本的「步驟二：選擇評語庫」... (不需要改動) -->
-<div class="section-box">
-    <h2>步驟二：選擇評語庫</h2>
-    <!-- ... 保留你原本的代碼 ... -->
-    <p style="font-size:0.9rem;color:#777; margin-top:-0.7rem;">請選擇一種方式來建立本次批改的評語庫。評語庫建立後，將自動跳轉至「批改頁」。</p>
-    
-    <details class="io-details" open>
-        <summary><h3>選項 A：使用預設罐頭評語</h3></summary>
-        <div class="io-details-content">
-            <p>請選擇文章主要類型（可多選），系統將為您載入相關的通用評語。</p>
-            <div id="genre-selection" class="checkbox-group">
-                <label><input type="checkbox" name="genre" value="narrative"> 記敘</label>
-                <label><input type="checkbox" name="genre" value="lyrical"> 抒情</label>
-                <label><input type="checkbox" name="genre" value="descriptive"> 描寫</label>
-                <label><input type="checkbox" name="genre" value="argumentative"> 議論</label>
-            </div>
-            <div class="btn-group" style="margin-top: 1rem;">
-                <button class="action-btn" onclick="loadCannedCritiquesAndFocus()">確定並載入預設評語</button>
-            </div>
+            <details class="io-details">
+                <summary><h3>選項 B：從雲端讀取或手動建立</h3></summary>
+                <div class="io-details-content">
+                    <p>您可以從雲端讀取之前儲存的整個專案（包含學生名單及進度），或跳至其他頁面手動建立/導入評語庫。</p>
+                    <div class="btn-group">
+                        <button id="select-project-btn" class="secondary-btn" style="display: none;">從雲端選取專案</button>
+                        <button class="light-btn brown" onclick="showPage('page6', 'ai-student-level')">前往 AI 評語庫生成</button>
+                        <button class="light-btn" onclick="showPage('page3', 'overview-controls')">前往手動修訂評語庫</button>
+                        <button id="restore-backup-btn" class="danger-btn" style="display: none;" onclick="restoreFromLocalBackup()">♻️ 發現未儲存的備份，點此還原</button>
+                    </div>
+                </div>
+            </details>
         </div>
-    </details>
-
-    <details class="io-details">
-        <summary><h3>選項 B：從雲端讀取或手動建立</h3></summary>
-        <div class="io-details-content">
-            <p>您可以從雲端讀取之前儲存的整個專案（包含學生名單及進度），或跳至其他頁面手動建立/導入評語庫。</p>
-            <div class="btn-group">
-                <button id="select-project-btn" class="secondary-btn" style="display: none;">從雲端選取專案</button>
-                <button class="light-btn brown" onclick="showPage('page6', 'ai-student-level')">前往 AI 評語庫生成</button>
-                <button class="light-btn" onclick="showPage('page3', 'overview-controls')">前往手動修訂評語庫</button>
-                <button id="restore-backup-btn" class="danger-btn" style="display: none;" onclick="restoreFromLocalBackup()">♻️ 發現未儲存的備份，點此還原</button>
-            </div>
-        </div>
-    </details>
-</div>
-
+      </div>
 
       <!-- ==================== 第二頁：批改頁 (新) ==================== -->
       <div id="page2" class="page-content">
@@ -3122,31 +3035,6 @@
   </div>
 </div>
 
-<!-- 自定義「新增班級」 Modal -->
-<div id="pop-add-class-modal" class="pop-overlay">
-  <div class="pop-modal">
-    <div class="pop-icon">🏫</div>
-    <h3>新增班級</h3>
-    <p class="pop-desc">建立一個新的班級檔案，以便管理該年度的作業。</p>
-    
-    <div style="text-align: left; margin-bottom: 1rem;">
-        <label style="display:block; margin-bottom:5px; font-weight:bold; color:#666;">班別名稱</label>
-        <input type="text" id="new-class-name" class="pop-input" style="width:100%; margin-bottom:10px;" placeholder="例如：2A, 6C, S.4D">
-        
-        <label style="display:block; margin-bottom:5px; font-weight:bold; color:#666;">學年 (Academic Year)</label>
-        <input type="text" id="new-class-year" class="pop-input" style="width:100%;" placeholder="例如：2024-2025">
-        <div style="text-align:right; font-size:0.8rem; color:#999; margin-top:5px; cursor:pointer;" onclick="fillCurrentYear()">
-            ✨ 自動填入當前學年
-        </div>
-    </div>
-
-    <div class="pop-footer">
-      <button class="pop-btn pop-btn-cancel" onclick="document.getElementById('pop-add-class-modal').classList.remove('active')">取消</button>
-      <button class="pop-btn pop-btn-confirm" onclick="confirmAddClass()">建立</button>
-    </div>
-  </div>
-</div>
-
 <script>
 // --- Supabase 初始化與設定 ---
 const SUPABASE_URL = 'https://wtcegbkfuklnkurrouka.supabase.co'; 
@@ -3308,7 +3196,48 @@ async function checkUser() {
   });
 }
 
+// 1. 啟動登入流程 (打開 Modal)
+function handleLogin() {
+  const modal = document.getElementById('pop-login-modal');
+  const input = document.getElementById('login-input');
+  const btn = document.getElementById('login-confirm-btn');
+  const title = document.getElementById('login-title');
+  const desc = document.getElementById('login-desc');
+  const icon = document.getElementById('login-icon');
 
+  // 重置介面做「輸入 Email」狀態
+  loginStep = "email";
+  tempLoginEmail = "";
+  
+  input.value = "";
+  input.placeholder = "輸入電郵地址...";
+  input.type = "email";
+  
+  title.textContent = "登入 / 註冊";
+  desc.textContent = "請輸入電郵地址，驗證碼將發送到你的信箱。";
+  icon.textContent = "📧";
+  btn.textContent = "發送驗證碼";
+  btn.disabled = false;
+
+  modal.classList.add('active');
+  setTimeout(() => input.focus(), 100);
+}
+
+// 3. 關閉 Modal
+function closeLoginModal() {
+  document.getElementById('pop-login-modal').classList.remove('active');
+}
+
+function handleLogout() {
+  confirmUI("確定要登出嗎？所有未同步的變更將會遺失。", async () => {
+    try {
+      const { error } = await supabaseClient.auth.signOut();
+      if (error) throw error;
+    } catch (error) {
+      alert(`登出失敗: ${error.message}`);
+    }
+  });
+}
 
 async function loadDataFromCloud() {
   if (!currentUser) return;
@@ -3562,9 +3491,116 @@ async function loadProjectById(projectId) {
         updateUIBasedOnAuthState();
     }
 }
+// --- 重要的修改：雲端同步函式 ---
+/* === 全新版本 syncDataToCloud (放寬儲存條件) === */
+async function syncDataToCloud() {
+  // 1. 檢查是否登入
+  if (!currentUser) {
+    showToast("尚未登入，請先登入帳戶以使用雲端同步功能。", "warning");
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    return;
+  }
 
+  // 2. 獲取當前輸入資料
+  const className = document.getElementById('student-class').value.trim();
+  const topic = document.getElementById('topic').value.trim();
+  const hasStudents = allStudentRecords.length > 0; // 是否有名單
 
+  // 3. 檢查：只要符合其中一個條件就可以儲存
+  // 條件：有班別 OR 有題目 OR 有學生名單
+  if (!className && !topic && !hasStudents) {
+     showToast("無法儲存：請至少填寫「班別」、「作文題目」或「學生名單」其中一項，才可建立專案。", "warning");
+     return;
+  }
 
+  // 4. UI 鎖定
+  const syncBtn = document.getElementById('sync-btn');
+  const originalText = syncBtn.textContent;
+  syncBtn.textContent = '同步中...';
+  syncBtn.disabled = true;
+  
+  showToast("正在同步至雲端...", "info");
+
+  try {
+    // --- A. 儲存評語庫 (Critiques) ---
+    const dataContainer = document.getElementById('critique-data');
+    const critiquesToUpsert = Array.from(dataContainer.children).map(div => ({
+      user_id: currentUser.id, 
+      critique_id: div.dataset.id, 
+      category: div.dataset.category,
+      type: div.dataset.type, 
+      title: div.querySelector('h4').textContent,
+      strength_summary: div.dataset.strengthSummary, 
+      problem_core: div.dataset.problemCore,
+      suggestion: div.dataset.suggestion, 
+      example: div.dataset.example,
+      options: div.dataset.options, 
+      options_label: div.dataset.optionsLabel,
+      updated_at: new Date().toISOString()
+    }));
+    // 先刪除舊的，再插入新的 (簡單做法)
+    await supabaseClient.from('critiques').delete().eq('user_id', currentUser.id);
+    const { error: critiquesError } = await supabaseClient.from('critiques').upsert(critiquesToUpsert);
+    if (critiquesError) throw critiquesError;
+
+    // --- B. 儲存錯別字庫 (Typos) ---
+    const typosToUpsert = commonTypos.map(t => ({
+      user_id: currentUser.id, 
+      typo_id: t.id, 
+      wrong: t.wrong, 
+      correct: t.correct
+    }));
+    await supabaseClient.from('common_typos').delete().eq('user_id', currentUser.id);
+    const { error: typosError } = await supabaseClient.from('common_typos').upsert(typosToUpsert);
+    if (typosError) throw typosError;
+
+    // --- C. 儲存專案 (Project) ---
+    // 邏輯：嘗試用「班別 + 題目」去搵有無舊專案。
+    // 如果搵到就更新 (Update)，搵唔到就新增 (Insert)。
+    
+    let projectIdToUpdate = undefined;
+
+    // 只有當班別或題目有填寫時，才嘗試去匹配舊專案
+    if (className || topic) {
+        // 構建查詢條件
+        let query = supabaseClient.from('student_projects').select('id').eq('user_id', currentUser.id);
+        
+        // 如果有班別，就必須 match 班別 (空字串 match 空字串)
+        query = query.eq('class_name', className);
+        // 如果有題目，就必須 match 題目
+        query = query.eq('topic', topic);
+
+        const { data: existingProject, error: findError } = await query.maybeSingle();
+        
+        if (!findError && existingProject) {
+            projectIdToUpdate = existingProject.id;
+        }
+    }
+
+    const projectToUpsert = {
+        id: projectIdToUpdate, // 如果係 undefined，Supabase 會自動當係新資料插入
+        user_id: currentUser.id,
+        class_name: className, 
+        topic: topic, 
+        project_data: allStudentRecords,
+        updated_at: new Date().toISOString()
+    };
+    
+    const { error: projectError } = await supabaseClient.from('student_projects').upsert(projectToUpsert);
+    if (projectError) throw projectError;
+
+    isDataDirty = false;
+    showToast("同步成功！專案已儲存到雲端。", "success");
+
+  } catch (error) {
+    showToast(`同步失敗: ${error.message}`, "error");
+    console.error(error);
+  } finally {
+    syncBtn.textContent = originalText;
+    syncBtn.disabled = false; 
+    updateUIBasedOnAuthState();
+  }
+}
 function updateUIBasedOnAuthState() {
     const authStatus = document.getElementById('auth-status');
     const loginBtn = document.getElementById('login-btn');
@@ -6628,61 +6664,61 @@ function restoreFromLocalBackup() {
 // ====== Dashboard (首頁) 核心邏輯 ======
 // ==========================================
 
-// ==========================================
-// ====== Dashboard 2.1 (學年管理版) ======
-// ==========================================
-
 // --- Dashboard 全域變數 ---
 let dashboardItems = [];
-let currentClassKey = 'ALL'; 
 
-// 1. 載入 Dashboard 資料
+// 1. 載入 Dashboard 資料 (支援離線/Local Storage)
 async function loadDashboard() {
     const grid = document.getElementById('dashboard-grid');
     if (!grid) return;
 
-    grid.innerHTML = '<div class="empty-state-message"><div class="spinner"></div> 正在分析進度...</div>';
-    dashboardItems = [];
+    // 清空並顯示 Loading
+    grid.innerHTML = '<div class="empty-state-message"><div class="spinner"></div> 正在讀取您的耕耘成果...</div>';
+
+    dashboardItems = []; // 重置資料
 
     try {
-        // A. 線上資料
+        // A. 如果已登入，嘗試讀取雲端資料
         if (currentUser) {
             const { data, error } = await supabaseClient
                 .from('dashboard_stats_view')
                 .select('*')
                 .order('last_updated', { ascending: false });
 
-            if (!error && data) dashboardItems = data;
+            if (!error && data) {
+                dashboardItems = data;
+            }
         } 
         
-        // B. 離線資料
+        // B. 讀取離線資料 (加到列表最前面)
         loadOfflineData();
 
-        // C. 渲染
-        renderClassSidebar();
-        applyDashboardFilter(currentClassKey); // 保持當前選擇的 Filter
+        // C. 渲染結果
+        renderDashboard();
         updateWelcomeMessage();
 
     } catch (error) {
         console.error('Dashboard Error:', error);
-        grid.innerHTML = `<div class="empty-state-message">載入錯誤，請稍後重試。</div>`;
+        renderDashboard(); // 錯誤時也嘗試渲染(可能只有離線資料)
     }
 }
 
-// 2. 讀取離線資料
+// 2. 讀取離線資料 (記憶體 & LocalStorage)
 function loadOfflineData() {
+    // A. 檢查當前記憶體 (例如剛匯入了 Excel)
     if (allStudentRecords && allStudentRecords.length > 0) {
         const className = document.getElementById('student-class').value || '未命名班別';
         const topic = document.getElementById('topic').value || '未命名題目';
         const total = allStudentRecords.length;
         const graded = allStudentRecords.filter(r => r.data).length;
-        // 檢查是否重複
+
+        // 避免重複：檢查 ID 是否已存在 (這裡簡單檢查 topic)
         const exists = dashboardItems.some(i => i.topic === topic && i.class_name === className);
+        
         if (!exists) {
             dashboardItems.unshift({
                 assignment_id: 'local_memory', 
                 class_name: className,
-                academic_year: '本機檔案', // 標記為本機
                 topic: topic,
                 total_students: total,
                 graded_count: graded,
@@ -6692,210 +6728,231 @@ function loadOfflineData() {
             });
         }
     }
-    // (這裡省略 LocalStorage 檢查，因為邏輯一樣，避免代碼太長)
+
+    // B. 檢查 LocalStorage 自動備份
+    // 如果記憶體是空的，才顯示備份，避免重複顯示同一份資料
+    if (allStudentRecords.length === 0) {
+        const backupKey = 'idw_grading_backup_v1'; 
+        const backupStr = localStorage.getItem(backupKey);
+        
+        if (backupStr) {
+            try {
+                const backup = JSON.parse(backupStr);
+                if (backup.students && Array.isArray(backup.students)) {
+                    const total = backup.students.length;
+                    const graded = backup.students.filter(r => r.data).length;
+                    
+                    dashboardItems.push({
+                        assignment_id: 'local_backup', 
+                        class_name: (backup.className || '未命名班別') + ' (自動備份)',
+                        topic: backup.topic || '未命名題目',
+                        total_students: total,
+                        graded_count: graded,
+                        last_updated: new Date(backup.timestamp || Date.now()).toISOString(),
+                        is_offline: true,
+                        source: 'backup'
+                    });
+                }
+            } catch (e) {
+                console.warn("離線備份損壞", e);
+            }
+        }
+    }
 }
 
-// 3. 渲染左側 Sidebar (含年份分組)
-function renderClassSidebar() {
-    const listEl = document.getElementById('class-nav-list');
-    const badge = document.getElementById('total-active-badge');
-    if(!listEl) return;
-
-    const classMap = {};
-    dashboardItems.forEach(item => {
-        const clsName = item.class_name || '未分類';
-        const year = item.academic_year || '未設定';
-        const key = `${clsName}|${year}`; 
-
-        if (!classMap[key]) {
-            classMap[key] = { name: clsName, year: year, count: 0 };
-        }
-        classMap[key].count++;
-    });
-
-    let html = `
-        <div class="class-nav-item ${currentClassKey === 'ALL' ? 'active' : ''}" onclick="applyDashboardFilter('ALL')">
-            <div style="display:flex; flex-direction:column;">
-                <span style="font-weight:bold;">📚 全部概覽</span>
-            </div>
-            <span class="count-tag">${dashboardItems.length}</span>
-        </div>
-    `;
-
-    // 排序：先按年份(新到舊)，再按班名
-    const sortedKeys = Object.keys(classMap).sort((a, b) => {
-        const yearA = classMap[a].year;
-        const yearB = classMap[b].year;
-        if (yearA !== yearB) return yearB.localeCompare(yearA); 
-        return classMap[a].name.localeCompare(classMap[b].name);
-    });
-
-    sortedKeys.forEach(key => {
-        const item = classMap[key];
-        const isActive = currentClassKey === key;
-        const displayYear = (item.year === '未設定' || item.year === '本機檔案') ? '' : `<span style="font-size:0.75em; opacity:0.7; margin-left:4px;">(${item.year})</span>`;
-        
-        html += `
-            <div class="class-nav-item ${isActive ? 'active' : ''}" onclick="applyDashboardFilter('${key}')">
-                <div style="display:flex; align-items:center;">
-                    <span>${escapeHtml(item.name)}</span>
-                    ${displayYear}
-                </div>
-                <span class="count-tag">${item.count}</span>
+// 3. 渲染 Dashboard 卡片
+function renderDashboard() {
+    const grid = document.getElementById('dashboard-grid');
+    const badge = document.getElementById('active-count-badge');
+    
+    if (dashboardItems.length === 0) {
+        const isOffline = !currentUser;
+        grid.innerHTML = `
+            <div style="grid-column: 1 / -1; text-align: center; padding: 4rem 2rem; background: #fdfbf7; border: 2px dashed #e0e0e0; border-radius: 16px;">
+                <div style="font-size: 3rem; margin-bottom: 1rem;">🌱</div>
+                <h3 style="color: #888;">${isOffline ? '暫無離線進度' : '暫無進行中的任務'}</h3>
+                <p style="color: #999; margin-bottom: 1.5rem;">
+                    ${isOffline ? '您可以「匯入 Excel」開始批改，或「登入」以查看雲端進度。' : '點擊右上角的「＋」開始您的第一個耕耘吧。'}
+                </p>
+                <button class="action-btn" onclick="showPage('page1')">開新批改</button>
             </div>
         `;
-    });
-
-    listEl.innerHTML = html;
-    if(badge) badge.textContent = dashboardItems.length;
-}
-
-// 4. 切換過濾器 (渲染右側 Grid)
-function applyDashboardFilter(key) {
-    currentClassKey = key;
-    renderClassSidebar(); 
-
-    let filteredItems = [];
-    const gridTitle = document.getElementById('grid-title');
-    const analysisBox = document.getElementById('class-analytics-box');
-    const welcomeBox = document.getElementById('welcome-msg');
-
-    if (key === 'ALL') {
-        filteredItems = dashboardItems;
-        if(gridTitle) gridTitle.textContent = '📝 所有任務';
-        if(analysisBox) analysisBox.style.display = 'none';
-        if(welcomeBox) welcomeBox.style.display = 'block';
-    } else {
-        const [clsName, year] = key.split('|');
-        filteredItems = dashboardItems.filter(i => {
-            const iName = i.class_name || '未分類';
-            const iYear = i.academic_year || '未設定';
-            return iName === clsName && iYear === year;
-        });
-        const titleYear = (year === '未設定' || year === '本機檔案') ? '' : ` (${year})`;
-        if(gridTitle) gridTitle.textContent = `📖 ${clsName}${titleYear} 任務列表`;
-        
-        renderClassAnalytics(`${clsName}${titleYear}`, filteredItems);
-    }
-    renderDashboardGridOnly(filteredItems);
-}
-
-// 5. 渲染班級分析
-function renderClassAnalytics(className, items) {
-    const box = document.getElementById('class-analytics-box');
-    if(!box) return;
-    
-    document.getElementById('welcome-msg').style.display = 'none';
-    document.getElementById('quote-text').style.display = 'none';
-    box.style.display = 'block';
-
-    const totalTasks = items.length;
-    let totalScoreSum = 0, scoreCount = 0;
-    items.forEach(i => {
-        if (i.avg_score) { totalScoreSum += parseFloat(i.avg_score); scoreCount++; }
-    });
-    const avgScore = scoreCount > 0 ? (totalScoreSum / scoreCount).toFixed(1) : 'N/A';
-
-    document.getElementById('stat-active-tasks').textContent = totalTasks;
-    document.getElementById('stat-completion').textContent = scoreCount > 0 ? "分析中" : "-"; // 暫時簡化
-    document.getElementById('stat-avg-score').textContent = avgScore;
-}
-
-// 6. 渲染 Grid (共用)
-function renderDashboardGridOnly(items) {
-    const grid = document.getElementById('dashboard-grid');
-    if (!grid) return;
-
-    if (items.length === 0) {
-        grid.innerHTML = `<div class="empty-state-message">此分類暫無任務。</div>`;
+        if(badge) badge.textContent = 0;
         return;
     }
 
+    if(badge) badge.textContent = dashboardItems.length;
     let html = '';
-    items.forEach(item => {
+
+    dashboardItems.forEach(item => {
         const total = item.total_students || 0;
         const done = item.graded_count || 0;
         const percentage = total > 0 ? Math.round((done / total) * 100) : 0;
         const isFinished = (done >= total && total > 0);
-        const avgScoreDisplay = item.avg_score ? `<span style="font-size:0.8rem; color:#d48806; background:#fff7e6; padding:2px 6px; border-radius:4px; margin-left:8px;">Avg: ${item.avg_score}</span>` : '';
         
+        // 日期格式化
         let dateStr = '-';
         if(item.last_updated) {
-            const d = new Date(item.last_updated);
-            dateStr = `${d.getMonth()+1}/${d.getDate()}`;
+            const dateObj = new Date(item.last_updated);
+            dateStr = `${dateObj.getMonth() + 1}月${dateObj.getDate()}日 ${String(dateObj.getHours()).padStart(2,'0')}:${String(dateObj.getMinutes()).padStart(2,'0')}`;
         }
 
-        let statusBadge = item.is_offline 
-            ? `<span style="font-size:0.75rem; background:#eee; padding:2px 6px; border-radius:4px;">本機</span>` 
-            : (isFinished ? `<span style="color:var(--excellent-color); font-size:0.8rem;">✔ 完成</span>` : '');
+        // 離線標籤樣式
+        let statusBadge = '';
+        if (item.is_offline) {
+            const label = item.source === 'memory' ? '📝 編輯中' : '💾 本機備份';
+            statusBadge = `<span style="float:right; font-size:0.75rem; background:#f0f0f0; border:1px solid #ccc; color:#666; padding:2px 6px; border-radius:4px;">${label}</span>`;
+        } else {
+            statusBadge = `<span style="float:right; font-size:0.8rem; color:${isFinished?'var(--excellent-color)':'#ccc'}">${isFinished ? '已完成' : ''}</span>`;
+        }
 
         html += `
         <div class="proj-card ${isFinished ? 'completed' : ''}" onclick="openAssignment('${item.assignment_id}')">
-            <div style="margin-bottom:0.5rem; display:flex; justify-content:space-between;">
-                <span class="proj-class-tag">${escapeHtml(item.class_name)}</span>
-                ${statusBadge}
+            <div>
+                <div class="proj-header">
+                    <span class="proj-class-tag">${escapeHtml(item.class_name || '未命名班別')}</span>
+                    ${statusBadge}
+                </div>
+                <h4 class="proj-title">${escapeHtml(item.topic || '未命名題目')}</h4>
+                <div class="proj-date">最後編輯：${dateStr}</div>
             </div>
-            <h4 class="proj-title" style="margin-bottom:0.5rem;">${escapeHtml(item.topic)}</h4>
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
-                <span class="proj-date">📅 ${dateStr}</span>
-                ${avgScoreDisplay}
+            
+            <div style="margin-top: 1.5rem;">
+                <div class="proj-progress-stats">
+                    <span>進度</span>
+                    <span>${done} / ${total}</span>
+                </div>
+                <div class="proj-progress-bg">
+                    <div class="proj-progress-bar" style="width: ${percentage}%"></div>
+                </div>
             </div>
-            <div class="proj-progress-bg">
-                <div class="proj-progress-bar" style="width: ${percentage}%"></div>
-            </div>
-            <div style="text-align:right; font-size:0.75rem; color:#888; margin-top:4px;">${done}/${total}</div>
-        </div>`;
+        </div>
+        `;
     });
+
     grid.innerHTML = html;
 }
 
-// 7. 新增班級功能
-function openAddClassModal() {
-    if (!currentUser) { alert("請先登入以建立班級檔案。"); return; }
-    document.getElementById('new-class-name').value = '';
-    fillCurrentYear(); 
-    document.getElementById('pop-add-class-modal').classList.add('active');
-}
-
-function fillCurrentYear() {
-    const d = new Date();
-    const y = d.getFullYear();
-    const m = d.getMonth() + 1;
-    const academicYear = m >= 9 ? `${y}-${y+1}` : `${y-1}-${y}`;
-    document.getElementById('new-class-year').value = academicYear;
-}
-
-async function confirmAddClass() {
-    const name = document.getElementById('new-class-name').value.trim();
-    const year = document.getElementById('new-class-year').value.trim();
+// 4. 打開作業 (處理點擊)
+async function openAssignment(assignmentId) {
     
-    if (!name || !year) { alert("請填寫班別名稱及學年。"); return; }
+    // === 離線模式：編輯中 (Memory) ===
+    if (assignmentId === 'local_memory') {
+        showPage('page2');
+        showToast("已返回當前編輯中的專案", "success");
+        return;
+    }
 
-    try {
-        const { error } = await supabaseClient.from('classes').insert([{ 
-                user_id: currentUser.id, class_name: name, academic_year: year
-        }]);
-
-        if (error) throw error;
-
-        if (typeof showToast === 'function') showToast(`成功建立：${name}`, "success");
-        else alert("建立成功！");
-        document.getElementById('pop-add-class-modal').classList.remove('active');
-        
-        // 雖然還沒有作業，但我們可以強制刷新 Dashboard 看看
-        loadDashboard();
-        
-        // 提示用戶開作業
-        if(confirm(`班級 ${name} (${year}) 已建立！\n要立即為它開設第一個寫作任務嗎？`)) {
-            document.getElementById('student-class').value = name;
-            showPage('page1');
+    // === 離線模式：本機備份 (LocalStorage) ===
+    if (assignmentId === 'local_backup') {
+        try {
+            const backupStr = localStorage.getItem('idw_grading_backup_v1');
+            if (backupStr) {
+                const data = JSON.parse(backupStr);
+                // 還原資料
+                document.getElementById('student-class').value = data.className || '';
+                document.getElementById('topic').value = data.topic || '';
+                document.getElementById('student-names').value = data.namesText || '';
+                if(data.students) allStudentRecords = data.students;
+                if(data.typos) commonTypos = data.typos;
+                
+                // 刷新 UI
+                updateStudentDropdown();
+                renderStudentOverviewTable();
+                updateHeaderInfo();
+                
+                showPage('page2');
+                showToast("已載入本機自動備份", "success");
+            }
+        } catch(e) {
+            alert("載入備份失敗：" + e.message);
         }
+        return;
+    }
 
-    } catch (err) {
-        alert("建立失敗：" + err.message);
+    // === 線上模式：Supabase ===
+    if (!currentUser) {
+        showToast("請先登入以開啟此雲端專案", "warning");
+        return;
+    }
+    
+    showToast("正在載入雲端作業...", "info");
+    
+    try {
+        const { data: assignment, error: assignError } = await supabaseClient
+            .from('assignments')
+            .select(`*, classes(class_name)`)
+            .eq('id', assignmentId)
+            .single();
+        if (assignError) throw assignError;
+
+        const { data: students, error: studentError } = await supabaseClient
+            .from('students')
+            .select('*')
+            .eq('class_id', assignment.class_id)
+            .order('student_number', { ascending: true }); 
+        if (studentError) throw studentError;
+
+        const { data: results, error: resultError } = await supabaseClient
+            .from('results')
+            .select('*')
+            .eq('assignment_id', assignmentId);
+        if (resultError) throw resultError;
+
+        clearAllCore(false); 
+        
+        document.getElementById('student-class').value = assignment.classes.class_name;
+        document.getElementById('topic').value = assignment.title;
+        window.currentAssignmentId = assignment.id;
+        window.currentClassId = assignment.class_id;
+
+        allStudentRecords = students.map(st => {
+            const res = results.find(r => r.student_id === st.id);
+            let dataObj = null;
+            if (res) {
+                const extraData = res.comment_data || {}; 
+                dataObj = {
+                    class: assignment.classes.class_name,
+                    topic: assignment.title,
+                    uniqueComment: extraData.uniqueComment || '',
+                    scores: {
+                        content: res.content_score,
+                        expression: res.expression_score,
+                        structure: res.structure_score,
+                        punctuation: res.punctuation_score,
+                        total: res.total_score,
+                        typos: extraData.typosCount || 0
+                    },
+                    typos: extraData.typos || [],
+                    checkedCritiques: extraData.checkedCritiques || [],
+                    fullComment: res.comment_full || '',
+                    studentComment: extraData.studentComment || '',
+                    pureStudentComment: extraData.pureStudentComment || '',
+                    pureFullComment: extraData.pureFullComment || ''
+                };
+            }
+            return {
+                number: st.student_number,
+                name: st.name,
+                originalName: st.student_number ? `${st.student_number}-${st.name}` : st.name,
+                dbId: st.id,
+                data: dataObj
+            };
+        });
+
+        document.getElementById('student-names').value = allStudentRecords.map(r => r.originalName).join('\n');
+        updateStudentDropdown();
+        renderStudentOverviewTable();
+        updateHeaderInfo();
+        
+        showPage('page2');
+        showToast(`已載入：${assignment.title}`, "success");
+
+    } catch (error) {
+        console.error(error);
+        alert(`載入失敗：${error.message}`);
     }
 }
-
 
 // 5. 歡迎訊息更新
 function updateWelcomeMessage() {
@@ -6949,277 +7006,260 @@ if ('serviceWorker' in navigator) {
       });
     });
 }
+// -------------------------------------------------------------
+// ============================
+// ✅ 新增：Email + 密碼 登入邏輯
+// ============================
 
+// 1. 打開登入視窗
+function handleLogin() {
+  const modal = document.getElementById('pop-login-modal');
+  // 清空輸入框
+  if(document.getElementById('login-email')) document.getElementById('login-email').value = "";
+  if(document.getElementById('login-password')) document.getElementById('login-password').value = "";
+  
+  modal.classList.add('active');
+}
 
-// ==========================================
-// ====== 雲端同步核心 (修復版) ======
-// ==========================================
-async function syncDataToCloud() {
-  if (!currentUser) {
-    showToast("尚未登入，請先登入帳戶以使用雲端同步功能。", "warning");
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+// 2. 關閉視窗
+function closeLoginModal() {
+  const modal = document.getElementById('pop-login-modal');
+  if(modal) modal.classList.remove('active');
+}
+
+// 3. 處理 登入 或 註冊
+async function handlePasswordAuth(action) {
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value.trim();
+  const authStatus = document.getElementById('auth-status');
+
+  if (!email || !password) {
+    alert("請輸入 Email 及 密碼");
     return;
   }
 
-  const className = document.getElementById('student-class').value.trim();
-  const academicYear = document.getElementById('academic-year').value.trim();
-  const topic = document.getElementById('topic').value.trim();
-  const hasStudents = allStudentRecords.length > 0;
-
-  if (!className && !topic && !hasStudents) {
-     showToast("請至少填寫「班別」、「作文題目」或「學生名單」。", "warning");
-     return;
-  }
-
-  // UI 鎖定
-  const syncBtn = document.getElementById('sync-btn');
-  const originalText = syncBtn.textContent;
-  syncBtn.textContent = '同步中...';
-  syncBtn.disabled = true;
-  
-  showToast("正在同步至雲端...", "info");
+  // 鎖定按鈕
+  const btn = event.target;
+  const originalText = btn.innerText;
+  btn.innerText = "處理中...";
+  btn.disabled = true;
+  if(authStatus) authStatus.textContent = "處理中...";
 
   try {
-    // 1. 處理班級 (Classes)
-    let classId = null;
-    if (className) {
-        const { data: existingClasses, error: findClassError } = await supabaseClient
-            .from('classes')
-            .select('id')
-            .eq('user_id', currentUser.id)
-            .eq('class_name', className)
-            .eq('academic_year', academicYear || '2024-2025');
-
-        if (findClassError) throw findClassError;
-
-        if (existingClasses && existingClasses.length > 0) {
-            classId = existingClasses[0].id;
-        } else {
-            const { data: newClass, error: createClassError } = await supabaseClient
-                .from('classes')
-                .insert([{
-                    user_id: currentUser.id,
-                    class_name: className,
-                    academic_year: academicYear || '2024-2025'
-                }])
-                .select().single();
-            if (createClassError) throw createClassError;
-            classId = newClass.id;
-        }
-    }
-
-    // 2. 處理作業 (Assignments)
-    let assignmentId = window.currentAssignmentId; 
-    const assignmentPayload = {
-        class_id: classId,
-        title: topic,
-        total_score_max: 100,
-        date: new Date().toISOString()
-    };
-
-    if (assignmentId) {
-        const { error: updateAssignError } = await supabaseClient
-            .from('assignments').update(assignmentPayload).eq('id', assignmentId);
-        if (updateAssignError) throw updateAssignError;
+    if (action === 'signup') {
+      // --- 註冊 ---
+      const { data, error } = await supabaseClient.auth.signUp({
+        email: email,
+        password: password,
+      });
+      if (error) throw error;
+      
+      if (data.user) {
+         if (typeof showToast === 'function') showToast("註冊成功，已自動登入！", "success");
+         else alert("註冊成功，已自動登入！");
+         closeLoginModal();
+      }
     } else {
-        const { data: existingAssign } = await supabaseClient
-            .from('assignments').select('id')
-            .eq('class_id', classId).eq('title', topic).maybeSingle();
+      // --- 登入 ---
+      const { data, error } = await supabaseClient.auth.signInWithPassword({
+        email: email,
+        password: password,
+      });
+      if (error) throw error;
 
-        if (existingAssign) {
-            assignmentId = existingAssign.id;
-            await supabaseClient.from('assignments').update(assignmentPayload).eq('id', assignmentId);
-        } else {
-            const { data: newAssign, error: insertAssignError } = await supabaseClient
-                .from('assignments').insert([assignmentPayload]).select().single();
-            if (insertAssignError) throw insertAssignError;
-            assignmentId = newAssign.id;
-        }
-        window.currentAssignmentId = assignmentId;
+      if (typeof showToast === 'function') showToast("登入成功！", "success");
+      else alert("登入成功！");
+      closeLoginModal();
     }
-
-    // 3. 處理學生與成績
-    let dbStudentMap = new Map();
-    if (classId) {
-        const { data: dbStudents } = await supabaseClient
-            .from('students').select('id, name, student_number').eq('class_id', classId);
-        (dbStudents || []).forEach(s => dbStudentMap.set(s.name, s.id));
-    }
-
-    const resultsToUpsert = [];
-
-    for (const record of allStudentRecords) {
-        let studentDbId = record.dbId;
-        
-        // 如果本地冇 ID，嘗試去 Map 搵，搵唔到就 Insert 新學生
-        if (!studentDbId && classId) {
-            if (dbStudentMap.has(record.name)) {
-                studentDbId = dbStudentMap.get(record.name);
-            } else {
-                const { data: newStu, error: newStuError } = await supabaseClient
-                    .from('students')
-                    .insert([{
-                        class_id: classId,
-                        name: record.name,
-                        student_number: record.number
-                    }]).select().single();
-                if (!newStuError && newStu) {
-                    studentDbId = newStu.id;
-                    dbStudentMap.set(record.name, studentDbId);
-                }
-            }
-        }
-        record.dbId = studentDbId; // 更新本地紀錄
-
-        // 只有有數據嘅先 upload results
-        if (record.data && studentDbId) {
-            const s = record.data.scores || {};
-            resultsToUpsert.push({
-                assignment_id: assignmentId,
-                student_id: studentDbId,
-                total_score: parseFloat(s.total) || 0,
-                content_score: parseFloat(s.content) || 0,
-                expression_score: parseFloat(s.expression) || 0,
-                structure_score: parseFloat(s.structure) || 0,
-                punctuation_score: parseFloat(s.punctuation) || 0,
-                comment_full: record.data.fullComment,
-                comment_data: record.data, // JSON
-                updated_at: new Date().toISOString()
-            });
-        }
-    }
-
-    if (resultsToUpsert.length > 0) {
-        const { error: resultsError } = await supabaseClient
-            .from('results').upsert(resultsToUpsert, { onConflict: 'assignment_id, student_id' });
-        if (resultsError) throw resultsError;
-    }
-
-    // 4. 寫入 student_projects 作為備份 (兼容舊版)
-    await supabaseClient.from('student_projects').upsert({
-        user_id: currentUser.id,
-        class_name: className,
-        topic: topic,
-        project_data: allStudentRecords,
-        updated_at: new Date().toISOString()
-    }, { onConflict: 'user_id, class_name, topic' });
-
-    isDataDirty = false;
-    showToast("同步成功！Dashboard 已更新。", "success");
-    
-    if (typeof loadDashboard === 'function') loadDashboard();
-
-  } catch (error) {
-    showToast(`同步失敗: ${error.message}`, "error");
-    console.error(error);
+  } catch (err) {
+    console.error(err);
+    alert("操作失敗：" + err.message);
+    if(authStatus) authStatus.textContent = "操作失敗";
   } finally {
-    syncBtn.textContent = originalText;
-    syncBtn.disabled = false; 
-    updateUIBasedOnAuthState();
+    btn.innerText = originalText;
+    btn.disabled = false;
   }
 }
 
+// 4. 處理忘記密碼
+async function handleForgotPassword() {
+  const email = document.getElementById('login-email').value.trim();
+  if (!email) {
+    alert("請先在上方輸入您的電郵地址，然後再按「忘記密碼」。");
+    return;
+  }
 
-// ==========================================
-// ====== 打開作業 (完整邏輯版) ======
-// ==========================================
-async function openAssignment(assignmentId) {
-    if (assignmentId === 'local_memory') { showPage('page2'); return; }
-    if (!currentUser) { showToast("請先登入", "warning"); return; }
+  if (!confirm(`系統將會發送一封「重設密碼」郵件到：\n${email}\n\n確定嗎？`)) return;
+
+  try {
+    const { data, error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.href, // 重設後跳轉回本頁
+    });
     
-    showToast("載入中...", "info");
-    try {
-        // 1. 讀取作業資料
-        const { data: assignment, error } = await supabaseClient
-            .from('assignments')
-            .select(`*, classes(class_name, academic_year)`)
-            .eq('id', assignmentId)
-            .single();
-        if (error) throw error;
+    if (error) throw error;
 
-        // 2. 讀取該班學生
-        const { data: students, error: stError } = await supabaseClient
-            .from('students')
-            .select('*')
-            .eq('class_id', assignment.class_id)
-            .order('student_number', { ascending: true });
-        if (stError) throw stError;
-
-        // 3. 讀取成績
-        const { data: results, error: resError } = await supabaseClient
-            .from('results')
-            .select('*')
-            .eq('assignment_id', assignmentId);
-        if (resError) throw resError;
-
-        // --- 轉換數據 ---
-        clearAllCore(false);
-
-        // 填寫基本資料
-        // 使用 ?. 防止舊數據結構報錯
-        const clsName = assignment.classes?.class_name || '未命名班別'; 
-        const acYear = assignment.classes?.academic_year || ''; 
-
-        document.getElementById('student-class').value = clsName;
-        document.getElementById('academic-year').value = acYear;
-        document.getElementById('topic').value = assignment.title;
-        
-        window.currentAssignmentId = assignment.id;
-
-        // 構建學生名單
-        allStudentRecords = students.map(st => {
-            const res = results.find(r => r.student_id === st.id);
-            let dataObj = null;
-            if (res) {
-                const extraData = res.comment_data || {};
-                dataObj = {
-                    class: clsName,
-                    topic: assignment.title,
-                    uniqueComment: extraData.uniqueComment || '',
-                    scores: {
-                        content: res.content_score,
-                        expression: res.expression_score,
-                        structure: res.structure_score,
-                        punctuation: res.punctuation_score,
-                        total: res.total_score,
-                        typos: extraData.typosCount || 0
-                    },
-                    typos: extraData.typos || [],
-                    checkedCritiques: extraData.checkedCritiques || [],
-                    fullComment: res.comment_full || '',
-                    studentComment: extraData.studentComment || '',
-                    pureStudentComment: extraData.pureStudentComment || '',
-                    pureFullComment: extraData.pureFullComment || ''
-                };
-            }
-            return {
-                number: st.student_number,
-                name: st.name,
-                originalName: st.student_number ? `${st.student_number}-${st.name}` : st.name,
-                dbId: st.id,
-                data: dataObj
-            };
-        });
-
-        // 更新介面
-        document.getElementById('student-names').value = allStudentRecords.map(r => r.originalName).join('\n');
-        updateStudentDropdown();
-        renderStudentOverviewTable();
-        updateHeaderInfo();
-
-        if (!acYear) {
-            showPage('page1'); 
-            showToast("請補填「學年」", "info");
-        } else {
-            showPage('page2');
-            showToast(`已開啟：${assignment.title}`, "success");
-        }
-
-    } catch (e) {
-        console.error(e);
-        alert("載入錯誤：" + e.message);
-    }
+    alert("✅ 郵件已發送！\n請去 Email 點擊連結，系統會帶你回來設定新密碼。");
+    closeLoginModal();
+  } catch (err) {
+    alert("發送失敗：" + err.message);
+  }
 }
+// 2. 關閉視窗
+function closeLoginModal() {
+  document.getElementById('pop-login-modal').classList.remove('active');
+}
+
+// 3. 處理 登入 或 註冊
+async function handlePasswordAuth(action) {
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value.trim();
+  const authStatus = document.getElementById('auth-status');
+
+  if (!email || !password) {
+    alert("請輸入 Email 及 密碼");
+    return;
+  }
+
+  // 簡單鎖定 UI
+  const btn = event.target;
+  const originalText = btn.innerText;
+  btn.innerText = "處理中...";
+  btn.disabled = true;
+  authStatus.textContent = "處理中...";
+
+  try {
+    if (action === 'signup') {
+      // --- 註冊流程 ---
+      const { data, error } = await supabaseClient.auth.signUp({
+        email: email,
+        password: password,
+      });
+      
+      if (error) throw error;
+      
+      // 因為關閉了 Confirm Email，這裡通常會直接登入成功
+      if (data.user && data.session) {
+        if (typeof showToast === 'function') showToast("註冊成功，已自動登入！", "success");
+        else alert("註冊成功，已自動登入！");
+        closeLoginModal();
+      } else {
+        // 萬一佢仲係要你收信 (極少數情況)
+        alert("請檢查 Email 進行驗證。");
+        closeLoginModal();
+      }
+
+    } else {
+      // --- 登入流程 ---
+      const { data, error } = await supabaseClient.auth.signInWithPassword({
+        email: email,
+        password: password,
+      });
+
+      if (error) throw error;
+
+      if (typeof showToast === 'function') showToast("登入成功！", "success");
+      else alert("登入成功！");
+      closeLoginModal();
+    }
+
+  } catch (err) {
+    console.error(err);
+    alert("操作失敗：" + err.message);
+    authStatus.textContent = "操作失敗";
+  } finally {
+    // 解鎖按鈕
+    btn.innerText = originalText;
+    btn.disabled = false;
+  }
+}
+
+// 4. 處理「忘記密碼 / 設定新密碼」
+async function handleForgotPassword() {
+  const email = document.getElementById('login-email').value.trim();
+  if (!email) {
+    alert("請先在上方輸入您的電郵地址，然後再按「忘記密碼」。");
+    return;
+  }
+
+  if (!confirm(`系統將會發送一封「重設密碼」郵件到：\n${email}\n\n確定嗎？`)) return;
+
+  const authStatus = document.getElementById('auth-status');
+  authStatus.textContent = "正在發送...";
+
+  try {
+    // 發送重設信，並指定登入後跳轉回本頁
+    const { data, error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.href,
+    });
+    
+    if (error) throw error;
+
+    alert("✅ 郵件已發送！\n請去 Email 點擊連結，系統會帶你回來設定新密碼。");
+    closeLoginModal();
+    authStatus.textContent = "等待重設...";
+
+  } catch (err) {
+    alert("發送失敗：" + err.message);
+    authStatus.textContent = "操作失敗";
+  }
+}
+
+// 5. 監聽「重設密碼」事件 (當用戶撳完 Email Link 返嚟)
+supabaseClient.auth.onAuthStateChange(async (event, session) => {
+  // 原本的 checkUser 邏輯
+  currentUser = session ? session.user : null;
+  updateUIBasedOnAuthState();
+
+  if (event === 'SIGNED_IN') {
+    loadDataFromCloud(); // 正常登入載入資料
+  } else if (event === 'SIGNED_OUT') {
+  
+  } 
+  
+  // 🔥 新增：處理重設密碼事件
+  else if (event === 'PASSWORD_RECOVERY') {
+    const newPassword = prompt("🔐 歡迎回來！\n\n請輸入您的新密碼：");
+    
+    if (newPassword) {
+      const { data, error } = await supabaseClient.auth.updateUser({ 
+        password: newPassword 
+      });
+
+      if (error) {
+        alert("密碼更新失敗：" + error.message);
+      } else {
+        alert("🎉 密碼已成功更新！\n您現在可以使用新密碼登入了。");
+        // 更新成功後，通常已經係登入狀態，可以順便儲存一下
+        if (typeof showToast === 'function') showToast("密碼已更新", "success");
+      }
+    }
+  }
+});
+// --- 強制更新 App (解決鬼打牆專用) ---
+async function forceAppUpdate() {
+  if (!confirm("這將會清除 App 的緩存並強制下載最新版本。\n(你的學生資料不會遺失，因為已在雲端/LocalStorage)\n\n確定更新？")) return;
+
+  // 1. 註銷 Service Worker
+  if ('serviceWorker' in navigator) {
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    for (const registration of registrations) {
+      await registration.unregister();
+    }
+  }
+
+  // 2. 清除 Cache Storage
+  if ('caches' in window) {
+    const keys = await caches.keys();
+    for (const key of keys) {
+      await caches.delete(key);
+    }
+  }
+
+  // 3. 強制重新載入
+  alert("緩存已清除，正在重新載入最新版...");
+  window.location.reload(true);
+}
+
 </script> <!-- 呢個係原本全個檔案唯一的結尾，保留佢 -->
 
 
