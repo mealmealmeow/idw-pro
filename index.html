@@ -100,26 +100,30 @@
   pointer-events: auto;
 }
 
+/* Pop Art 彈窗統一風格 */
 .pop-modal {
   background: #ffffff;
   width: 90%;
   max-width: 500px;
-  /* ✅ 新增：限制最大高度為螢幕的 90%，並允許垂直捲動 */
-  max-height: 90vh;
-  overflow-y: auto; 
-  /* ----------------------------------------------- */
-  
-  /* 原有的樣式保留... */
-  border-radius: 30px;
-  box-shadow: -8px 8px 0px 0px #F2C037; 
+  /* 🟡 黃色邊框與陰影 */
   border: 2px solid #F2C037;
+  box-shadow: -8px 8px 0px 0px #F2C037; 
+  border-radius: 30px;
   padding: 30px;
   position: relative;
   text-align: center;
   color: #4a4a4a;
   transform: scale(0.95);
   transition: transform 0.2s;
+  max-height: 90vh;
+  overflow-y: auto;
 }
+
+/* 確保舊的 modal-card 不會干擾 (隱藏它) */
+.modal-card {
+  display: none !important; 
+}
+
 .pop-overlay.active .pop-modal {
   transform: scale(1);
 }
@@ -3018,58 +3022,9 @@
   </div>
 </div>
 <!-- ✅✅✅ 貼上結束 ✅✅✅ -->
- <!-- 自定義管理學生名單 Modal (Page 8 專用 - 修正版) -->
-<div id="pop-manage-students-modal" class="pop-overlay">
-  <div class="pop-modal" style="max-width: 600px;">
-    <div class="pop-icon">👥</div>
-    <h3 id="manage-class-title">管理名單</h3>
-    
-    <!-- 隱藏欄位：存住現在改緊邊班 -->
-    <input type="hidden" id="manage-class-id">
-
-    <!-- 工具列：下載範本 與 匯入 -->
-    <div style="display:flex; gap:10px; margin-bottom:15px; justify-content:center; flex-wrap:wrap;">
-      <!-- ✅ 這是 Page 8 專用的下載按鈕 -->
-      <button class="btn light-btn" onclick="downloadMasterListTemplate()" style="font-size:0.85rem;">
-        📥 下載 Excel 範本
-      </button>
-      
-      <label class="btn secondary-btn" style="font-size:0.85rem; cursor:pointer;">
-        📂 匯入 Excel
-        <input type="file" id="import-master-list-file" accept=".xlsx, .xls" style="display:none;" onchange="handleMasterListImport(this)">
-      </label>
-    </div>
-
-    <!-- ✅ 批量文字輸入區 (不再摺疊，直接顯示) -->
-    <div style="margin-bottom:15px; text-align:left; border:1px solid #eee; padding:10px; border-radius:8px; background:#fafafa;">
-        <label style="font-size:0.85rem; font-weight:bold; color:#5A8F7B; display:block; margin-bottom:5px;">
-            📝 批量貼上 (每行一位，例如：01 陳大文)
-        </label>
-        <!-- 確保這是 textarea -->
-        <textarea id="batch-student-input" rows="4" class="pop-input" style="width:100%; box-sizing:border-box; text-align:left; font-size:0.9rem;" placeholder="在此直接貼上名單..."></textarea>
-        <button class="action-btn" style="width:100%; margin-top:5px; padding:6px;" onclick="addBatchStudentsToMaster()">
-            ⬇️ 確認新增名單
-        </button>
-    </div>
-
-    <hr style="border:0; border-top:1px solid #eee; margin:10px 0;">
-
-    <!-- 學生列表顯示區 -->
-    <div class="pop-scroll-area" id="master-student-list" style="height: 200px; max-height: 30vh;">
-      <div style="text-align:center; color:#999; padding:20px;">正在讀取...</div>
-    </div>
-
-    <div class="pop-footer">
-      <button class="pop-btn pop-btn-confirm" onclick="closeManageStudentsModal()">完成 / 關閉</button>
-    </div>
-  </div>
-</div>
 
 
-    </main>
-  </div>
-    </main>
-  </div>
+
 
   <!-- 自製確認對話框 -->
   <div id="modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-hidden="true">
@@ -3170,8 +3125,55 @@
     </div>
   </div>
 </div>
+   </main>
+  </div> <!-- 這是 main-container 的結尾 -->
 
+ <!-- 自定義管理學生名單 Modal (Page 8 專用 - 修正版) -->
+<div id="pop-manage-students-modal" class="pop-overlay">
+  <div class="pop-modal" style="max-width: 600px;">
+    <div class="pop-icon">👥</div>
+    <h3 id="manage-class-title">管理名單</h3>
+    
+    <!-- 隱藏欄位：存住現在改緊邊班 -->
+    <input type="hidden" id="manage-class-id">
 
+    <!-- 工具列：下載範本 與 匯入 -->
+    <div style="display:flex; gap:10px; margin-bottom:15px; justify-content:center; flex-wrap:wrap;">
+      <!-- ✅ 這是 Page 8 專用的下載按鈕 -->
+      <button class="btn light-btn" onclick="downloadMasterListTemplate()" style="font-size:0.85rem;">
+        📥 下載 Excel 範本
+      </button>
+      
+      <label class="btn secondary-btn" style="font-size:0.85rem; cursor:pointer;">
+        📂 匯入 Excel
+        <input type="file" id="import-master-list-file" accept=".xlsx, .xls" style="display:none;" onchange="handleMasterListImport(this)">
+      </label>
+    </div>
+
+    <!-- ✅ 批量文字輸入區 (不再摺疊，直接顯示) -->
+    <div style="margin-bottom:15px; text-align:left; border:1px solid #eee; padding:10px; border-radius:8px; background:#fafafa;">
+        <label style="font-size:0.85rem; font-weight:bold; color:#5A8F7B; display:block; margin-bottom:5px;">
+            📝 批量貼上 (每行一位，例如：01 陳大文)
+        </label>
+        <!-- 確保這是 textarea -->
+        <textarea id="batch-student-input" rows="4" class="pop-input" style="width:100%; box-sizing:border-box; text-align:left; font-size:0.9rem;" placeholder="在此直接貼上名單..."></textarea>
+        <button class="action-btn" style="width:100%; margin-top:5px; padding:6px;" onclick="addBatchStudentsToMaster()">
+            ⬇️ 確認新增名單
+        </button>
+    </div>
+
+    <hr style="border:0; border-top:1px solid #eee; margin:10px 0;">
+
+    <!-- 學生列表顯示區 -->
+    <div class="pop-scroll-area" id="master-student-list" style="height: 200px; max-height: 30vh;">
+      <div style="text-align:center; color:#999; padding:20px;">正在讀取...</div>
+    </div>
+
+    <div class="pop-footer">
+      <button class="pop-btn pop-btn-confirm" onclick="closeManageStudentsModal()">完成 / 關閉</button>
+    </div>
+  </div>
+</div>
 
 <script>
 // --- Supabase 初始化與設定 ---
@@ -6048,6 +6050,20 @@ function exportOverviewToWord() {
   color: #2e7d32;
   font-weight: bold;
 }
+
+/* 修復學生卡片顯示 */
+.student-check-card {
+  background-color: #ffffff !important; /* 強制白底 */
+  color: #5b5044 !important;          /* 強制深啡字 */
+  border: 1px solid #e1d8c8 !important;
+}
+
+.student-check-card.checked {
+  background-color: #e0f2f1 !important; /* 選中時變淺綠 */
+  color: #00695c !important;          /* 選中時深綠字 */
+  border-color: #00695c !important;
+}
+
 </style>
 </head>
 <body>`;
@@ -7962,59 +7978,44 @@ async function loadAllClasses() {
     }
 }
 
-// 2. 新增班級 (修復版)
+// 2. 新增班級 (智能學年版)
 async function createNewClass() {
-    // 1. 檢查權限
     if (!currentUser) {
         alert("⚠️ 請先登入帳戶才能建立班級。");
-        handleLogin(); // 自動打開登入窗
+        handleLogin(); 
         return;
     }
 
-    // 2. 獲取輸入
-    const currentYear = new Date().getFullYear();
-const nextYear = currentYear + 1;
-const defaultYear = `${currentYear}-${nextYear}`;
-// ... prompt(..., defaultYear)
+    // 🧠 自動計算學年 (例如現在是 2025，預設 "2025-2026")
+    const today = new Date();
+    const curYear = today.getFullYear();
+    // 如果是 9月前，學年可能是 "去年-今年"；9月後是 "今年-明年"。這裡簡單預設 "今年-明年"
+    const defaultYear = `${curYear}-${curYear + 1}`;
+
+    const year = prompt("請輸入學年:", defaultYear);
+    if (year === null) return;
     if (!year.trim()) { alert("學年不能為空！"); return; }
     
     const className = prompt("請輸入班別名稱 (例如 6A):");
     if (className === null) return;
     if (!className.trim()) { alert("班別名稱不能為空！"); return; }
 
-    // 3. 執行新增
     try {
-        // 顯示處理中狀態 (可選)
-        if(typeof showToast === 'function') showToast("正在建立班級...", "info");
-
-        const { data, error } = await supabaseClient
-            .from('classes')
-            .insert([{ 
-                user_id: currentUser.id,
-                academic_year: year.trim(),
-                class_name: className.trim()
-            }])
-            .select(); // 加 .select() 確保有回傳值
-
+        const { error } = await supabaseClient.from('classes').insert([{ 
+            user_id: currentUser.id, academic_year: year.trim(), class_name: className.trim()
+        }]);
         if (error) throw error;
 
         if(typeof showToast === 'function') showToast(`✅ 成功建立 ${className}！`, "success");
-        else alert(`成功建立 ${className}！`);
-        
-        // 4. 刷新介面
         loadAllClasses(); 
         
-        // 5. 順便刷新 Page 1 下拉選單 (如果存在)
+        // 刷新 Page 1
         const p1Select = document.getElementById('setup-class-select');
-        if(p1Select) {
-             // 如果我們現在在 Page 8，Page 1 可能不可見，所以最安全是清空它，下次點擊自動載入
-             p1Select.innerHTML = '<option>載入中...</option>';
-             loadPage1ClassDropdown(); // 強制重載
-        }
+        if(p1Select) { p1Select.innerHTML = '<option>載入中...</option>'; loadPage1ClassDropdown(); }
 
     } catch (error) {
         console.error(error);
-        alert("❌ 建立失敗：" + (error.message || "未知錯誤"));
+        alert("❌ 建立失敗：" + error.message);
     }
 }
 
