@@ -3194,7 +3194,7 @@ function updateHeaderInfo() {
 // --- Supabase 核心功能 ---
 
 
-// 完整版 checkUser (包含重設密碼邏輯)
+// 完整版 checkUser (包含重設密碼邏輯 & 班級載入)
 async function checkUser() {
   const { data: { session } } = await supabaseClient.auth.getSession();
   currentUser = session ? session.user : null;
@@ -3203,8 +3203,13 @@ async function checkUser() {
   if (currentUser) {
     loadDataFromCloud();
     if (typeof loadDashboard === 'function') loadDashboard(); 
-    // ✅ 正確位置：登入後嘗試載入班級下拉選單
+    
+    // ✅ 修正：登入後，立即嘗試讀取班級資料，讓下拉選單有野揀
     if (typeof loadPage1ClassDropdown === 'function') loadPage1ClassDropdown();
+    if (typeof loadAllClasses === 'function' && document.getElementById('page8').classList.contains('active')) {
+        loadAllClasses();
+    }
+
   } else {
     // 離線模式
     renderCommonTypoList();
@@ -3220,7 +3225,7 @@ async function checkUser() {
     if (event === 'SIGNED_IN') {
       loadDataFromCloud();
       if (typeof loadDashboard === 'function') loadDashboard();
-      // ✅ 正確位置：登入事件觸發時載入
+      // ✅ 修正：登入瞬間也要讀取班級
       if (typeof loadPage1ClassDropdown === 'function') loadPage1ClassDropdown();
     } 
     else if (event === 'SIGNED_OUT') {
@@ -3249,8 +3254,6 @@ async function checkUser() {
     }
   });
 }
-
-
 
 function handleLogout() {
   confirmUI("確定要登出嗎？所有未同步的變更將會遺失。", async () => {
@@ -7230,45 +7233,44 @@ function closeLoginModal() {
   if(modal) modal.classList.remove('active');
 }
 
-// 3. 處理 登入 或 註冊
+/// 3. 處理 登入 或 註冊 (修正版：防止卡死)
 async function handlePasswordAuth(action) {
   const email = document.getElementById('login-email').value.trim();
   const password = document.getElementById('login-password').value.trim();
   const authStatus = document.getElementById('auth-status');
+  
+  // 找出按鈕 (不依賴 event.target，避免報錯)
+  const btn = document.querySelector('#pop-login-modal .pop-btn-confirm'); 
+  const originalText = btn ? btn.innerText : (action === 'login' ? '登入' : '註冊');
 
   if (!email || !password) {
     alert("請輸入 Email 及 密碼");
     return;
   }
 
-  // 鎖定按鈕
-  const btn = event.target;
-  const originalText = btn.innerText;
-  btn.innerText = "處理中...";
-  btn.disabled = true;
+  // 鎖定按鈕與狀態
+  if(btn) {
+      btn.innerText = "處理中...";
+      btn.disabled = true;
+  }
   if(authStatus) authStatus.textContent = "處理中...";
 
   try {
+    let result;
     if (action === 'signup') {
       // --- 註冊 ---
-      const { data, error } = await supabaseClient.auth.signUp({
-        email: email,
-        password: password,
-      });
-      if (error) throw error;
+      result = await supabaseClient.auth.signUp({ email, password });
+      if (result.error) throw result.error;
       
-      if (data.user) {
+      if (result.data.user) {
          if (typeof showToast === 'function') showToast("註冊成功，已自動登入！", "success");
          else alert("註冊成功，已自動登入！");
          closeLoginModal();
       }
     } else {
       // --- 登入 ---
-      const { data, error } = await supabaseClient.auth.signInWithPassword({
-        email: email,
-        password: password,
-      });
-      if (error) throw error;
+      result = await supabaseClient.auth.signInWithPassword({ email, password });
+      if (result.error) throw result.error;
 
       if (typeof showToast === 'function') showToast("登入成功！", "success");
       else alert("登入成功！");
@@ -7277,10 +7279,14 @@ async function handlePasswordAuth(action) {
   } catch (err) {
     console.error(err);
     alert("操作失敗：" + err.message);
-    if(authStatus) authStatus.textContent = "操作失敗";
+    // 發生錯誤時，將狀態還原為「未連接」或當前狀態
+    updateUIBasedOnAuthState(); 
   } finally {
-    btn.innerText = originalText;
-    btn.disabled = false;
+    // 解鎖按鈕
+    if(btn) {
+        btn.innerText = originalText;
+        btn.disabled = false;
+    }
   }
 }
 
