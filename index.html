@@ -3628,34 +3628,47 @@ async function syncDataToCloud() {
     updateUIBasedOnAuthState();
   }
 }
+// ====== 登入/介面狀態 強制修復版 ======
+// ==========================================
+
+// 1. 介面狀態更新函數 (確保文字正確)
 function updateUIBasedOnAuthState() {
     const authStatus = document.getElementById('auth-status');
     const loginBtn = document.getElementById('login-btn');
     const logoutBtn = document.getElementById('logout-btn');
     const syncBtn = document.getElementById('sync-btn');
     const selectProjectBtn = document.getElementById('select-project-btn');
+    const phContainer = document.getElementById('project-header-info');
+
     if (currentUser) {
-        authStatus.textContent = `已登入: ${currentUser.email}`;
-        loginBtn.style.display = 'none';
-        logoutBtn.style.display = 'inline-flex';
-        syncBtn.style.display = 'inline-flex';
-        if (selectProjectBtn) selectProjectBtn.style.display = 'inline-flex';
+        // 已登入狀態
+        if(authStatus) authStatus.textContent = `已登入: ${currentUser.email}`;
+        if(authStatus) authStatus.style.backgroundColor = "rgba(90, 143, 123, 0.2)"; // 綠色底顯示已登入
+        
+        if(loginBtn) loginBtn.style.display = 'none';
+        if(logoutBtn) logoutBtn.style.display = 'inline-flex';
+        if(syncBtn) syncBtn.style.display = 'inline-flex';
+        if(selectProjectBtn) selectProjectBtn.style.display = 'inline-flex';
+
         if (isDataDirty) {
             syncBtn.disabled = false;
             syncBtn.classList.add('dirty');
             syncBtn.textContent = '儲存變更到雲端';
         } else {
-            // 如果已同步，還是讓按鈕保持 enabled，但改變文字，這樣用戶點擊時可以看到"已是最新"的提示
-            syncBtn.disabled = false; 
+            syncBtn.disabled = false;
             syncBtn.classList.remove('dirty');
             syncBtn.textContent = '資料已同步';
         }
     } else {
-        authStatus.textContent = '離線模式';
-        loginBtn.style.display = 'inline-flex';
-        logoutBtn.style.display = 'none';
-        syncBtn.style.display = 'none';
-        if (selectProjectBtn) selectProjectBtn.style.display = 'none';
+        // 未登入狀態
+        if(authStatus) authStatus.textContent = '未連接';
+        if(authStatus) authStatus.style.backgroundColor = "rgba(0, 0, 0, 0.15)"; // 還原灰色
+
+        if(loginBtn) loginBtn.style.display = 'inline-flex';
+        if(logoutBtn) logoutBtn.style.display = 'none';
+        if(syncBtn) syncBtn.style.display = 'none';
+        if(selectProjectBtn) selectProjectBtn.style.display = 'none';
+        if(phContainer) phContainer.style.display = 'none';
     }
 }
 
@@ -7233,13 +7246,13 @@ function closeLoginModal() {
   if(modal) modal.classList.remove('active');
 }
 
-/// 3. 處理 登入 或 註冊 (修正版：防止卡死)
+// 2. 處理 登入 或 註冊 (防卡死加強版)
 async function handlePasswordAuth(action) {
   const email = document.getElementById('login-email').value.trim();
   const password = document.getElementById('login-password').value.trim();
   const authStatus = document.getElementById('auth-status');
   
-  // 找出按鈕 (不依賴 event.target，避免報錯)
+  // 找出按鈕
   const btn = document.querySelector('#pop-login-modal .pop-btn-confirm'); 
   const originalText = btn ? btn.innerText : (action === 'login' ? '登入' : '註冊');
 
@@ -7248,7 +7261,7 @@ async function handlePasswordAuth(action) {
     return;
   }
 
-  // 鎖定按鈕與狀態
+  // 鎖定 UI：顯示處理中
   if(btn) {
       btn.innerText = "處理中...";
       btn.disabled = true;
@@ -7257,29 +7270,46 @@ async function handlePasswordAuth(action) {
 
   try {
     let result;
+    
+    // A. 執行登入/註冊動作
     if (action === 'signup') {
-      // --- 註冊 ---
       result = await supabaseClient.auth.signUp({ email, password });
-      if (result.error) throw result.error;
-      
-      if (result.data.user) {
-         if (typeof showToast === 'function') showToast("註冊成功，已自動登入！", "success");
-         else alert("註冊成功，已自動登入！");
-         closeLoginModal();
-      }
     } else {
-      // --- 登入 ---
       result = await supabaseClient.auth.signInWithPassword({ email, password });
-      if (result.error) throw result.error;
-
-      if (typeof showToast === 'function') showToast("登入成功！", "success");
-      else alert("登入成功！");
-      closeLoginModal();
     }
+    
+    if (result.error) throw result.error;
+
+    // B. 成功後：【關鍵步驟】強制重新抓取 Session，不等待監聽器
+    const { data: sessionData } = await supabaseClient.auth.getSession();
+    currentUser = sessionData.session ? sessionData.session.user : null;
+
+    // C. 立即更新 UI，覆蓋「處理中」字樣
+    updateUIBasedOnAuthState();
+
+    // D. 顯示成功訊息 & 關閉視窗
+    if (currentUser) {
+         if (typeof showToast === 'function') showToast("登入成功！", "success");
+         else alert("登入成功！");
+         closeLoginModal();
+         
+         // E. 觸發數據載入
+         loadDataFromCloud();
+         // 如果在班級頁，刷新班級
+         if (typeof loadAllClasses === 'function' && document.getElementById('page8').classList.contains('active')) {
+            loadAllClasses();
+         }
+         // 如果在首頁，刷新 Dashboard
+         if (typeof loadDashboard === 'function') loadDashboard();
+         // 如果在 Page 1，刷新下拉選單
+         if (typeof loadPage1ClassDropdown === 'function') loadPage1ClassDropdown();
+    }
+
   } catch (err) {
     console.error(err);
     alert("操作失敗：" + err.message);
-    // 發生錯誤時，將狀態還原為「未連接」或當前狀態
+    // 失敗時，強制還原 UI 狀態 (變回「未連接」)
+    currentUser = null;
     updateUIBasedOnAuthState(); 
   } finally {
     // 解鎖按鈕
