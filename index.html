@@ -7066,53 +7066,51 @@ async function deleteProject() {
 
 
 /* ==========================================
-   ====== 🚑 強制偵測重設密碼 (改良版) ======
+   ====== 🔐 官方標準重設密碼監聽器 ======
    ========================================== */
-window.addEventListener('load', async () => {
-    const hash = window.location.hash;
-
-    // 1. 先檢查是否有錯誤 (例如連結過期)
-    if (hash && hash.includes('error_code=otp_expired')) {
-        alert("⚠️ 密碼重設連結已過期或失效！\n\n請重新按「忘記密碼」再發送一封郵件。");
-        // 清除網址上的錯誤訊息
-        window.history.replaceState(null, '', window.location.pathname);
-        return;
-    }
-
-    // 2. 檢查是否正常的重設流程
-    if (hash && hash.includes('type=recovery')) {
-        console.log("正在處理密碼重設流程...");
-
-        // 延遲 1 秒，等待 Supabase 處理 Session 交換
-        setTimeout(async () => {
-            // 關鍵檢查：確保已經建立了 Session 才能更新
-            const { data: { session } } = await supabaseClient.auth.getSession();
+supabaseClient.auth.onAuthStateChange(async (event, session) => {
+    // 只有當事件為 "PASSWORD_RECOVERY" 時才執行
+    if (event === 'PASSWORD_RECOVERY') {
+        console.log("偵測到重設密碼事件！");
+        
+        let newPassword = null;
+        
+        // 使用迴圈確保用戶輸入符合要求的密碼
+        while (true) {
+            newPassword = prompt("🔐 重設密碼\n\n請輸入您的新密碼：\n(⚠️ 密碼長度最少需 6 個字元)");
             
-            if (!session) {
-                // 如果來到這裡但沒有 session，通常代表連結有問題但沒被 error catch 到
-                console.warn("找不到 Session，無法更新密碼");
-                return;
+            // 如果用戶按取消，則停止
+            if (newPassword === null) { 
+                alert("已取消重設密碼。");
+                return; 
             }
-
-            const newPassword = prompt("🔐 檢測到重設密碼請求！\n\n請輸入您的新密碼：");
             
-            if (newPassword) {
-                if(typeof showToast === 'function') showToast("正在更新密碼...", "info");
-                
-                const { error } = await supabaseClient.auth.updateUser({ password: newPassword });
-
-                if (error) {
-                    alert("❌ 更新失敗：" + error.message);
-                } else {
-                    alert("✅ 密碼已更新成功！\n\n請使用新密碼重新登入。");
-                    window.history.replaceState(null, '', window.location.pathname);
-                    window.location.reload();
-                }
+            // 檢查長度
+            if (newPassword.length >= 6) {
+                break; // 密碼合格，跳出迴圈
+            } else {
+                alert("❌ 密碼太短！\nSupabase 要求密碼最少 6 個字元，請重試。");
             }
-        }, 1000); // 延長少少時間至 1秒，比較穩陣
+        }
+
+        // 顯示處理中
+        if(typeof showToast === 'function') showToast("正在更新密碼...", "info");
+
+        // 執行更新
+        const { data, error } = await supabaseClient.auth.updateUser({ 
+            password: newPassword 
+        });
+
+        if (error) {
+            alert("❌ 更新失敗：" + error.message);
+        } else {
+            alert("🎉 密碼已成功更新！\n\n請使用新密碼重新登入。");
+            // 清除網址上的痕跡並重新載入
+            window.location.hash = ''; 
+            window.location.reload(); 
+        }
     }
 });
-
 </script> <!-- 呢個係原本全個檔案唯一的結尾，保留佢 -->
 
 
