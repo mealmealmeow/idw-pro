@@ -2213,6 +2213,144 @@
     to { opacity: 1; transform: translateY(0); } 
 }
 
+
+/* ==========================================
+   === 🏫 班級指揮中心 (樣式修復版) ===
+   ========================================== */
+
+/* 1. 外層結構 */
+.year-section { margin-bottom: 2.5rem; }
+.year-title {
+    color: #aaa; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 2px;
+    border-bottom: 1px solid #eee; padding-bottom: 5px; margin-bottom: 1rem;
+}
+.class-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.2rem;
+}
+
+/* 2. 資料夾卡片 */
+.class-folder {
+    background: #fdfbf7;
+    border: 1px solid #e1d8c8;
+    border-radius: 12px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+    overflow: visible; /* 改為 visible 讓選單可以彈出 */
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.2s;
+}
+.class-folder:hover {
+    box-shadow: 0 8px 15px rgba(0,0,0,0.08);
+    border-color: var(--accent-color);
+    transform: translateY(-2px);
+}
+
+/* 3. 卡片頭部 (Header) */
+.folder-header {
+    padding: 1rem 1.2rem;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(to bottom, #fff, #fdfbf7);
+    border-bottom: 1px solid transparent;
+    border-radius: 12px; /* 預設圓角 */
+}
+.folder-header:hover { background: #fff; }
+
+/* 展開時的樣式 */
+.class-folder.open .folder-header {
+    border-bottom: 1px solid #e1d8c8;
+    border-radius: 12px 12px 0 0; /* 上方圓角 */
+    background: #f4ede2;
+}
+.class-folder.open .folder-body { display: block; }
+
+.folder-title { font-size: 1.2rem; font-weight: 700; color: var(--title-color); }
+.folder-info { font-size: 0.85rem; color: #999; }
+
+/* 4. 卡片內容 (Body) */
+.folder-body {
+    display: none; /* 預設隱藏 */
+    background: #fff;
+    padding: 1rem;
+    border-radius: 0 0 12px 12px;
+    animation: slideDown 0.2s ease-out;
+}
+
+/* 5. 工具按鈕 (修復樣衰問題) */
+.folder-actions {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px dashed #eee;
+}
+.tool-btn {
+    flex: 1;
+    padding: 8px 0; /* 加大一點 */
+    font-size: 0.85rem;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    background-color: #fff; /* 強制白色底 */
+    cursor: pointer;
+    color: #555;
+    transition: all 0.2s;
+    text-align: center;
+    display: inline-block;
+    font-family: inherit; /* 繼承字體 */
+}
+.tool-btn:hover {
+    background-color: var(--accent-color);
+    color: #fff;
+    border-color: var(--accent-color);
+}
+
+/* 6. 作業列表行 (修復排版) */
+.project-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.project-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    background-color: #f9f9f9; /* 淺灰底 */
+    font-size: 0.95rem;
+    color: #555;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.project-row:hover {
+    background-color: #eee;
+    transform: translateX(4px);
+}
+
+/* 正在進行中的項目 (立體效果) */
+.project-row.is-active {
+    background: #fff;
+    border: 2px solid var(--accent-color);
+    box-shadow: 0 4px 8px rgba(90, 143, 123, 0.25);
+    color: var(--title-color);
+    font-weight: bold;
+    z-index: 5;
+    transform: scale(1.02);
+}
+.project-row-date { font-size: 0.8rem; color: #aaa; margin-right: 8px; }
+
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
 </style>
 </head>
 <body>
@@ -2268,6 +2406,7 @@
         <button id="nav-page5" class="nav-btn" onclick="showPage('page5')">評語分析</button>
         <button id="nav-page6" class="nav-btn" onclick="showPage('page6')">AI 評語庫生成</button>
         <button id="nav-page7" class="nav-btn" onclick="showPage('page7')">AI 生成回饋</button>
+<button id="nav-page8" class="nav-btn" onclick="showPage('page8')">班級管理</button>
       </nav>
 
       <!-- 舊的快捷導覽列已被移除 -->
@@ -2866,6 +3005,24 @@
         </div>
       </div>
 
+      <!-- ==================== 第八頁：班級管理 (新) ==================== -->
+<div id="page8" class="page-content">
+  <div class="overview-container">
+    <div class="page-header">
+      <h2>班級名單管理</h2>
+      <button class="action-btn" onclick="openCreateClassModal()">＋ 建立新班級</button>
+    </div>
+    <p style="color:#777; font-size:0.95rem; margin-bottom: 2rem;">
+      這裡是「母名單」設定處。只需在此匯入一次學生名單，日後開新作業時即可直接選用，無需重複輸入。
+    </p>
+
+    <!-- 這裡顯示班級卡片 -->
+    <div id="class-management-list" class="class-grid">
+      <div class="dashboard-loading"><div class="spinner"></div> 讀取班級中...</div>
+    </div>
+  </div>
+</div>
+
     </main>
   </div>
 
@@ -2880,6 +3037,26 @@
       </div>
     </div>
   </div>
+
+  <!-- 自定義建立班級 Modal -->
+<div id="pop-create-class-modal" class="pop-overlay">
+  <div class="pop-modal">
+    <div class="pop-icon">🏫</div>
+    <h3>建立新班級</h3>
+    <p class="pop-desc">請輸入學年及班別名稱。</p>
+    
+    <label style="font-size:0.85rem; color:#666; font-weight:bold; display:block; text-align:left;">學年</label>
+    <input type="text" id="new-class-year" class="pop-input" style="width:100%; box-sizing:border-box; margin-bottom:15px;" placeholder="例如：2025-2026">
+    
+    <label style="font-size:0.85rem; color:#666; font-weight:bold; display:block; text-align:left;">班別</label>
+    <input type="text" id="new-class-name" class="pop-input" style="width:100%; box-sizing:border-box;" placeholder="例如：6A">
+
+    <div class="pop-footer">
+      <button class="pop-btn pop-btn-cancel" onclick="document.getElementById('pop-create-class-modal').classList.remove('active')">取消</button>
+      <button class="pop-btn pop-btn-confirm" onclick="submitNewClass()">確定建立</button>
+    </div>
+  </div>
+</div>
 
   <!-- 評語資料來源 -->
   <div id="critique-data" style="display:none;">
@@ -3601,6 +3778,10 @@ function showPage(pageId, focusElementId = null) {
   } else if (pageId === 'page5') {
     renderAnalysisPage();
   } else if (pageId === 'page7') {
+    } else if (pageId === 'page8') {
+      loadAllClasses(); // 切換到這一頁時，自動讀取
+      if (typeof showToast === 'function') showToast(`已切換至：班級管理`, 'info');
+  }
     const records = allStudentRecords.filter(r => r.data);
     const promptTextarea = document.getElementById('ai-feedback-prompt-preview');
     if (promptTextarea) {
@@ -3621,7 +3802,7 @@ function showPage(pageId, focusElementId = null) {
       }
     }, 150);
   }
-}
+
 
 function initFloatingNavObserver() {
     const sections = document.querySelectorAll('#page2 .section-box');
@@ -5768,7 +5949,9 @@ function exportOverviewToWord() {
 .task-item, .class-group-content > div {
   position: relative; /* 讓絕對定位生效 (如有需要) */
 }
-    
+ 
+
+
 </style>
 </head>
 <body>`;
@@ -6793,58 +6976,114 @@ function groupByYearAndClass(projects) {
     return groups;
 }
 
-// --- Helper: 渲染手風琴 (卡片網格版) ---
+// --- Helper: 渲染班級資料夾 (Command Center 修復版) ---
 function renderClassAccordion(groups, container) {
     if(Object.keys(groups).length === 0) {
         container.innerHTML = '<div style="color:#ccc; text-align:center; padding:1rem;">(暫無歸檔資料)</div>';
         return;
     }
     
+    const focusIds = Array.from(document.querySelectorAll('#focus-task-list .task-item'))
+                          .map(el => el.getAttribute('onclick')?.match(/'([^']+)'/)?.[1])
+                          .filter(Boolean);
+
     const years = Object.keys(groups).sort().reverse();
+    let fullHtml = '';
 
-    years.forEach((year, yIndex) => {
-        const yearDiv = document.createElement('div');
-        yearDiv.innerHTML = `<h4 style="margin: 2rem 0 0.8rem 0; color:#aaa; font-size:0.85rem; text-transform:uppercase; letter-spacing:1px; border-bottom:1px solid #eee; padding-bottom:4px;">📅 ${year} 學年</h4>`;
-        container.appendChild(yearDiv);
-
+    years.forEach((year) => {
         const classesObj = groups[year];
         const classNames = Object.keys(classesObj).sort();
 
+        fullHtml += `
+        <div class="year-section">
+            <div class="year-title">📅 ${year} 學年</div>
+            <div class="class-grid">
+        `;
+
         classNames.forEach((className, cIndex) => {
             const classProjects = classesObj[className];
-            
-            // Header
-            const header = document.createElement('div');
-            header.className = 'class-group-header';
-            header.innerHTML = `
-                <span>📁 ${escapeHtml(className)}</span>
-                <span style="font-weight:normal; color:#888; font-size:0.9rem;">${classProjects.length} 份作業 ▼</span>
-            `;
-            
-            // Content (Grid)
-            const content = document.createElement('div');
-            content.className = 'class-group-content';
-            
+            const projectCount = classProjects.length;
+            const uniqueClassId = `folder-${year.replace(/\s/g,'')}-${cIndex}`;
+
             let listHtml = '';
             classProjects.forEach((p, pIndex) => {
-                const uniqueId = `archive-${yIndex}-${cIndex}-${pIndex}`;
-                listHtml += buildCardHtml(p, uniqueId);
+                const uniqueId = `row-${year.replace(/\s/g,'')}-${cIndex}-${pIndex}`;
+                const isActive = focusIds.includes(p.id);
+                listHtml += buildCompactRowHtml(p, uniqueId, isActive);
             });
-            content.innerHTML = listHtml;
 
-            header.onclick = () => {
-                content.classList.toggle('active');
-                const arrow = header.querySelector('span:last-child');
-                if(content.classList.contains('active')) arrow.textContent = `${classProjects.length} 份作業 ▲`;
-                else arrow.textContent = `${classProjects.length} 份作業 ▼`;
-            };
+            // 注意：onclick 裡面加了 event.stopPropagation() 防止誤觸
+            fullHtml += `
+            <div class="class-folder" id="${uniqueClassId}">
+                <div class="folder-header" onclick="toggleClassFolder('${uniqueClassId}')">
+                    <span class="folder-title">📂 ${escapeHtml(className)}</span>
+                    <span class="folder-info">${projectCount} 份作業 ▼</span>
+                </div>
 
-            container.appendChild(header);
-            container.appendChild(content);
+                <div class="folder-body">
+                    <div class="folder-actions">
+                        <button class="tool-btn" type="button" onclick="event.stopPropagation(); alert('即將推出：班級追蹤')">📊 班級追蹤</button>
+                        <button class="tool-btn" type="button" onclick="event.stopPropagation(); alert('即將推出：管理名單')">👥 管理名單</button>
+                        <button class="tool-btn" type="button" style="background:#5A8F7B; color:#fff; border-color:#5A8F7B;" onclick="event.stopPropagation(); alert('即將推出：新增作業')">➕ 新增作業</button>
+                    </div>
+                    <div class="project-list">
+                        ${listHtml}
+                    </div>
+                </div>
+            </div>`;
         });
+
+        fullHtml += `</div></div>`;
     });
+
+    container.innerHTML = fullHtml;
 }
 
+// --- [新] 緊湊列表行 HTML 產生器 (修復版) ---
+function buildCompactRowHtml(item, uniqueId, isActive) {
+    const dateStr = new Date(item.last_updated).toLocaleDateString();
+    
+    let clickAction = '';
+    if (item.source_type === 'new') clickAction = `openAssignment('${item.id}')`;
+    else if (item.source_type === 'legacy') clickAction = `loadProjectById('${item.id}')`;
+    else clickAction = `openAssignment('${item.id}')`;
+
+    const itemSafe = JSON.stringify(item).replace(/"/g, '&quot;');
+    const activeClass = isActive ? 'is-active' : '';
+
+    return `
+    <div class="project-row ${activeClass}" onclick="${clickAction}">
+        <span style="flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding-right:10px; font-weight:500;">
+            ${isActive ? '🔥 ' : ''}${escapeHtml(item.topic)}
+        </span>
+        <div style="display:flex; align-items:center;">
+            <span class="project-row-date">${dateStr}</span>
+            <div class="kebab-menu-container">
+                <button class="kebab-btn" onclick="toggleKebabMenu(event, '${uniqueId}')">⋮</button>
+                <div id="kebab-dropdown-${uniqueId}" class="kebab-dropdown">
+                    <button class="kebab-item" onclick="event.stopPropagation(); openEditModal(${itemSafe}); closeAllKebabMenus();">
+                        ✏️ 編輯資訊
+                    </button>
+                    <button class="kebab-item delete" onclick="event.stopPropagation(); setTimeout(deleteProject, 200); closeAllKebabMenus();">
+                        🗑️ 刪除
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>`;
+}
+
+// --- JS Helper: 切換資料夾開關 ---
+function toggleClassFolder(id) {
+    const folder = document.getElementById(id);
+    if(folder) {
+        folder.classList.toggle('open');
+        // 簡單切換箭頭
+        const arrow = folder.querySelector('.folder-info');
+        if(folder.classList.contains('open')) arrow.innerHTML = arrow.innerHTML.replace('▼', '▲');
+        else arrow.innerHTML = arrow.innerHTML.replace('▲', '▼');
+    }
+}
 // --- [新] 通用卡片 HTML 產生器 ---
 // 將重複的 HTML 代碼提取出來，方便管理
 function buildCardHtml(item, uniqueId) {
@@ -7353,6 +7592,167 @@ function closeAllKebabMenus() {
 document.addEventListener('click', () => {
     closeAllKebabMenus();
 });
+
+
+// ==========================================
+// ====== 班級管理 (Page 8) 邏輯 ======
+// ==========================================
+
+// 1. 打開「建立班級」Modal
+function openCreateClassModal() {
+    // 預設年份為當前學年 (9月分界)
+    const d = new Date();
+    const y = d.getFullYear();
+    const defaultYear = (d.getMonth() + 1 >= 9) ? `${y}-${y+1}` : `${y-1}-${y}`;
+    
+    document.getElementById('new-class-year').value = defaultYear;
+    document.getElementById('new-class-name').value = '';
+    document.getElementById('pop-create-class-modal').classList.add('active');
+    setTimeout(() => document.getElementById('new-class-name').focus(), 100);
+}
+
+// 2. 提交新班級到 Supabase
+async function submitNewClass() {
+    const year = document.getElementById('new-class-year').value.trim();
+    const name = document.getElementById('new-class-name').value.trim();
+
+    if (!year || !name) {
+        alert("請填寫所有欄位！");
+        return;
+    }
+
+    if (!currentUser) {
+        alert("請先登入才能建立班級。");
+        return;
+    }
+
+    const btn = document.querySelector('#pop-create-class-modal .pop-btn-confirm');
+    const originalText = btn.innerText;
+    btn.innerText = "建立中...";
+    btn.disabled = true;
+
+    try {
+        const { data, error } = await supabaseClient
+            .from('classes')
+            .insert([{ 
+                user_id: currentUser.id,
+                class_name: name,
+                academic_year: year
+            }])
+            .select();
+
+        if (error) throw error;
+
+        if (typeof showToast === 'function') showToast(`成功建立班級：${name}`, "success");
+        document.getElementById('pop-create-class-modal').classList.remove('active');
+        
+        // 重新讀取列表
+        loadAllClasses();
+
+    } catch (error) {
+        console.error(error);
+        if (error.code === '23505') { // Unique violation
+            alert("建立失敗：這個學年已經有同名的班級了。");
+        } else {
+            alert("建立失敗：" + error.message);
+        }
+    } finally {
+        btn.innerText = originalText;
+        btn.disabled = false;
+    }
+}
+
+// 3. 讀取並顯示所有班級
+async function loadAllClasses() {
+    const container = document.getElementById('class-management-list');
+    if (!container) return;
+
+    if (!currentUser) {
+        container.innerHTML = `<div class="empty-state-message">請先登入以管理班級。</div>`;
+        return;
+    }
+
+    container.innerHTML = '<div class="dashboard-loading"><div class="spinner"></div> 讀取班級中...</div>';
+
+    try {
+        // 讀取班級，同時計算學生人數 (count)
+        // 這裡需要用 Supabase 的 foreign table count 功能，但簡單起見我們先讀 classes
+        // 之後再讀 students count，或者用 view。
+        // 暫時用最簡單的方法：讀 classes，然後再讀 students table count
+        
+        const { data: classes, error } = await supabaseClient
+            .from('classes')
+            .select('*, students(count)')
+            .eq('user_id', currentUser.id)
+            .order('academic_year', { ascending: false })
+            .order('class_name', { ascending: true });
+
+        if (error) throw error;
+
+        if (classes.length === 0) {
+            container.innerHTML = `<div class="empty-state-message">尚未建立任何班級。<br>點擊右上角按鈕開始建立。</div>`;
+            return;
+        }
+
+        let html = '';
+        classes.forEach(c => {
+            // student count 處理
+            const studentCount = c.students ? c.students[0].count : 0;
+            
+            html += `
+            <div class="class-folder" style="cursor:default;">
+                <div class="folder-header" style="background:#fff; border-bottom:1px solid #eee;">
+                    <span class="folder-title">📂 ${escapeHtml(c.class_name)}</span>
+                    <span class="folder-info" style="font-size:0.8rem;">${escapeHtml(c.academic_year)}</span>
+                </div>
+                <div class="folder-body" style="display:block; padding:1.2rem;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+                        <span style="color:#666; font-weight:bold;">學生人數：${studentCount} 人</span>
+                        <button class="light-btn" style="font-size:0.85rem; padding:4px 10px;" onclick="manageStudents('${c.id}', '${escapeHtml(c.class_name)}')">👥 管理名單</button>
+                    </div>
+                    <div style="text-align:right;">
+                         <button class="danger-btn" style="font-size:0.8rem; padding:4px 10px;" onclick="deleteClass('${c.id}', '${escapeHtml(c.class_name)}')">刪除班級</button>
+                    </div>
+                </div>
+            </div>`;
+        });
+
+        container.innerHTML = html;
+
+    } catch (error) {
+        console.error(error);
+        container.innerHTML = `<div class="empty-state-message" style="color:red;">讀取失敗：${error.message}</div>`;
+    }
+}
+
+// 4. 刪除班級
+async function deleteClass(classId, className) {
+    if (!confirm(`⚠️ 嚴重警告 ⚠️\n\n確定要刪除「${className}」嗎？\n\n這將會同時刪除：\n1. 該班級的所有學生名單\n2. 該班級的所有作業紀錄\n3. 所有的評分資料\n\n此操作無法復原！`)) {
+        return;
+    }
+    
+    // 再次確認
+    const input = prompt(`請輸入班級名稱「${className}」以確認刪除：`);
+    if (input !== className) {
+        alert("輸入不相符，取消刪除。");
+        return;
+    }
+
+    try {
+        const { error } = await supabaseClient.from('classes').delete().eq('id', classId);
+        if (error) throw error;
+        
+        if (typeof showToast === 'function') showToast("班級已刪除", "success");
+        loadAllClasses();
+    } catch (error) {
+        alert("刪除失敗：" + error.message);
+    }
+}
+
+// 5. 暫時的入口 (下一步會做)
+function manageStudents(classId, className) {
+    alert(`【下一步】\n我們將會製作「${className}」的學生名單管理介面。\n(匯入 Excel / 新增 / 刪除學生)`);
+}
 
 </script> <!-- 呢個係原本全個檔案唯一的結尾，保留佢 -->
 
