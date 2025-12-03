@@ -2515,36 +2515,41 @@
       <div id="page2" class="page-content">
         <div class="grading-page-grid">
             
-            <!-- Page 2: 學生選擇區 (修復版) -->
+           <!-- ==================== Page 2 學生選擇區 (修復版) ==================== -->
 <div id="grading-section-student" class="section-box">
     <h2>一、選擇學生</h2>
     
-    <!-- ✅ 補回：班別欄位 (隱藏)，讓系統有地方存班名 -->
+    <!-- 🛑 關鍵修復：這兩個 ID 必須存在，Page 1 才能傳資料過來 -->
     <input type="hidden" id="student-class">
-
     <div class="input-group">
-        <label for="student-names">學生名單（系統自動填寫）</label>
-        <!-- ✅ 確保 ID 是 student-names -->
-        <textarea id="student-names" rows="5" placeholder="名單將由首頁自動載入..."></textarea>
+        <label for="student-names" style="color:#999; font-size:0.9rem;">
+            學生名單數據 (系統自動填寫，請勿手動修改)
+        </label>
+        <!-- ID 必須是 student-names -->
+        <textarea id="student-names" rows="3" readonly style="background:#eee; color:#555;" placeholder="等待數據載入..."></textarea>
     </div>
+    <!-- 🛑 修復結束 -->
 
+    <!-- 下面是操作區 -->
     <div class="btn-group" style="margin-bottom: 1rem;">
-        <!-- 這裡的按鈕可以保留，以備不時之需 -->
-        <button class="light-btn" onclick="if(typeof downloadStudentListTemplate=='function')downloadStudentListTemplate()">下載範本</button>
+        <!-- 保留 Excel 匯入功能給 Page 2 直接使用 -->
         <label class="light-btn brown" for="import-student-list" style="cursor: pointer;">匯入名單 (Excel)</label>
         <input type="file" id="import-student-list" accept=".xlsx, .xls" style="display:none;">
     </div>
 
     <div class="input-group">
         <label for="student-select">當前批改學生</label>
-        <select id="student-select"><option value="">請先在首頁設定作業</option></select>
+        <select id="student-select" style="font-size:1.1rem; padding:10px; border:2px solid var(--accent-color);">
+            <option value="">(尚未載入名單)</option>
+        </select>
     </div>
     
     <div class="btn-group">
-        <button class="secondary-btn" onclick="navigateToStudent('prev')">上一位</button>
-        <button class="secondary-btn" onclick="navigateToStudent('next')">下一位</button>
+        <button class="secondary-btn" onclick="navigateToStudent('prev')">⏪ 上一位</button>
+        <button class="secondary-btn" onclick="navigateToStudent('next')">下一位 ⏩</button>
     </div>
 </div>
+
             <div id="grading-section-checklist" class="section-box">
                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
                     <h2>二、評語項目選擇</h2>
