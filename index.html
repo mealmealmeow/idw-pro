@@ -1990,291 +1990,68 @@
     white-space: normal !important;
   }
 }
-/* Dashboard 專用樣式 */
-.dashboard-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  margin-bottom: 2rem;
-  padding-bottom: 1.5rem;
-  border-bottom: 1px solid var(--border-color);
-  flex-wrap: wrap;
-  gap: 1rem;
-}
 
-.dashboard-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); /* 自動排版，每張卡最細 300px */
-  gap: 1.5rem;
-}
 
-/* 作業卡片樣式 */
-.proj-card {
-  background: #ffffff;
-  border: 1px solid var(--border-color);
-  border-radius: 16px;
-  padding: 1.25rem;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.04);
-  transition: all 0.25s ease;
-  cursor: pointer;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  min-height: 160px;
-}
 
-.proj-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 20px rgba(90, 143, 123, 0.15); /* 綠色系陰影 */
-  border-color: var(--accent-color);
-}
 
-/* 卡片左邊條裝飾 */
-.proj-card::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 15%;
-  bottom: 15%;
-  width: 4px;
-  background-color: var(--accent-color);
-  border-radius: 0 4px 4px 0;
-  opacity: 0.6;
+/* === Dashboard Compact List Styles === */
+.task-item {
+    display: flex;
+    align-items: center;
+    background: white;
+    padding: 1rem;
+    border-radius: 10px;
+    border: 1px solid #eee;
+    margin-bottom: 0.8rem;
+    transition: all 0.2s;
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.03);
 }
+.task-item:hover {
+    border-color: var(--accent-color);
+    transform: translateX(4px);
+    box-shadow: 0 4px 12px rgba(90, 143, 123, 0.15);
+}
+.task-meta { flex: 1; }
+.task-class-badge {
+    font-size: 0.75rem; background: #f0f0f0; color: #666; padding: 2px 6px; 
+    border-radius: 4px; margin-right: 8px; font-weight: bold;
+}
+.task-topic { font-weight: 600; color: #333; font-size: 1.05rem; }
+.task-progress { width: 120px; margin: 0 1.5rem; display: flex; flex-direction: column; gap: 4px; }
+.task-progress-bar-bg { height: 6px; background: #eee; border-radius: 3px; width: 100%; }
+.task-progress-bar-fill { height: 100%; background: var(--accent-color); border-radius: 3px; }
+.task-date { font-size: 0.8rem; color: #999; width: 80px; text-align: right; }
 
-.proj-card-header {
-  margin-bottom: 0.5rem;
+/* Class Accordion Styles */
+.class-group-header {
+    background: #fdfbf7;
+    padding: 1rem;
+    border: 1px solid #e1d8c8;
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: bold;
+    color: var(--title-color);
+    transition: background 0.2s;
 }
+.class-group-header:hover { background: #fbf6ea; }
+.class-group-content {
+    padding: 0.5rem 0 1.5rem 1rem;
+    display: none; 
+    animation: fadeIn 0.3s ease;
+}
+.class-group-content.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
 
-.proj-class-badge {
-  display: inline-block;
-  font-size: 0.75rem;
-  background-color: var(--nav-bg);
-  color: var(--text-color);
-  padding: 2px 8px;
-  border-radius: 6px;
-  margin-bottom: 0.5rem;
-  font-weight: bold;
-}
-
-.proj-title {
-  font-size: 1.15rem;
-  font-weight: 600;
-  color: var(--title-color);
-  margin: 0;
-  line-height: 1.4;
-  
-  /* 兩行省略 */
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.proj-meta {
-  font-size: 0.85rem;
-  color: #888;
-  margin-top: 0.3rem;
-}
-
-/* 進度條區域 */
-.proj-progress-area {
-  margin-top: 1.2rem;
-}
-
-.proj-progress-info {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.85rem;
-  margin-bottom: 0.3rem;
-  color: #666;
-}
-
-.proj-progress-track {
-  width: 100%;
-  height: 6px;
-  background-color: #eee;
-  border-radius: 10px;
-  overflow: hidden;
-}
-
-.proj-progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #93b8a5, var(--accent-color));
-  width: 0%;
-  border-radius: 10px;
-  transition: width 0.5s ease;
-}
-
-/* 完成狀態 */
-.proj-card.completed .proj-progress-fill {
-  background: var(--excellent-color); /* 綠色 */
-}
-.proj-card.completed::before {
-  background-color: var(--excellent-color);
-}
-
-/* Loading 效果 */
-.dashboard-loading {
-  grid-column: 1 / -1;
-  text-align: center;
-  padding: 2rem;
-  color: #999;
-}
-.spinner {
-  display: inline-block;
-  width: 20px;
-  height: 20px;
-  border: 3px solid rgba(0,0,0,0.1);
-  border-radius: 50%;
-  border-top-color: var(--accent-color);
-  animation: spin 1s ease-in-out infinite;
-  margin-right: 10px;
-  vertical-align: middle;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-
-/* 手機版調整 */
 @media (max-width: 600px) {
-  .dashboard-grid { grid-template-columns: 1fr; }
+    .task-item { flex-wrap: wrap; }
+    .task-progress { width: 100%; margin: 0.5rem 0; order: 3; }
+    .task-date { display: none; }
 }
-
-
-/* --- Dashboard Grid 佈局 --- */
-.dashboard-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  margin-bottom: 2rem;
-  padding-bottom: 1.5rem;
-  border-bottom: 1px solid var(--border-color);
-  flex-wrap: wrap;
-  gap: 1rem;
-}
-
-.dashboard-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); /* 自動適應寬度 */
-  gap: 1.5rem;
-}
-
-/* --- 作業卡片樣式 --- */
-.proj-card {
-  background: #ffffff;
-  border: 1px solid var(--border-color);
-  border-radius: 16px;
-  padding: 1.25rem;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.04);
-  transition: all 0.25s ease;
-  cursor: pointer;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  min-height: 160px;
-  overflow: hidden;
-}
-
-.proj-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 24px rgba(90, 143, 123, 0.15); /* 懸浮時帶綠色光暈 */
-  border-color: var(--accent-color);
-}
-
-/* 左側裝飾條 */
-.proj-card::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 5px;
-  background-color: var(--accent-color);
-  opacity: 0.7;
-}
-
-.proj-card.completed::before {
-  background-color: var(--excellent-color); /* 完成變成深綠/金色 */
-}
-
-.proj-header {
-  margin-bottom: 0.8rem;
-}
-
-.proj-class-tag {
-  display: inline-block;
-  font-size: 0.75rem;
-  background-color: var(--nav-bg);
-  color: var(--text-color);
-  padding: 3px 8px;
-  border-radius: 6px;
-  margin-bottom: 0.5rem;
-  font-weight: bold;
-  border: 1px solid rgba(0,0,0,0.05);
-}
-
-.proj-title {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: var(--title-color);
-  margin: 0;
-  line-height: 1.4;
-  /* 限制標題最多兩行 */
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.proj-date {
-  font-size: 0.8rem;
-  color: #999;
-  margin-top: 0.4rem;
-}
-
-/* --- 進度條區域 --- */
-.proj-progress-stats {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.85rem;
-  margin-bottom: 0.4rem;
-  color: #666;
-}
-
-.proj-progress-bg {
-  width: 100%;
-  height: 6px;
-  background-color: #eee;
-  border-radius: 10px;
-  overflow: hidden;
-}
-
-.proj-progress-bar {
-  height: 100%;
-  background: linear-gradient(90deg, #93b8a5, var(--accent-color));
-  width: 0%;
-  border-radius: 10px;
-  transition: width 0.6s ease;
-}
-
-.proj-card.completed .proj-progress-bar {
-  background: var(--excellent-color);
-}
-
-/* --- Loading Spinner --- */
-.spinner {
-  display: inline-block;
-  width: 18px;
-  height: 18px;
-  border: 2px solid rgba(0,0,0,0.1);
-  border-radius: 50%;
-  border-top-color: var(--accent-color);
-  animation: spin 0.8s linear infinite;
-  vertical-align: middle;
-  margin-right: 8px;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
 
 </style>
 </head>
@@ -2339,92 +2116,36 @@
     <main>
 
 
-        <!-- ==================== 第零頁：Dashboard (首頁) ==================== -->
-<div id="page-home" class="page-content">
+     <div id="page-home" class="page-content">
   <div class="overview-container">
     
-    <!-- 歡迎與狀態區 -->
+    <!-- Header -->
     <div class="dashboard-header">
       <div>
-        <h2 id="welcome-msg" style="margin-bottom: 0.5rem; color: var(--title-color);">早晨，老師。</h2>
-        <p style="color: #8c867a; font-size: 0.95rem;">
-          <span id="quote-text">「文章千古事，得失寸心知。」</span>
-        </p>
+        <h2 id="welcome-msg">早晨，老師。</h2>
+        <p style="color:#777;">今天想處理哪一份作業？</p>
       </div>
-      <div class="quick-actions">
-        <!-- 這個按鈕將跳轉到「開新作業」的 Wizard (原本的 Page 1) -->
-        <button class="action-btn" onclick="showPage('page1')">＋ 開新批改任務</button>
-      </div>
+      <button class="action-btn" onclick="showPage('page1')">＋ 開新批改</button>
     </div>
 
-    <!-- 核心區域：耕耘中的作業 -->
-    <div class="section-box" style="background: transparent; padding: 0; border: none; box-shadow: none;">
-      <div style="display: flex; align-items: center; gap: 0.8rem; margin-bottom: 1.5rem;">
-        <h3 style="margin: 0;">📝 耕耘中</h3>
-        <span id="active-count-badge" style="background: var(--accent-color); color: white; padding: 2px 8px; border-radius: 99px; font-size: 0.8rem;">0</span>
-      </div>
-      
-      <!-- 卡片牆容器 -->
-      <div id="dashboard-grid" class="dashboard-grid">
-        <!-- 內容將由 JS 動態生成 -->
-        <div class="empty-state-message">
-            <div class="spinner"></div> 正在讀取進度...
+    <!-- Section A: 進行中 (Focus Mode) -->
+    <div id="section-focus-mode" style="margin-bottom: 2.5rem;">
+        <h3 style="font-size: 1.1rem; color: #5A8F7B; border-bottom: 2px solid #5A8F7B; padding-bottom: 0.5rem; display:inline-block; margin-bottom: 1rem;">
+            🔥 進行中 (Focus)
+        </h3>
+        <div id="focus-task-list" class="task-list-container">
+            <!-- JS 會插入 "緊湊型" 任務條 -->
+            <div class="dashboard-loading"><div class="spinner"></div> 讀取中...</div>
         </div>
-      </div>
     </div>
 
-  </div>
-</div>
-
-<!-- ==================== 首頁：教學儀表板 (Dashboard) ==================== -->
-<div id="page-home" class="page-content">
-  <div class="overview-container">
-    
-    <!-- 頂部歡迎區 -->
-    <div class="dashboard-header">
-      <div>
-        <h2 id="welcome-msg" style="margin-bottom: 0.5rem;">早晨，老師。</h2>
-        <p style="color: #777; font-size: 0.95rem;">
-          <span id="quote-text">「文章千古事，得失寸心知。」</span>
-        </p>
-      </div>
-      <!-- 快速動作 -->
-      <div class="quick-actions">
-        <button class="action-btn" onclick="showPage('page1')">＋ 開新批改</button>
-        <button class="secondary-btn" onclick="alert('功能開發中：班級管理')">🏫 管理班級</button>
-      </div>
-    </div>
-
-    <!-- 核心區域：耕耘中的作業 -->
-    <div class="section-box" style="background: transparent; padding: 0; border: none; box-shadow: none;">
-      <h3 style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
-        📝 耕耘中 
-        <span style="font-size: 0.8rem; background: var(--nav-bg); padding: 2px 8px; border-radius: 12px; color: #666;" id="active-count-badge">0</span>
-      </h3>
-      
-      <!-- 這裡顯示卡片 -->
-      <div id="dashboard-grid" class="dashboard-grid">
-        <!-- JS 會動態插入卡片，以下是 Loading 狀態 -->
-        <div class="dashboard-loading">
-            <div class="spinner"></div> 正在讀取進度...
-        </div>
-      </div>
-    </div>
-
-    <!-- 底部：統計小區 (裝飾用，增加專業感) -->
-    <div class="two-column-grid" style="margin-top: 2rem;">
-        <div class="section-box analysis-card">
-            <h4>📊 本週批改量</h4>
-            <div style="height: 150px; display: flex; align-items: center; justify-content: center; color: #999;">
-               (圖表區預留位置)
-            </div>
-        </div>
-        <div class="section-box analysis-card">
-            <h4>🔥 常用評語 Top 5</h4>
-             <ul id="dashboard-top-critiques" style="padding-left: 1.2rem; margin-top: 0.5rem; color: #555;">
-                <li>載入中...</li>
-             </ul>
-        </div>
+    <!-- Section B: 班級歸檔 (Class Archives) -->
+    <div id="section-class-archives">
+        <h3 style="font-size: 1.1rem; color: #888; border-bottom: 1px solid #ddd; padding-bottom: 0.5rem; margin-bottom: 1rem;">
+            🏫 班級歸檔
+        </h3>
+        <!-- 這裡會顯示「學年 > 班級」的手風琴 -->
+        <div id="class-accordion-container"></div>
     </div>
 
   </div>
@@ -3196,37 +2917,7 @@ async function checkUser() {
   });
 }
 
-// 1. 啟動登入流程 (打開 Modal)
-function handleLogin() {
-  const modal = document.getElementById('pop-login-modal');
-  const input = document.getElementById('login-input');
-  const btn = document.getElementById('login-confirm-btn');
-  const title = document.getElementById('login-title');
-  const desc = document.getElementById('login-desc');
-  const icon = document.getElementById('login-icon');
 
-  // 重置介面做「輸入 Email」狀態
-  loginStep = "email";
-  tempLoginEmail = "";
-  
-  input.value = "";
-  input.placeholder = "輸入電郵地址...";
-  input.type = "email";
-  
-  title.textContent = "登入 / 註冊";
-  desc.textContent = "請輸入電郵地址，驗證碼將發送到你的信箱。";
-  icon.textContent = "📧";
-  btn.textContent = "發送驗證碼";
-  btn.disabled = false;
-
-  modal.classList.add('active');
-  setTimeout(() => input.focus(), 100);
-}
-
-// 3. 關閉 Modal
-function closeLoginModal() {
-  document.getElementById('pop-login-modal').classList.remove('active');
-}
 
 function handleLogout() {
   confirmUI("確定要登出嗎？所有未同步的變更將會遺失。", async () => {
@@ -6660,217 +6351,282 @@ function restoreFromLocalBackup() {
     }
 }
 
-// ==========================================
-// ====== Dashboard (首頁) 核心邏輯 ======
-// ==========================================
+/* ==========================================
+   ====== Dashboard 2.0 (Focus & Group) ======
+   ========================================== */
 
-// --- Dashboard 全域變數 ---
-let dashboardItems = [];
-
-// 1. 載入 Dashboard 資料 (支援離線/Local Storage)
+// 1. 載入 Dashboard 資料
 async function loadDashboard() {
-    const grid = document.getElementById('dashboard-grid');
-    if (!grid) return;
-
-    // 清空並顯示 Loading
-    grid.innerHTML = '<div class="empty-state-message"><div class="spinner"></div> 正在讀取您的耕耘成果...</div>';
-
-    dashboardItems = []; // 重置資料
-
-    try {
-        // A. 如果已登入，嘗試讀取雲端資料
-        if (currentUser) {
-            const { data, error } = await supabaseClient
-                .from('dashboard_stats_view')
-                .select('*')
-                .order('last_updated', { ascending: false });
-
-            if (!error && data) {
-                dashboardItems = data;
-            }
-        } 
-        
-        // B. 讀取離線資料 (加到列表最前面)
-        loadOfflineData();
-
-        // C. 渲染結果
-        renderDashboard();
-        updateWelcomeMessage();
-
-    } catch (error) {
-        console.error('Dashboard Error:', error);
-        renderDashboard(); // 錯誤時也嘗試渲染(可能只有離線資料)
-    }
-}
-
-// 2. 讀取離線資料 (記憶體 & LocalStorage)
-function loadOfflineData() {
-    // A. 檢查當前記憶體 (例如剛匯入了 Excel)
-    if (allStudentRecords && allStudentRecords.length > 0) {
-        const className = document.getElementById('student-class').value || '未命名班別';
-        const topic = document.getElementById('topic').value || '未命名題目';
-        const total = allStudentRecords.length;
-        const graded = allStudentRecords.filter(r => r.data).length;
-
-        // 避免重複：檢查 ID 是否已存在 (這裡簡單檢查 topic)
-        const exists = dashboardItems.some(i => i.topic === topic && i.class_name === className);
-        
-        if (!exists) {
-            dashboardItems.unshift({
-                assignment_id: 'local_memory', 
-                class_name: className,
-                topic: topic,
-                total_students: total,
-                graded_count: graded,
-                last_updated: new Date().toISOString(),
-                is_offline: true,
-                source: 'memory'
-            });
-        }
-    }
-
-    // B. 檢查 LocalStorage 自動備份
-    // 如果記憶體是空的，才顯示備份，避免重複顯示同一份資料
-    if (allStudentRecords.length === 0) {
-        const backupKey = 'idw_grading_backup_v1'; 
-        const backupStr = localStorage.getItem(backupKey);
-        
-        if (backupStr) {
-            try {
-                const backup = JSON.parse(backupStr);
-                if (backup.students && Array.isArray(backup.students)) {
-                    const total = backup.students.length;
-                    const graded = backup.students.filter(r => r.data).length;
-                    
-                    dashboardItems.push({
-                        assignment_id: 'local_backup', 
-                        class_name: (backup.className || '未命名班別') + ' (自動備份)',
-                        topic: backup.topic || '未命名題目',
-                        total_students: total,
-                        graded_count: graded,
-                        last_updated: new Date(backup.timestamp || Date.now()).toISOString(),
-                        is_offline: true,
-                        source: 'backup'
-                    });
-                }
-            } catch (e) {
-                console.warn("離線備份損壞", e);
-            }
-        }
-    }
-}
-
-// 3. 渲染 Dashboard 卡片
-function renderDashboard() {
-    const grid = document.getElementById('dashboard-grid');
-    const badge = document.getElementById('active-count-badge');
+    const focusList = document.getElementById('focus-task-list');
+    const classContainer = document.getElementById('class-accordion-container');
+    if(!focusList) return; // 唔係首頁就走
     
-    if (dashboardItems.length === 0) {
-        const isOffline = !currentUser;
-        grid.innerHTML = `
-            <div style="grid-column: 1 / -1; text-align: center; padding: 4rem 2rem; background: #fdfbf7; border: 2px dashed #e0e0e0; border-radius: 16px;">
-                <div style="font-size: 3rem; margin-bottom: 1rem;">🌱</div>
-                <h3 style="color: #888;">${isOffline ? '暫無離線進度' : '暫無進行中的任務'}</h3>
-                <p style="color: #999; margin-bottom: 1.5rem;">
-                    ${isOffline ? '您可以「匯入 Excel」開始批改，或「登入」以查看雲端進度。' : '點擊右上角的「＋」開始您的第一個耕耘吧。'}
-                </p>
-                <button class="action-btn" onclick="showPage('page1')">開新批改</button>
-            </div>
-        `;
-        if(badge) badge.textContent = 0;
+    focusList.innerHTML = '<div class="dashboard-loading"><div class="spinner"></div> 正在整理作業...</div>';
+    if(classContainer) classContainer.innerHTML = '';
+
+    let allProjects = [];
+
+    // A. 嘗試讀取雲端資料
+    try {
+        if (currentUser) {
+            // 用 Promise.all 同時讀取兩個 View，加快速度
+            const [newRes, legacyRes] = await Promise.all([
+                supabaseClient.from('view_new_assignments_meta').select('*').eq('user_id', currentUser.id).order('last_updated', { ascending: false }),
+                supabaseClient.from('view_legacy_projects_meta').select('*').eq('user_id', currentUser.id).order('last_updated', { ascending: false })
+            ]);
+
+            if (newRes.data) allProjects = allProjects.concat(newRes.data);
+            if (legacyRes.data) allProjects = allProjects.concat(legacyRes.data);
+        }
+    } catch (e) {
+        console.error("Dashboard load failed", e);
+        focusList.innerHTML = `<div style="color:red; padding:1rem;">讀取失敗，請檢查網絡連線。</div>`;
         return;
     }
 
-    if(badge) badge.textContent = dashboardItems.length;
-    let html = '';
+    // B. 加入離線資料 (Local Memory / Backup)
+    const offlineData = getOfflineProjectMeta();
+    if (offlineData) allProjects.unshift(offlineData);
 
-    dashboardItems.forEach(item => {
-        const total = item.total_students || 0;
-        const done = item.graded_count || 0;
-        const percentage = total > 0 ? Math.round((done / total) * 100) : 0;
-        const isFinished = (done >= total && total > 0);
+    // C. 如果完全無資料
+    if (allProjects.length === 0) {
+        renderEmptyState(focusList);
+        return;
+    }
+
+    // D. 資料處理 (Normalization)
+    const processedProjects = allProjects.map(p => {
+        const total = p.total_students || 0;
+        const graded = p.graded_count || 0;
+        const progress = (total > 0 && graded > 0) ? Math.round((graded/total)*100) : 0;
         
-        // 日期格式化
-        let dateStr = '-';
-        if(item.last_updated) {
-            const dateObj = new Date(item.last_updated);
-            dateStr = `${dateObj.getMonth() + 1}月${dateObj.getDate()}日 ${String(dateObj.getHours()).padStart(2,'0')}:${String(dateObj.getMinutes()).padStart(2,'0')}`;
+        // 推算學年 (邏輯：9月開始算新學年)
+        let year = p.academic_year;
+        if (!year && p.last_updated) {
+            const d = new Date(p.last_updated);
+            const m = d.getMonth() + 1; 
+            const y = d.getFullYear();
+            year = (m >= 9) ? `${y}-${y+1}` : `${y-1}-${y}`;
         }
-
-        // 離線標籤樣式
-        let statusBadge = '';
-        if (item.is_offline) {
-            const label = item.source === 'memory' ? '📝 編輯中' : '💾 本機備份';
-            statusBadge = `<span style="float:right; font-size:0.75rem; background:#f0f0f0; border:1px solid #ccc; color:#666; padding:2px 6px; border-radius:4px;">${label}</span>`;
-        } else {
-            statusBadge = `<span style="float:right; font-size:0.8rem; color:${isFinished?'var(--excellent-color)':'#ccc'}">${isFinished ? '已完成' : ''}</span>`;
-        }
-
-        html += `
-        <div class="proj-card ${isFinished ? 'completed' : ''}" onclick="openAssignment('${item.assignment_id}')">
-            <div>
-                <div class="proj-header">
-                    <span class="proj-class-tag">${escapeHtml(item.class_name || '未命名班別')}</span>
-                    ${statusBadge}
-                </div>
-                <h4 class="proj-title">${escapeHtml(item.topic || '未命名題目')}</h4>
-                <div class="proj-date">最後編輯：${dateStr}</div>
-            </div>
-            
-            <div style="margin-top: 1.5rem;">
-                <div class="proj-progress-stats">
-                    <span>進度</span>
-                    <span>${done} / ${total}</span>
-                </div>
-                <div class="proj-progress-bg">
-                    <div class="proj-progress-bar" style="width: ${percentage}%"></div>
-                </div>
-            </div>
-        </div>
-        `;
+        
+        return {
+            ...p,
+            normalizedYear: year || '未知年份',
+            progress: progress,
+            // 完成定義：人數>0 且 批改數>=總數
+            isCompleted: (total > 0 && graded >= total),
+            // 判斷是否為「最近」：7天內編輯過
+            isRecent: (new Date() - new Date(p.last_updated)) < (7 * 24 * 60 * 60 * 1000)
+        };
     });
 
-    grid.innerHTML = html;
+    // E. 渲染 Section A: Focus Mode (進行中)
+    // 規則：(未完成 OR 離線檔案) 
+    // 排序：離線優先 > 最近編輯優先
+    const focusItems = processedProjects
+        .filter(p => !p.isCompleted || p.source_type === 'local_memory')
+        .sort((a, b) => new Date(b.last_updated) - new Date(a.last_updated))
+        .slice(0, 5); // 只顯示前 5 個
+
+    renderFocusList(focusItems, focusList);
+
+    // F. 渲染 Section B: 班級歸檔 (Grouping)
+    const grouped = groupByYearAndClass(processedProjects);
+    renderClassAccordion(grouped, classContainer);
+    
+    updateWelcomeMessage();
 }
 
-// 4. 打開作業 (處理點擊)
-async function openAssignment(assignmentId) {
+// --- Helper: 獲取離線資料 ---
+function getOfflineProjectMeta() {
+    // 優先檢查當前記憶體
+    if (typeof allStudentRecords !== 'undefined' && allStudentRecords.length > 0) {
+        const cName = document.getElementById('student-class').value || '未命名班別';
+        const topic = document.getElementById('topic').value || '未命名題目';
+        const graded = allStudentRecords.filter(r => r.data).length;
+        return {
+            id: 'local_memory',
+            class_name: cName,
+            topic: topic,
+            total_students: allStudentRecords.length,
+            graded_count: graded,
+            last_updated: new Date().toISOString(),
+            source_type: 'local_memory'
+        };
+    }
+    // 其次檢查 LocalStorage 備份
+    try {
+        const backupStr = localStorage.getItem('idw_grading_backup_v1');
+        if (backupStr) {
+            const backup = JSON.parse(backupStr);
+            if (backup.students && backup.students.length > 0) {
+                const graded = backup.students.filter(r => r.data).length;
+                return {
+                    id: 'local_backup',
+                    class_name: (backup.className || '未命名') + ' (備份)',
+                    topic: backup.topic || '未命名',
+                    total_students: backup.students.length,
+                    graded_count: graded,
+                    last_updated: new Date(backup.timestamp).toISOString(),
+                    source_type: 'local_backup'
+                };
+            }
+        }
+    } catch(e) {}
+    return null;
+}
+
+// --- Helper: 渲染 Focus List ---
+function renderFocusList(items, container) {
+    if (items.length === 0) {
+        container.innerHTML = `<div style="padding:1.5rem; text-align:center; color:#999; border:1px dashed #ddd; border-radius:10px;">🎉 目前沒有待辦作業，去下方看看舊紀錄吧！</div>`;
+        return;
+    }
+
+    let html = '';
+    items.forEach(item => {
+        const dateStr = new Date(item.last_updated).toLocaleDateString();
+        // 點擊事件判斷
+        let clickAction = '';
+        if (item.source_type === 'new') clickAction = `openAssignment('${item.id}')`;
+        else if (item.source_type === 'legacy') clickAction = `loadProjectById('${item.id}')`;
+        else clickAction = `openAssignment('${item.id}')`; // local_memory or local_backup
+
+        html += `
+        <div class="task-item" onclick="${clickAction}">
+            <div class="task-meta">
+                <div>
+                    <span class="task-class-badge">${escapeHtml(item.class_name)}</span>
+                    <span class="task-topic">${escapeHtml(item.topic)}</span>
+                </div>
+            </div>
+            <div class="task-progress">
+                <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:#888;">
+                    <span>${item.graded_count || 0} / ${item.total_students || 0}</span>
+                    <span>${item.progress}%</span>
+                </div>
+                <div class="task-progress-bar-bg">
+                    <div class="task-progress-bar-fill" style="width: ${item.progress}%"></div>
+                </div>
+            </div>
+            <div class="task-date">${dateStr}</div>
+        </div>`;
+    });
+    container.innerHTML = html;
+}
+
+// --- Helper: 渲染 Empty State ---
+function renderEmptyState(container) {
+    container.innerHTML = `
+        <div style="text-align: center; padding: 3rem 1rem; background: #fdfbf7; border: 2px dashed #e0e0e0; border-radius: 16px;">
+            <div style="font-size: 3rem; margin-bottom: 0.5rem;">🌱</div>
+            <h3 style="color: #888;">暫無紀錄</h3>
+            <p style="color: #999; margin-bottom: 1.5rem;">點擊右上角的「＋」開始您的第一個批改任務吧。</p>
+            <button class="action-btn" onclick="showPage('page1')">開新批改</button>
+        </div>
+    `;
+}
+
+// --- Helper: 資料分組 ---
+function groupByYearAndClass(projects) {
+    const groups = {};
+    projects.forEach(p => {
+        const y = p.normalizedYear;
+        const c = p.class_name || '未分類';
+        if (!groups[y]) groups[y] = {};
+        if (!groups[y][c]) groups[y][c] = [];
+        groups[y][c].push(p);
+    });
+    return groups;
+}
+
+// --- Helper: 渲染手風琴 ---
+function renderClassAccordion(groups, container) {
+    if(Object.keys(groups).length === 0) {
+        container.innerHTML = '<div style="color:#ccc; text-align:center; padding:1rem;">(暫無歸檔資料)</div>';
+        return;
+    }
     
-    // === 離線模式：編輯中 (Memory) ===
+    // 排序年份 (最新的在上面)
+    const years = Object.keys(groups).sort().reverse();
+    let html = '';
+
+    years.forEach(year => {
+        // 建立年份標題
+        const yearDiv = document.createElement('div');
+        yearDiv.innerHTML = `<h4 style="margin: 1.5rem 0 0.5rem 0; color:#aaa; font-size:0.85rem; text-transform:uppercase; letter-spacing:1px; border-bottom:1px solid #eee; padding-bottom:4px;">📅 ${year} 學年</h4>`;
+        container.appendChild(yearDiv);
+
+        const classesObj = groups[year];
+        // 排序班級 (6A, 6B...)
+        const classNames = Object.keys(classesObj).sort();
+
+        classNames.forEach(className => {
+            const classProjects = classesObj[className];
+            
+            // Header
+            const header = document.createElement('div');
+            header.className = 'class-group-header';
+            header.innerHTML = `
+                <span>📁 ${escapeHtml(className)}</span>
+                <span style="font-weight:normal; color:#888; font-size:0.9rem;">${classProjects.length} 份作業 ▼</span>
+            `;
+            
+            // Content
+            const content = document.createElement('div');
+            content.className = 'class-group-content';
+            
+            let listHtml = '';
+            classProjects.forEach(p => {
+                let clickAction = '';
+                if (p.source_type === 'new') clickAction = `openAssignment('${p.id}')`;
+                else if (p.source_type === 'legacy') clickAction = `loadProjectById('${p.id}')`;
+                else clickAction = `openAssignment('${p.id}')`;
+
+                const icon = p.isCompleted ? '✅' : '📝';
+                const dateStr = new Date(p.last_updated).toLocaleDateString();
+
+                listHtml += `
+                <div style="padding: 10px 0; border-bottom: 1px dashed #eee; display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="${clickAction}">
+                    <div style="display:flex; flex-direction:column;">
+                        <span style="color:#444; font-weight:500;">${icon} ${escapeHtml(p.topic)}</span>
+                        <span style="font-size:0.75rem; color:#aaa; margin-left:24px;">完成度: ${p.progress}%</span>
+                    </div>
+                    <span style="font-size:0.8rem; color:#999;">${dateStr}</span>
+                </div>`;
+            });
+            content.innerHTML = listHtml;
+
+            // 點擊展開/收合
+            header.onclick = () => {
+                content.classList.toggle('active');
+                const arrow = header.querySelector('span:last-child');
+                if(content.classList.contains('active')) arrow.textContent = `${classProjects.length} 份作業 ▲`;
+                else arrow.textContent = `${classProjects.length} 份作業 ▼`;
+            };
+
+            container.appendChild(header);
+            container.appendChild(content);
+        });
+    });
+}
+
+// 2. 修改 openAssignment (支援 Local Backup & Memory)
+async function openAssignment(assignmentId) {
+    // A. 離線記憶體
     if (assignmentId === 'local_memory') {
         showPage('page2');
-        showToast("已返回當前編輯中的專案", "success");
+        showToast("已返回編輯中的草稿", "success");
         return;
     }
 
-    // === 離線模式：本機備份 (LocalStorage) ===
+    // B. 本機備份
     if (assignmentId === 'local_backup') {
-        try {
-            const backupStr = localStorage.getItem('idw_grading_backup_v1');
-            if (backupStr) {
-                const data = JSON.parse(backupStr);
-                // 還原資料
-                document.getElementById('student-class').value = data.className || '';
-                document.getElementById('topic').value = data.topic || '';
-                document.getElementById('student-names').value = data.namesText || '';
-                if(data.students) allStudentRecords = data.students;
-                if(data.typos) commonTypos = data.typos;
-                
-                // 刷新 UI
-                updateStudentDropdown();
-                renderStudentOverviewTable();
-                updateHeaderInfo();
-                
-                showPage('page2');
-                showToast("已載入本機自動備份", "success");
-            }
-        } catch(e) {
-            alert("載入備份失敗：" + e.message);
-        }
+        restoreFromLocalBackup(); // 呼叫原本寫好的還原函數
         return;
     }
 
-    // === 線上模式：Supabase ===
+    // C. 雲端讀取 (新舊通用邏輯)
     if (!currentUser) {
         showToast("請先登入以開啟此雲端專案", "warning");
         return;
@@ -6878,14 +6634,22 @@ async function openAssignment(assignmentId) {
     
     showToast("正在載入雲端作業...", "info");
     
+    // 這裡我們需要判斷是 New Assignment 還是 Legacy Project
+    // 但因為 ID 格式通常不同 (UUID vs INT/UUID)，或者我們可以先嘗試一種
+    // 簡單起見，我們先假設 loadProjectById (舊) 和 openAssignment (新) 的邏輯是分開的
+    // 上面的 render 函數已經根據 source_type 分派了不同的 onclick 函數
+    
+    // 如果這是一個 New Assignment (Assignment Table)
     try {
         const { data: assignment, error: assignError } = await supabaseClient
             .from('assignments')
             .select(`*, classes(class_name)`)
             .eq('id', assignmentId)
             .single();
+            
         if (assignError) throw assignError;
 
+        // ... (以下是原本 openAssignment 的載入邏輯) ...
         const { data: students, error: studentError } = await supabaseClient
             .from('students')
             .select('*')
@@ -6953,7 +6717,6 @@ async function openAssignment(assignmentId) {
         alert(`載入失敗：${error.message}`);
     }
 }
-
 // 5. 歡迎訊息更新
 function updateWelcomeMessage() {
     const h = new Date().getHours();
