@@ -2515,27 +2515,36 @@
       <div id="page2" class="page-content">
         <div class="grading-page-grid">
             
-            <div id="grading-section-student" class="section-box">
-                <h2>一、選擇學生</h2>
-                <div class="input-group">
-                    <label for="student-names">學生名單（每行一位，可包含學號）</label>
-                    <textarea id="student-names" rows="5" placeholder="01-陳大文&#10;02 張小美&#10;李偉明"></textarea>
-                </div>
-                <div class="btn-group" style="margin-bottom: 1rem;">
-                    <button class="light-btn" onclick="downloadStudentListTemplate()">下載範本</button>
-                    <label class="light-btn brown" for="import-student-list" style="cursor: pointer;">匯入名單 (Excel)</label>
-                    <input type="file" id="import-student-list" accept=".xlsx, .xls, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" style="display:none;">
-                </div>
-                <div class="input-group">
-                    <label for="student-select">選擇學生</label>
-                    <select id="student-select"><option value="">請先在上方輸入學生名單</option></select>
-                </div>
-                <div class="btn-group">
-                    <button class="secondary-btn" onclick="navigateToStudent('prev')">上一位</button>
-                    <button class="secondary-btn" onclick="navigateToStudent('next')">下一位</button>
-                </div>
-            </div>
+            <!-- Page 2: 學生選擇區 (修復版) -->
+<div id="grading-section-student" class="section-box">
+    <h2>一、選擇學生</h2>
+    
+    <!-- ✅ 補回：班別欄位 (隱藏)，讓系統有地方存班名 -->
+    <input type="hidden" id="student-class">
 
+    <div class="input-group">
+        <label for="student-names">學生名單（系統自動填寫）</label>
+        <!-- ✅ 確保 ID 是 student-names -->
+        <textarea id="student-names" rows="5" placeholder="名單將由首頁自動載入..."></textarea>
+    </div>
+
+    <div class="btn-group" style="margin-bottom: 1rem;">
+        <!-- 這裡的按鈕可以保留，以備不時之需 -->
+        <button class="light-btn" onclick="if(typeof downloadStudentListTemplate=='function')downloadStudentListTemplate()">下載範本</button>
+        <label class="light-btn brown" for="import-student-list" style="cursor: pointer;">匯入名單 (Excel)</label>
+        <input type="file" id="import-student-list" accept=".xlsx, .xls" style="display:none;">
+    </div>
+
+    <div class="input-group">
+        <label for="student-select">當前批改學生</label>
+        <select id="student-select"><option value="">請先在首頁設定作業</option></select>
+    </div>
+    
+    <div class="btn-group">
+        <button class="secondary-btn" onclick="navigateToStudent('prev')">上一位</button>
+        <button class="secondary-btn" onclick="navigateToStudent('next')">下一位</button>
+    </div>
+</div>
             <div id="grading-section-checklist" class="section-box">
                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
                     <h2>二、評語項目選擇</h2>
@@ -8138,7 +8147,7 @@ function toggleAllSetupStudents(checked) {
     });
 }
 
-// 5. 核心橋接函數 (終極防彈版 v2)
+// 5. 核心橋接函數 (終極防彈版 v3 - 自動修復缺失欄位)
 function startGradingWithSetup(actionType) {
     const modeRadio = document.querySelector('input[name="setup-mode"]:checked');
     const mode = modeRadio ? modeRadio.value : 'manual';
@@ -8150,24 +8159,41 @@ function startGradingWithSetup(actionType) {
         return;
     }
 
-    // 🔥 嘗試尋找目標輸入框 (Page 2)
+    // --- 🔥 核心修復：確保目標欄位一定存在 🔥 ---
     let legacyInput = document.getElementById('student-names');
     let legacyClass = document.getElementById('student-class');
+
+    // 如果找不到，我們嘗試去 Page 2 區域找
+    const p2Section = document.getElementById('grading-section-student');
     
-    // 如果在 Page 1 找不到 Page 2 的元素，這是正常的 (因為 display:none)，但它們應該存在於 DOM 中。
-    // 如果真的找不到，我們嘗試去 Page 2 區域找
-    if (!legacyInput) {
-        const p2 = document.getElementById('grading-section-student');
-        if (p2) legacyInput = p2.querySelector('textarea');
+    if (!legacyInput && p2Section) {
+        // 嘗試找 textarea，如果沒有就由 JS 創建一個隱藏的
+        legacyInput = p2Section.querySelector('textarea');
+        if (!legacyInput) {
+            legacyInput = document.createElement('textarea');
+            legacyInput.id = 'student-names';
+            legacyInput.style.display = 'none';
+            p2Section.appendChild(legacyInput);
+        } else {
+            legacyInput.id = 'student-names'; // 強制賦予 ID
+        }
+    }
+
+    if (!legacyClass && p2Section) {
+        // 補回遺失的 class input
+        legacyClass = document.createElement('input');
+        legacyClass.type = 'hidden';
+        legacyClass.id = 'student-class';
+        p2Section.appendChild(legacyClass);
     }
 
     if (!legacyInput) {
-        console.error("Critical: 找不到 #student-names");
-        alert("系統錯誤：找不到名單輸入框，請重新整理頁面。");
+        alert("系統嚴重錯誤：無法建立資料橋接。請重新整理頁面。");
         return;
     }
+    // -------------------------------------------
 
-    // --- 邏輯開始 ---
+    // 邏輯開始
     if (mode === 'registry') {
         // 註冊模式
         const select = document.getElementById('setup-class-select');
@@ -8176,7 +8202,7 @@ function startGradingWithSetup(actionType) {
             return;
         }
         
-        // 檢查勾選
+        // 檢查勾選 (兼容 class 和 input 兩種選法)
         const checkedCards = document.querySelectorAll('#setup-student-checklist .student-check-card.checked');
         const checkedInputs = document.querySelectorAll('#setup-student-checklist input:checked');
 
