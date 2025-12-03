@@ -6421,24 +6421,25 @@ function restoreFromLocalBackup() {
 }
 
 /* ==========================================
-   ====== Dashboard 2.0 (Focus & Group) ======
+   ====== Dashboard 2.0 (防重複終極版) ======
    ========================================== */
+let isDashboardRendering = false; // 加入鎖定旗標
 
-// 1. 載入 Dashboard 資料
 async function loadDashboard() {
     const focusList = document.getElementById('focus-task-list');
     const classContainer = document.getElementById('class-accordion-container');
-    if(!focusList) return; // 唔係首頁就走
-    
-    focusList.innerHTML = '<div class="dashboard-loading"><div class="spinner"></div> 正在整理作業...</div>';
-    if(classContainer) classContainer.innerHTML = '';
+    if(!focusList) return; 
+
+    // 1. 顯示讀取中 (僅在第一次載入時)
+    if (!focusList.innerHTML.includes('task-item')) {
+        focusList.innerHTML = '<div class="dashboard-loading"><div class="spinner"></div> 正在整理作業...</div>';
+    }
 
     let allProjects = [];
 
-    // A. 嘗試讀取雲端資料
+    // 2. 讀取雲端資料
     try {
         if (currentUser) {
-            // 用 Promise.all 同時讀取兩個 View，加快速度
             const [newRes, legacyRes] = await Promise.all([
                 supabaseClient.from('view_new_assignments_meta').select('*').eq('user_id', currentUser.id).order('last_updated', { ascending: false }),
                 supabaseClient.from('view_legacy_projects_meta').select('*').eq('user_id', currentUser.id).order('last_updated', { ascending: false })
@@ -6453,23 +6454,30 @@ async function loadDashboard() {
         return;
     }
 
-    // B. 加入離線資料 (Local Memory / Backup)
+    // 3. 加入離線資料 (並進行去重檢查)
     const offlineData = getOfflineProjectMeta();
-    if (offlineData) allProjects.unshift(offlineData);
+    if (offlineData) {
+        // 檢查雲端是否已經有這份資料 (避免剛同步完未刷新時出現重複)
+        const isDuplicate = allProjects.some(p => 
+            p.topic === offlineData.topic && p.class_name === offlineData.class_name
+        );
+        if (!isDuplicate) {
+            allProjects.unshift(offlineData);
+        }
+    }
 
-    // C. 如果完全無資料
+    // 4. 資料處理
     if (allProjects.length === 0) {
         renderEmptyState(focusList);
+        if(classContainer) classContainer.innerHTML = ''; // 確保清空
         return;
     }
 
-    // D. 資料處理 (Normalization)
     const processedProjects = allProjects.map(p => {
         const total = p.total_students || 0;
         const graded = p.graded_count || 0;
         const progress = (total > 0 && graded > 0) ? Math.round((graded/total)*100) : 0;
         
-        // 推算學年 (邏輯：9月開始算新學年)
         let year = p.academic_year;
         if (!year && p.last_updated) {
             const d = new Date(p.last_updated);
@@ -6482,29 +6490,34 @@ async function loadDashboard() {
             ...p,
             normalizedYear: year || '未知年份',
             progress: progress,
-            // 完成定義：人數>0 且 批改數>=總數
             isCompleted: (total > 0 && graded >= total),
-            // 判斷是否為「最近」：7天內編輯過
             isRecent: (new Date() - new Date(p.last_updated)) < (7 * 24 * 60 * 60 * 1000)
         };
     });
 
-    // E. 渲染 Section A: Focus Mode (進行中)
-    // 規則：(未完成 OR 離線檔案) 
-    // 排序：離線優先 > 最近編輯優先
+    // 5. 渲染 Focus Mode
     const focusItems = processedProjects
-       .filter(p => !p.isCompleted) // 改了這裡：只要 100% 完成，就不用在 Focus 出現
+        .filter(p => !p.isCompleted)
         .sort((a, b) => new Date(b.last_updated) - new Date(a.last_updated))
-        .slice(0, 5); // 只顯示前 5 個
+        .slice(0, 5);
 
+    // 🔥 關鍵修正：渲染前一刻才清空，並立即寫入 🔥
+    focusList.innerHTML = ''; 
     renderFocusList(focusItems, focusList);
 
-    // F. 渲染 Section B: 班級歸檔 (Grouping)
+    // 6. 渲染 班級歸檔
     const grouped = groupByYearAndClass(processedProjects);
-    renderClassAccordion(grouped, classContainer);
+    
+    // 🔥 關鍵修正：渲染前一刻才清空，並立即寫入 🔥
+    if(classContainer) {
+        classContainer.innerHTML = ''; 
+        renderClassAccordion(grouped, classContainer);
+    }
     
     updateWelcomeMessage();
 }
+
+
 
 // --- Helper: 獲取離線資料 ---
 function getOfflineProjectMeta() {
