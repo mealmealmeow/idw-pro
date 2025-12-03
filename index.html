@@ -3250,13 +3250,22 @@ function showToast(message, type = 'info') {
         }, 400);
     }, 3000);
 }
-// 新增：更新頂部專案資訊函式
+// 新增：更新頂部專案資訊函式 (防彈版)
 function updateHeaderInfo() {
-    const className = document.getElementById('student-class').value.trim();
-    const topic = document.getElementById('topic').value.trim();
+    // 嘗試獲取各種可能的輸入框
+    const classInput = document.getElementById('student-class') || document.getElementById('student-class-manual');
+    const topicInput = document.getElementById('topic');
+    
+    // 獲取顯示容器
     const container = document.getElementById('project-header-info');
     const classSpan = document.getElementById('ph-class');
     const topicSpan = document.getElementById('ph-topic');
+
+    // 如果容器不存在 (可能未載入)，直接離開
+    if (!container || !classSpan || !topicSpan) return;
+
+    const className = classInput ? classInput.value.trim() : '';
+    const topic = topicInput ? topicInput.value.trim() : '';
 
     if (className || topic) {
         container.style.display = 'inline-flex';
@@ -8129,7 +8138,7 @@ function toggleAllSetupStudents(checked) {
     });
 }
 
-// 5. 核心橋接函數 (終極修復版)
+// 5. 核心橋接函數 (終極防彈版 v2)
 function startGradingWithSetup(actionType) {
     const modeRadio = document.querySelector('input[name="setup-mode"]:checked');
     const mode = modeRadio ? modeRadio.value : 'manual';
@@ -8141,36 +8150,35 @@ function startGradingWithSetup(actionType) {
         return;
     }
 
-    // 🔥 關鍵修正：主動去 Page 2 尋找目標 Textarea
+    // 🔥 嘗試尋找目標輸入框 (Page 2)
     let legacyInput = document.getElementById('student-names');
+    let legacyClass = document.getElementById('student-class');
     
-    // 如果 getElementById 找不到，嘗試用 querySelector 進入 Page 2 內部找
+    // 如果在 Page 1 找不到 Page 2 的元素，這是正常的 (因為 display:none)，但它們應該存在於 DOM 中。
+    // 如果真的找不到，我們嘗試去 Page 2 區域找
     if (!legacyInput) {
-        const page2Container = document.getElementById('grading-section-student');
-        if (page2Container) {
-            // 尋找 Page 2 裡面的 textarea
-            legacyInput = page2Container.querySelector('textarea');
-            // 如果找到了，強制幫它加上 ID，方便之後使用
-            if (legacyInput) legacyInput.id = 'student-names';
-        }
+        const p2 = document.getElementById('grading-section-student');
+        if (p2) legacyInput = p2.querySelector('textarea');
     }
 
     if (!legacyInput) {
-        console.error("Critical Error: 無法找到 Page 2 的學生名單輸入框。");
-        alert("系統錯誤：找不到目標欄位，請重新整理頁面後再試。");
+        console.error("Critical: 找不到 #student-names");
+        alert("系統錯誤：找不到名單輸入框，請重新整理頁面。");
         return;
     }
 
     // --- 邏輯開始 ---
     if (mode === 'registry') {
+        // 註冊模式
         const select = document.getElementById('setup-class-select');
         if (!select || !select.value) {
             alert("請選擇班級！");
             return;
         }
         
+        // 檢查勾選
         const checkedCards = document.querySelectorAll('#setup-student-checklist .student-check-card.checked');
-        const checkedInputs = document.querySelectorAll('#setup-student-checklist input:checked'); // 雙重保險
+        const checkedInputs = document.querySelectorAll('#setup-student-checklist input:checked');
 
         if (checkedCards.length === 0 && checkedInputs.length === 0) {
             alert("⚠️ 請至少勾選一位學生！");
@@ -8178,7 +8186,6 @@ function startGradingWithSetup(actionType) {
         }
 
         let listStr = "";
-        // 優先用 card class
         if (checkedCards.length > 0) {
              checkedCards.forEach(div => { if (div.dataset.info) listStr += div.dataset.info + "\n"; });
         } else {
@@ -8188,10 +8195,8 @@ function startGradingWithSetup(actionType) {
             });
         }
 
+        // 填入 Page 2
         legacyInput.value = listStr.trim();
-        
-        // 嘗試填入班別
-        const legacyClass = document.getElementById('student-class');
         if(legacyClass && select.options[select.selectedIndex]) {
              legacyClass.value = select.options[select.selectedIndex].dataset.className || '';
         }
@@ -8208,26 +8213,20 @@ function startGradingWithSetup(actionType) {
         
         legacyInput.value = manualVal;
         
-        // 手動模式的班別
         const manualClass = document.getElementById('student-class-manual');
-        const legacyClass = document.getElementById('student-class');
         if(legacyClass && manualClass) legacyClass.value = manualClass.value;
     }
 
-    // 🔥 觸發更新：這一步最重要，它會生成學生選單
+    // 🔥 觸發更新事件 (這一步會生成 allStudentRecords)
     legacyInput.dispatchEvent(new Event('input')); 
     
+    // 安全調用更新函數
     if (typeof updateStudentDropdown === 'function') updateStudentDropdown();
     if (typeof updateHeaderInfo === 'function') updateHeaderInfo();
 
     // 執行跳轉
     if (actionType === 'default') {
-        if (typeof loadCannedCritiquesAndFocus === 'function') {
-            loadCannedCritiquesAndFocus();
-        } else {
-            // 如果找不到函數，直接跳轉 (保底)
-            showPage('page2', 'student-select');
-        }
+        if (typeof loadCannedCritiquesAndFocus === 'function') loadCannedCritiquesAndFocus();
     } else if (actionType === 'manual') {
         const cData = document.getElementById('critique-data');
         if(cData) cData.innerHTML = '';
@@ -8239,6 +8238,7 @@ function startGradingWithSetup(actionType) {
         if(typeof showToast === 'function') showToast("名單已設定，請開始建立評語庫。", "info");
     }
 }
+
 // ==========================================
 // ====== Phase 2.2: 開新批改流程 (完整版) ======
 // ==========================================
