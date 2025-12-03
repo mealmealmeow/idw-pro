@@ -4493,20 +4493,34 @@ function toFullWidthPunctuation(str) {
     return str.replace(/[[],.?_!:]/g, m => map[m] || m);
 }
 
+// 修復版 updateAllOutputs (防止 null 錯誤)
 function updateAllOutputs() {
-  const studentClass = document.getElementById('student-class').value.trim();
-  const topic = document.getElementById('topic').value.trim();
-  const selectedStudentOriginalName = document.getElementById('student-select').value;
-  const uniqueComment = document.getElementById('unique-comment').value.trim();
+  // 嘗試獲取元素，如果找不到就用空值代替，防止報錯
+  const classEl = document.getElementById('student-class');
+  const topicEl = document.getElementById('topic');
+  const selectEl = document.getElementById('student-select');
+  const uniqueEl = document.getElementById('unique-comment');
+  
+  const studentClass = classEl ? classEl.value.trim() : '';
+  const topic = topicEl ? topicEl.value.trim() : '';
+  const selectedStudentOriginalName = selectEl ? selectEl.value : '';
+  const uniqueComment = uniqueEl ? uniqueEl.value.trim() : '';
+
+  // 安全地獲取分數 (使用 Optional Chaining)
+  const getVal = (id) => {
+      const el = document.getElementById(id);
+      return el ? el.value : '';
+  };
 
   const scores = {
-    content: document.getElementById('score-content').value,
-    expression: document.getElementById('score-expression').value,
-    structure: document.getElementById('score-structure').value,
-    punctuation: document.getElementById('score-punctuation').value,
-    typos: document.getElementById('score-typos').value,
-    total: document.getElementById('score-total').value,
+    content: getVal('score-content'),
+    expression: getVal('score-expression'),
+    structure: getVal('score-structure'),
+    punctuation: getVal('score-punctuation'),
+    typos: getVal('score-typos'),
+    total: getVal('score-total'),
   };
+
   let scoreSummaryText = '';
   if (Object.values(scores).some(v => v)) {
     scoreSummaryText = [
@@ -4527,11 +4541,15 @@ function updateAllOutputs() {
     }
   });
 
-  const typoTextFullRaw = buildTypoSection(false);
-  const typoTextStudentRaw = buildTypoSection(true);
+  const typoTextFullRaw = typeof buildTypoSection === 'function' ? buildTypoSection(false) : '';
+  const typoTextStudentRaw = typeof buildTypoSection === 'function' ? buildTypoSection(true) : '';
 
-  generateFullVersion(studentClass, selectedStudentOriginalName, topic, uniqueComment, excellentCritiques, problemCritiques, scoreSummaryText, typoTextFullRaw);
-  generateStudentReport(studentClass, selectedStudentOriginalName, topic, uniqueComment, excellentCritiques, problemCritiques, scoreSummaryText, typoTextStudentRaw);
+  if (typeof generateFullVersion === 'function') {
+      generateFullVersion(studentClass, selectedStudentOriginalName, topic, uniqueComment, excellentCritiques, problemCritiques, scoreSummaryText, typoTextFullRaw);
+  }
+  if (typeof generateStudentReport === 'function') {
+      generateStudentReport(studentClass, selectedStudentOriginalName, topic, uniqueComment, excellentCritiques, problemCritiques, scoreSummaryText, typoTextStudentRaw);
+  }
 }
 
 function generatePureFullVersion(excellents, problems) {
