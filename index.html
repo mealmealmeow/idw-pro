@@ -2086,7 +2086,7 @@
         <div class="font-controls" style="align-self: flex-start;">
             <button class="font-control-btn" onclick="showHotkeyHelp()" title="鍵盤快捷鍵">⌨️</button> 
             <!-- 放在 <header> 裡面的 .font-controls div 入面 -->
-<button class="font-control-btn" onclick="killPWA()" title="徹底移除 PWA 及緩存">💀</button>
+
           <button class="font-control-btn" onclick="adjustFontSize('decrease')" title="縮小字體">A-</button>
           <button class="font-control-btn" onclick="adjustFontSize('reset')" title="重設字體大小">重設</button>
           <button class="font-control-btn" onclick="adjustFontSize('increase')" title="放大字體">A+</button>
@@ -6584,12 +6584,30 @@ function renderEmptyState(container) {
     `;
 }
 
-// --- Helper: 資料分組 (已修正：加入 .trim() 防止重複 Header) ---
+// --- Helper: 資料分組 (終極防重複版) ---
 function groupByYearAndClass(projects) {
     const groups = {};
+    
+    // 建立一個標準化 Key 的小工具
+    const normalizeKey = (str) => {
+        if (!str) return '未知年份';
+        // 1. 去除所有空格
+        let s = str.toString().replace(/\s+/g, '');
+        // 2. 嘗試找出 4位數字+分隔符+4位數字 的模式
+        // 無論是用 - (hyphen), – (en-dash), — (em-dash) 還是其他符號，全部統一
+        const match = s.match(/^(\d{4})[^\d](\d{4})/);
+        if (match) {
+            return `${match[1]}-${match[2]}`; // 強制格式為 YYYY-YYYY
+        }
+        return s; // 如果不是年份格式，就回傳去除空格後的原字串
+    };
+
     projects.forEach(p => {
-        // 強制去除頭尾空格，避免 "2025-2026 " 和 "2025-2026" 分開
-        const y = (p.normalizedYear || p.academic_year || '未知年份').trim();
+        // 取得原始年份
+        const rawYear = p.normalizedYear || p.academic_year;
+        // 進行標準化處理
+        const y = normalizeKey(rawYear);
+        // 班別也去除前後空格
         const c = (p.class_name || '未分類').trim();
         
         if (!groups[y]) groups[y] = {};
@@ -7048,32 +7066,7 @@ supabaseClient.auth.onAuthStateChange(async (event, session) => {
     }
   }
 });
-// --- 徹底殺死 PWA 及清除緩存 (只執行一次) ---
-async function killPWA() {
-    if (!confirm("⚠️ 這將會強制移除所有 PWA 緩存並重新載入網頁。\n\n如果你遇到「改了代碼但沒反應」的情況，請按確定。")) return;
 
-    // 1. 註銷 Service Worker
-    if ('serviceWorker' in navigator) {
-        const registrations = await navigator.serviceWorker.getRegistrations();
-        for (const registration of registrations) {
-            await registration.unregister();
-            console.log("已註銷 Service Worker");
-        }
-    }
-
-    // 2. 清除所有 Cache Storage
-    if ('caches' in window) {
-        const keys = await caches.keys();
-        for (const key of keys) {
-            await caches.delete(key);
-            console.log("已清除 Cache: " + key);
-        }
-    }
-
-    // 3. 強制重新載入 (忽略緩存)
-    alert("✅ PWA 已移除，緩存已清空！\n頁面將會自動重新載入。");
-    window.location.reload(true);
-}
 
 // ==========================================
 // ====== Dashboard 編輯功能 (新) ======
@@ -7178,8 +7171,8 @@ async function deleteProject() {
     const sourceType = document.getElementById('edit-source-type').value;
     const title = document.getElementById('edit-topic').value;
 
-    // 改用原生 Confirm，排除 UI 庫的問題，測試用
-    if (!confirm(`⚠️ 嚴重警告\n\n確定要永久刪除「${title}」嗎？\n\n刪除後無法復原！`)) {
+    // 1. 確認刪除
+    if (!confirm(`⚠️ 確定要刪除「${title}」嗎？\n\n如果這是「(備份)」檔案，刪除後將無法還原。`)) {
         return;
     }
 
@@ -7189,47 +7182,45 @@ async function deleteProject() {
     btn.disabled = true;
 
     try {
-        console.log(`正在刪除專案 ID: ${id}, 類型: ${sourceType}`); // Debug log
-
+        // --- Case A: 刪除 Supabase 舊專案 ---
         if (sourceType === 'legacy') {
-            const { error } = await supabaseClient
-                .from('student_projects')
-                .delete()
-                .eq('id', id); // 確保這裡刪除的是 student_projects
-            
-            if (error) {
-                console.error("Supabase Error:", error); // 顯示詳細錯誤
-                throw error;
-            }
+            const { error } = await supabaseClient.from('student_projects').delete().eq('id', id);
+            if (error) throw error;
         } 
+        // --- Case B: 刪除 Supabase 新作業 ---
         else if (sourceType === 'new') {
-            const { error } = await supabaseClient
-                .from('assignments')
-                .delete()
-                .eq('id', id);
-            
-            if (error) {
-                console.error("Supabase Error:", error);
-                throw error;
-            }
+            const { error } = await supabaseClient.from('assignments').delete().eq('id', id);
+            if (error) throw error;
         }
-        else if (sourceType === 'local_memory') {
-            alert("這是暫存檔，請刷新頁面或清除緩存即可。");
-            btn.innerHTML = originalText;
-            btn.disabled = false;
-            return;
+        // --- Case C: 刪除 本機備份 (Local Backup) ---
+        else if (sourceType === 'local_backup' || id === 'local_backup') {
+            // 清除 LocalStorage
+            localStorage.removeItem('idw_grading_backup_v1');
+            // 隱藏還原按鈕 (如果有顯示的話)
+            const restoreBtn = document.getElementById('restore-backup-btn');
+            if(restoreBtn) restoreBtn.style.display = 'none';
+        }
+        // --- Case D: 刪除 當前記憶體 (Local Memory) ---
+        else if (sourceType === 'local_memory' || id === 'local_memory') {
+            // 清空當前變數
+            allStudentRecords = [];
+            clearAllCore(true);
+            // 也要清除備份，因為 memory 通常會觸發 auto-save
+            localStorage.removeItem('idw_grading_backup_v1');
         }
 
-        // 成功
-        alert("✅ 專案已刪除");
+        // 成功後處理
+        if (typeof showToast === 'function') showToast("已成功刪除", "success");
+        else alert("已成功刪除");
+
         document.getElementById('pop-edit-modal').classList.remove('active');
         
-        // 重新載入
+        // 重新載入列表
         loadDashboard(); 
 
     } catch (error) {
         console.error("Delete Failed:", error);
-        alert("刪除失敗！\n\n原因: " + (error.message || error.details || "未知錯誤") + "\n\n(請檢查 Supabase RLS Policy 是否允許 DELETE)");
+        alert("刪除失敗：" + (error.message || "未知錯誤"));
     } finally {
         btn.innerHTML = originalText;
         btn.disabled = false;
