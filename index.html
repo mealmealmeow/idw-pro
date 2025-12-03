@@ -6475,7 +6475,7 @@ async function loadDashboard() {
     // 規則：(未完成 OR 離線檔案) 
     // 排序：離線優先 > 最近編輯優先
     const focusItems = processedProjects
-        .filter(p => !p.isCompleted || p.source_type === 'local_memory')
+       .filter(p => !p.isCompleted) // 改了這裡：只要 100% 完成，就不用在 Focus 出現
         .sort((a, b) => new Date(b.last_updated) - new Date(a.last_updated))
         .slice(0, 5); // 只顯示前 5 個
 
@@ -6827,28 +6827,16 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 
-// --- PWA Service Worker 設定 (直接寫喺 JS 入面，唔使加 <script> 標籤) ---
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', function() {
-      navigator.serviceWorker.register('./sw.js').then(function(registration) {
-        console.log('ServiceWorker registration successful with scope: ', registration.scope);
-      }, function(err) {
-        console.log('ServiceWorker registration failed: ', err);
-      });
-    });
-}
 // -------------------------------------------------------------
 // ============================
-// ✅ 新增：Email + 密碼 登入邏輯
+// ✅ Email + 密碼 登入邏輯
 // ============================
 
 // 1. 打開登入視窗
 function handleLogin() {
   const modal = document.getElementById('pop-login-modal');
-  // 清空輸入框
   if(document.getElementById('login-email')) document.getElementById('login-email').value = "";
   if(document.getElementById('login-password')) document.getElementById('login-password').value = "";
-  
   modal.classList.add('active');
 }
 
@@ -6922,6 +6910,9 @@ async function handleForgotPassword() {
 
   if (!confirm(`系統將會發送一封「重設密碼」郵件到：\n${email}\n\n確定嗎？`)) return;
 
+  const authStatus = document.getElementById('auth-status');
+  if(authStatus) authStatus.textContent = "正在發送...";
+
   try {
     const { data, error } = await supabaseClient.auth.resetPasswordForEmail(email, {
       redirectTo: window.location.href, // 重設後跳轉回本頁
@@ -6931,158 +6922,26 @@ async function handleForgotPassword() {
 
     alert("✅ 郵件已發送！\n請去 Email 點擊連結，系統會帶你回來設定新密碼。");
     closeLoginModal();
+    if(authStatus) authStatus.textContent = "等待重設...";
   } catch (err) {
     alert("發送失敗：" + err.message);
+    if(authStatus) authStatus.textContent = "操作失敗";
   }
 }
-// 2. 關閉視窗
-function closeLoginModal() {
-  document.getElementById('pop-login-modal').classList.remove('active');
-}
-
-// 3. 處理 登入 或 註冊
-async function handlePasswordAuth(action) {
-  const email = document.getElementById('login-email').value.trim();
-  const password = document.getElementById('login-password').value.trim();
-  const authStatus = document.getElementById('auth-status');
-
-  if (!email || !password) {
-    alert("請輸入 Email 及 密碼");
-    return;
-  }
-
-  // 簡單鎖定 UI
-  const btn = event.target;
-  const originalText = btn.innerText;
-  btn.innerText = "處理中...";
-  btn.disabled = true;
-  authStatus.textContent = "處理中...";
-
-  try {
-    if (action === 'signup') {
-      // --- 註冊流程 ---
-      const { data, error } = await supabaseClient.auth.signUp({
-        email: email,
-        password: password,
-      });
-      
-      if (error) throw error;
-      
-      // 因為關閉了 Confirm Email，這裡通常會直接登入成功
-      if (data.user && data.session) {
-        if (typeof showToast === 'function') showToast("註冊成功，已自動登入！", "success");
-        else alert("註冊成功，已自動登入！");
-        closeLoginModal();
-      } else {
-        // 萬一佢仲係要你收信 (極少數情況)
-        alert("請檢查 Email 進行驗證。");
-        closeLoginModal();
-      }
-
-    } else {
-      // --- 登入流程 ---
-      const { data, error } = await supabaseClient.auth.signInWithPassword({
-        email: email,
-        password: password,
-      });
-
-      if (error) throw error;
-
-      if (typeof showToast === 'function') showToast("登入成功！", "success");
-      else alert("登入成功！");
-      closeLoginModal();
-    }
-
-  } catch (err) {
-    console.error(err);
-    alert("操作失敗：" + err.message);
-    authStatus.textContent = "操作失敗";
-  } finally {
-    // 解鎖按鈕
-    btn.innerText = originalText;
-    btn.disabled = false;
-  }
-}
-
-// 4. 處理「忘記密碼 / 設定新密碼」
-async function handleForgotPassword() {
-  const email = document.getElementById('login-email').value.trim();
-  if (!email) {
-    alert("請先在上方輸入您的電郵地址，然後再按「忘記密碼」。");
-    return;
-  }
-
-  if (!confirm(`系統將會發送一封「重設密碼」郵件到：\n${email}\n\n確定嗎？`)) return;
-
-  const authStatus = document.getElementById('auth-status');
-  authStatus.textContent = "正在發送...";
-
-  try {
-    // 發送重設信，並指定登入後跳轉回本頁
-    const { data, error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-      redirectTo: window.location.href,
-    });
-    
-    if (error) throw error;
-
-    alert("✅ 郵件已發送！\n請去 Email 點擊連結，系統會帶你回來設定新密碼。");
-    closeLoginModal();
-    authStatus.textContent = "等待重設...";
-
-  } catch (err) {
-    alert("發送失敗：" + err.message);
-    authStatus.textContent = "操作失敗";
-  }
-}
-
-// 5. 監聽「重設密碼」事件 (當用戶撳完 Email Link 返嚟)
-supabaseClient.auth.onAuthStateChange(async (event, session) => {
-  // 原本的 checkUser 邏輯
-  currentUser = session ? session.user : null;
-  updateUIBasedOnAuthState();
-
-  if (event === 'SIGNED_IN') {
-    loadDataFromCloud(); // 正常登入載入資料
-  } else if (event === 'SIGNED_OUT') {
-  
-  } 
-  
-  // 🔥 新增：處理重設密碼事件
-  else if (event === 'PASSWORD_RECOVERY') {
-    const newPassword = prompt("🔐 歡迎回來！\n\n請輸入您的新密碼：");
-    
-    if (newPassword) {
-      const { data, error } = await supabaseClient.auth.updateUser({ 
-        password: newPassword 
-      });
-
-      if (error) {
-        alert("密碼更新失敗：" + error.message);
-      } else {
-        alert("🎉 密碼已成功更新！\n您現在可以使用新密碼登入了。");
-        // 更新成功後，通常已經係登入狀態，可以順便儲存一下
-        if (typeof showToast === 'function') showToast("密碼已更新", "success");
-      }
-    }
-  }
-});
-
 
 // ==========================================
 // ====== Dashboard 編輯功能 (新) ======
 // ==========================================
 
 function openEditModal(project) {
-    // 填充資料到 Modal
     document.getElementById('edit-project-id').value = project.id;
     document.getElementById('edit-source-type').value = project.source_type;
-    document.getElementById('edit-class-id').value = project.class_id || ''; // 新專案才有 class_id
+    document.getElementById('edit-class-id').value = project.class_id || ''; 
     
     document.getElementById('edit-year').value = project.normalizedYear || project.academic_year || '';
     document.getElementById('edit-class').value = project.class_name || '';
     document.getElementById('edit-topic').value = project.topic || '';
 
-    // 顯示 Modal
     document.getElementById('pop-edit-modal').classList.add('active');
 }
 
@@ -7107,7 +6966,6 @@ async function saveProjectMeta() {
 
     try {
         if (sourceType === 'legacy') {
-            // 舊資料：更新 student_projects 表 (現在已有 academic_year 欄位)
             const { error } = await supabaseClient
                 .from('student_projects')
                 .update({ 
@@ -7119,15 +6977,12 @@ async function saveProjectMeta() {
             if (error) throw error;
         } 
         else if (sourceType === 'new') {
-            // 新資料：更新 assignments (題目) 和 classes (班別/年份)
-            // 1. 更新題目
             const { error: assignError } = await supabaseClient
                 .from('assignments')
                 .update({ title: newTopic })
                 .eq('id', id);
             if (assignError) throw assignError;
 
-            // 2. 更新班別資訊 (如果 classId 存在)
             if (classId) {
                 const { error: classError } = await supabaseClient
                     .from('classes')
@@ -7140,20 +6995,15 @@ async function saveProjectMeta() {
             }
         }
         else if (sourceType === 'local_memory') {
-            // 離線資料：更新 UI 並觸發自動儲存
             document.getElementById('student-class').value = newClass;
             document.getElementById('topic').value = newTopic;
-            // 注意：離線版通常不存年份，這裡僅更新 UI
             triggerAutoSave();
         }
 
-        // 成功後
         if (typeof showToast === 'function') showToast("更新成功！", "success");
         else alert("更新成功！");
         
         document.getElementById('pop-edit-modal').classList.remove('active');
-        
-        // 重新載入 Dashboard 以反映變更
         loadDashboard();
 
     } catch (error) {
@@ -7165,13 +7015,11 @@ async function saveProjectMeta() {
     }
 }
 
-
 async function deleteProject() {
     const id = document.getElementById('edit-project-id').value;
     const sourceType = document.getElementById('edit-source-type').value;
     const title = document.getElementById('edit-topic').value;
 
-    // 1. 確認刪除
     if (!confirm(`⚠️ 確定要刪除「${title}」嗎？\n\n如果這是「(備份)」檔案，刪除後將無法還原。`)) {
         return;
     }
@@ -7182,40 +7030,29 @@ async function deleteProject() {
     btn.disabled = true;
 
     try {
-        // --- Case A: 刪除 Supabase 舊專案 ---
         if (sourceType === 'legacy') {
             const { error } = await supabaseClient.from('student_projects').delete().eq('id', id);
             if (error) throw error;
         } 
-        // --- Case B: 刪除 Supabase 新作業 ---
         else if (sourceType === 'new') {
             const { error } = await supabaseClient.from('assignments').delete().eq('id', id);
             if (error) throw error;
         }
-        // --- Case C: 刪除 本機備份 (Local Backup) ---
         else if (sourceType === 'local_backup' || id === 'local_backup') {
-            // 清除 LocalStorage
             localStorage.removeItem('idw_grading_backup_v1');
-            // 隱藏還原按鈕 (如果有顯示的話)
             const restoreBtn = document.getElementById('restore-backup-btn');
             if(restoreBtn) restoreBtn.style.display = 'none';
         }
-        // --- Case D: 刪除 當前記憶體 (Local Memory) ---
         else if (sourceType === 'local_memory' || id === 'local_memory') {
-            // 清空當前變數
             allStudentRecords = [];
             clearAllCore(true);
-            // 也要清除備份，因為 memory 通常會觸發 auto-save
             localStorage.removeItem('idw_grading_backup_v1');
         }
 
-        // 成功後處理
         if (typeof showToast === 'function') showToast("已成功刪除", "success");
         else alert("已成功刪除");
 
         document.getElementById('pop-edit-modal').classList.remove('active');
-        
-        // 重新載入列表
         loadDashboard(); 
 
     } catch (error) {
@@ -7226,6 +7063,7 @@ async function deleteProject() {
         btn.disabled = false;
     }
 }
+
 </script> <!-- 呢個係原本全個檔案唯一的結尾，保留佢 -->
 
 
