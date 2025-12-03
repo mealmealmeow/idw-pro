@@ -2785,6 +2785,24 @@
   </div>
 </div>
 
+<!-- 自定義重設密碼 Modal -->
+<div id="pop-reset-password-modal" class="pop-overlay">
+  <div class="pop-modal">
+    <div class="pop-icon">🔐</div>
+    <h3>設定新密碼</h3>
+    <p class="pop-desc">
+      歡迎回來！請輸入您的新密碼。<br>
+      <span style="font-size:0.85rem; color:#c86a5a;">(⚠️ 密碼長度最少需 6 個字元)</span>
+    </p>
+    
+    <input type="password" id="new-password-input" class="pop-input" placeholder="新密碼 (New Password)">
+    
+    <div class="pop-footer">
+      <button class="pop-btn pop-btn-confirm" id="confirm-reset-btn">確認修改</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // --- Supabase 初始化與設定 ---
 const SUPABASE_URL = 'https://wtcegbkfuklnkurrouka.supabase.co'; 
@@ -7065,52 +7083,59 @@ async function deleteProject() {
 }
 
 
+
 /* ==========================================
-   ====== 🔐 官方標準重設密碼監聽器 ======
+   ====== 🔐 官方標準重設密碼監聽器 (UI版) ======
    ========================================== */
 supabaseClient.auth.onAuthStateChange(async (event, session) => {
-    // 只有當事件為 "PASSWORD_RECOVERY" 時才執行
     if (event === 'PASSWORD_RECOVERY') {
-        console.log("偵測到重設密碼事件！");
+        console.log("偵測到重設密碼事件！啟動 UI...");
         
-        let newPassword = null;
+        const modal = document.getElementById('pop-reset-password-modal');
+        const input = document.getElementById('new-password-input');
+        const btn = document.getElementById('confirm-reset-btn');
         
-        // 使用迴圈確保用戶輸入符合要求的密碼
-        while (true) {
-            newPassword = prompt("🔐 重設密碼\n\n請輸入您的新密碼：\n(⚠️ 密碼長度最少需 6 個字元)");
-            
-            // 如果用戶按取消，則停止
-            if (newPassword === null) { 
-                alert("已取消重設密碼。");
-                return; 
+        // 顯示 Modal
+        modal.classList.add('active');
+        input.value = '';
+        input.focus();
+
+        // 定義點擊事件
+        btn.onclick = async () => {
+            const newPassword = input.value.trim();
+
+            // 1. 檢查長度
+            if (newPassword.length < 6) {
+                alert("❌ 密碼太短！\nSupabase 要求密碼最少 6 個字元。");
+                return;
             }
-            
-            // 檢查長度
-            if (newPassword.length >= 6) {
-                break; // 密碼合格，跳出迴圈
+
+            // 2. 鎖定按鈕
+            const originalText = btn.innerText;
+            btn.innerText = "更新中...";
+            btn.disabled = true;
+
+            // 3. 執行更新
+            const { data, error } = await supabaseClient.auth.updateUser({ 
+                password: newPassword 
+            });
+
+            if (error) {
+                alert("❌ 更新失敗：" + error.message);
+                btn.innerText = originalText;
+                btn.disabled = false;
             } else {
-                alert("❌ 密碼太短！\nSupabase 要求密碼最少 6 個字元，請重試。");
+                alert("🎉 密碼已成功更新！\n\n請使用新密碼重新登入。");
+                
+                // 關閉 Modal，清除網址 Hash，重新載入
+                modal.classList.remove('active');
+                window.location.hash = ''; 
+                window.location.reload(); 
             }
-        }
-
-        // 顯示處理中
-        if(typeof showToast === 'function') showToast("正在更新密碼...", "info");
-
-        // 執行更新
-        const { data, error } = await supabaseClient.auth.updateUser({ 
-            password: newPassword 
-        });
-
-        if (error) {
-            alert("❌ 更新失敗：" + error.message);
-        } else {
-            alert("🎉 密碼已成功更新！\n\n請使用新密碼重新登入。");
-            // 清除網址上的痕跡並重新載入
-            window.location.hash = ''; 
-            window.location.reload(); 
-        }
+        };
     }
 });
+
 </script> <!-- 呢個係原本全個檔案唯一的結尾，保留佢 -->
 
 
