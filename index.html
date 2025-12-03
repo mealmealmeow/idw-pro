@@ -2347,8 +2347,8 @@
     </div>
   </div>
 </div>
-
-     <div id="page1" class="page-content active">
+<!-- ==================== 第一頁：基本設定 (新版 Phase 2.2) ==================== -->
+<div id="page1" class="page-content active">
   <div class="section-box">
     <h2>步驟一：設定作業資訊</h2>
     
@@ -2396,23 +2396,24 @@
       </div>
     </div>
 
-    <!-- 2B. 手動模式介面 (Manual Mode) -->
+    <!-- 2B. 手動模式介面 (Manual Mode) - 已修正 ID 防止衝突 -->
     <div id="setup-manual-panel" style="display:none;">
       <div class="two-column-grid">
         <div class="input-group">
-          <label for="student-class">班別 / 組別</label>
-          <input type="text" id="student-class" placeholder="例如：6A">
+          <label for="student-class-manual">班別 / 組別</label>
+          <input type="text" id="student-class-manual" placeholder="例如：6A">
         </div>
       </div>
       <div class="input-group">
-         <label for="student-names">學生名單（每行一位，可包含學號）</label>
-         <textarea id="student-names" rows="5" placeholder="01-陳大文&#10;02 張小美&#10;李偉明"></textarea>
+         <label for="student-names-manual">學生名單（每行一位，可包含學號）</label>
+         <!-- ✅ 關鍵修改：ID 改為 student-names-manual -->
+         <textarea id="student-names-manual" rows="5" placeholder="01-陳大文&#10;02 張小美&#10;李偉明"></textarea>
       </div>
     </div>
 
   </div>
 
-  <!-- 下方區塊保持原本邏輯，只是按鈕功能增強 -->
+  <!-- 下方區塊保持功能，但更新按鈕觸發的函數 -->
   <div class="section-box">
     <h2>步驟二：選擇評語庫並開始</h2>
     <p style="font-size:0.9rem;color:#777; margin-top:-0.7rem;">完成上方設定後，請選擇一種方式載入評語庫以進入批改。</p>
@@ -2428,6 +2429,7 @@
                 <label><input type="checkbox" name="genre" value="argumentative"> 議論</label>
             </div>
             <div class="btn-group" style="margin-top: 1rem;">
+                <!-- ✅ 改用新函數 -->
                 <button class="action-btn" onclick="startGradingWithSetup('default')">確定並載入預設評語</button>
             </div>
         </div>
@@ -2439,6 +2441,7 @@
             <p>如果您想使用之前的雲端專案或手動輸入評語，請按此。</p>
             <div class="btn-group">
                 <button id="select-project-btn" class="secondary-btn" style="display: none;">從雲端選取舊專案</button>
+                <!-- ✅ 改用新函數 -->
                 <button class="light-btn" onclick="startGradingWithSetup('manual')">僅確認名單，跳至手動修訂</button>
             </div>
         </div>
@@ -3057,9 +3060,6 @@
 
     <!-- 頂部工具列：匯入與新增 -->
     <div style="display:flex; gap:10px; margin-bottom:15px; align-items:center; background:#f9f9f9; padding:10px; border-radius:8px;">
-       <button class="btn light-btn" onclick="downloadMasterListTemplate()" style="font-size:0.85rem; padding:6px 12px;">
-    📥 下載範本
-  </button>
       <label class="btn secondary-btn" style="font-size:0.85rem; padding:6px 12px; cursor:pointer;">
         📂 匯入 Excel
         <input type="file" id="import-master-list-file" accept=".xlsx, .xls" style="display:none;" onchange="handleMasterListImport(this)">
@@ -3202,13 +3202,12 @@ async function checkUser() {
   
   if (currentUser) {
     loadDataFromCloud();
-    // 確保載入 Dashboard
     if (typeof loadDashboard === 'function') loadDashboard(); 
+    // ✅ 正確位置：登入後嘗試載入班級下拉選單
+    if (typeof loadPage1ClassDropdown === 'function') loadPage1ClassDropdown();
   } else {
-     if (typeof loadPage1ClassDropdown === 'function') loadPage1ClassDropdown();
-  } 
+    // 離線模式
     renderCommonTypoList();
-    // 確保載入 Dashboard (離線版)
     if (typeof loadDashboard === 'function') loadDashboard();
   }
 
@@ -3221,6 +3220,8 @@ async function checkUser() {
     if (event === 'SIGNED_IN') {
       loadDataFromCloud();
       if (typeof loadDashboard === 'function') loadDashboard();
+      // ✅ 正確位置：登入事件觸發時載入
+      if (typeof loadPage1ClassDropdown === 'function') loadPage1ClassDropdown();
     } 
     else if (event === 'SIGNED_OUT') {
       sessionStorage.removeItem('projectPromptShownThisSession');
@@ -3234,8 +3235,10 @@ async function checkUser() {
       clearAllCore();
       alert("已登出，所有雲端資料已清除。");
       if (typeof loadDashboard === 'function') loadDashboard();
+      // 登出後重置下拉選單
+      const select = document.getElementById('setup-class-select');
+      if(select) select.innerHTML = '<option value="">(請先登入)</option>';
     }
-    // 🔥 處理重設密碼
     else if (event === 'PASSWORD_RECOVERY') {
       const newPassword = prompt("🔐 驗證成功！\n\n請輸入您的新密碼以完成設定（最少6個字）：");
       if (newPassword) {
@@ -5885,8 +5888,8 @@ function exportOverviewToWord() {
 .task-item, .class-group-content > div {
   position: relative; /* 讓絕對定位生效 (如有需要) */
 }
-    
-/* === Phase 2.2 新增樣式 === */
+  
+/* === Phase 2.2 新增樣式 (新開作業頁面) === */
 .setup-mode-switch {
   display: flex;
   gap: 20px;
@@ -5942,7 +5945,6 @@ function exportOverviewToWord() {
   color: #2e7d32;
   font-weight: bold;
 }
-
 </style>
 </head>
 <body>`;
@@ -7887,28 +7889,8 @@ document.addEventListener('click', (e) => {
 // ✅✅✅ 貼上結束 ✅✅✅
 
 
-// 下載母名單 Excel 範本
-function downloadMasterListTemplate() {
-    if (typeof XLSX === 'undefined') {
-        alert('Excel 功能未就緒，請重新整理頁面。');
-        return;
-    }
-    
-    // 定義範本資料 (簡單兩欄)
-    const templateData = [
-        { "學號": "101", "姓名": "陳大文" },
-        { "學號": "102", "姓名": "李小美" }
-    ];
-
-    const ws = XLSX.utils.json_to_sheet(templateData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "學生名單範本");
-    
-    XLSX.writeFile(wb, "班級名單匯入範本.xlsx");
-}
-
 // ==========================================
-// ====== Phase 2.2: 開新批改流程改造 ======
+// ====== Phase 2.2: 開新批改流程 (修正版) ======
 // ==========================================
 
 // 1. 切換模式 (UI Toggle)
@@ -7930,12 +7912,15 @@ function toggleSetupMode() {
 // 2. 載入班級到 Dropdown
 async function loadPage1ClassDropdown() {
     const select = document.getElementById('setup-class-select');
+    // 如果元素不存在 (例如在其他頁面)，直接返回
+    if (!select) return;
+
     if (!currentUser) {
         select.innerHTML = '<option value="">(請先登入)</option>';
         return;
     }
     
-    // 避免重複讀取
+    // 避免重複讀取，如果有資料就保留
     if (select.options.length > 1) return; 
 
     select.innerHTML = '<option>讀取中...</option>';
@@ -8038,7 +8023,8 @@ function toggleAllSetupStudents(checked) {
 
 // 5. 核心橋接函數：將設定套用到舊系統，並開始
 function startGradingWithSetup(actionType) {
-    const mode = document.querySelector('input[name="setup-mode"]:checked').value;
+    const modeRadio = document.querySelector('input[name="setup-mode"]:checked');
+    const mode = modeRadio ? modeRadio.value : 'manual';
     const topic = document.getElementById('topic').value.trim();
 
     if (!topic) {
@@ -8047,18 +8033,21 @@ function startGradingWithSetup(actionType) {
         return;
     }
 
+    // 取得舊系統的核心輸入框 (位於 Page 2，ID 是 student-names)
+    const legacyInput = document.getElementById('student-names');
+    const legacyClassInput = document.getElementById('student-class');
+
     if (mode === 'registry') {
-        // --- 註冊模式：將勾選的學生轉換成 Textarea 格式 ---
+        // --- 註冊模式 ---
         const select = document.getElementById('setup-class-select');
-        const selectedOption = select.options[select.selectedIndex];
-        
-        if (!select.value) {
+        if(!select.value) {
             alert("請選擇班級！");
             return;
         }
-
-        // 收集勾選的學生
+        
+        const selectedOption = select.options[select.selectedIndex];
         const checkedCards = document.querySelectorAll('#setup-student-checklist .student-check-card input:checked');
+        
         if (checkedCards.length === 0) {
             alert("請至少選擇一位學生！");
             return;
@@ -8067,35 +8056,38 @@ function startGradingWithSetup(actionType) {
         let studentListString = "";
         checkedCards.forEach(cb => {
             const card = cb.closest('.student-check-card');
-            studentListString += card.dataset.info + "\n";
+            if(card && card.dataset.info) {
+                studentListString += card.dataset.info + "\n";
+            }
         });
 
-        // 🔥 橋接魔法：填入舊有的隱藏欄位 🔥
-        document.getElementById('student-class').value = selectedOption.dataset.className; // 填班別
-        document.getElementById('student-names').value = studentListString.trim(); // 填名單 text
-        
-        // 觸發舊系統的更新邏輯 (這會生成 allStudentRecords)
-        updateStudentDropdown(); 
-        updateHeaderInfo(); // 更新頂部 Header
+        // 🔥 橋接：將資料填入 Page 2 🔥
+        legacyClassInput.value = selectedOption.dataset.className || ''; 
+        legacyInput.value = studentListString.trim(); 
     } 
     else {
-        // --- 手動模式：檢查是否有填 ---
-        const manualClass = document.getElementById('student-class').value.trim();
-        const manualNames = document.getElementById('student-names').value.trim();
+        // --- 手動模式 ---
+        const manualNames = document.getElementById('student-names-manual').value.trim();
+        const manualClass = document.getElementById('student-class-manual').value.trim();
+        
         if (!manualNames) {
             alert("請輸入學生名單！");
             return;
         }
-        updateStudentDropdown(); // 確保資料同步
-        updateHeaderInfo();
+        // 🔥 橋接：將資料填入 Page 2 🔥
+        legacyInput.value = manualNames;
+        legacyClassInput.value = manualClass;
     }
 
-    // 最後執行原定的動作 (載入評語 or 跳轉)
+    // 觸發舊系統的更新邏輯 (生成 allStudentRecords)
+    legacyInput.dispatchEvent(new Event('input')); 
+    updateStudentDropdown(); 
+    updateHeaderInfo(); // 更新頂部 Header
+
+    // 最後執行原定的動作
     if (actionType === 'default') {
         loadCannedCritiquesAndFocus();
     } else if (actionType === 'manual') {
-        // 這裡我們直接跳去 Page 3 (手動修訂) 或者留在 Page 2
-        // 為了讓用戶感覺「開始了」，我們先清空評語庫 DOM (如果是新開始)
         document.getElementById('critique-data').innerHTML = '';
         buildChecklist();
         buildOverviewPage();
@@ -8104,6 +8096,7 @@ function startGradingWithSetup(actionType) {
         if(typeof showToast === 'function') showToast("名單已設定，請開始建立評語庫。", "info");
     }
 }
+
 </script> <!-- 呢個係原本全個檔案唯一的結尾，保留佢 -->
 
 
