@@ -3562,208 +3562,7 @@ async function loadProjectById(projectId) {
         updateUIBasedOnAuthState();
     }
 }
-// --- 重要的修改：雲端同步函式 ---
-// ==========================================
-// ====== 雲端同步核心 (升級版：支援班級歸檔) ======
-// ==========================================
-async function syncDataToCloud() {
-  if (!currentUser) {
-    showToast("尚未登入，請先登入帳戶以使用雲端同步功能。", "warning");
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    return;
-  }
 
-  const className = document.getElementById('student-class').value.trim();
-  const academicYear = document.getElementById('academic-year').value.trim(); // 新增
-  assignment.classes.academic_year || ''; // <--- 新增這行
-  const topic = document.getElementById('topic').value.trim();
-  const hasStudents = allStudentRecords.length > 0;
-
-  if (!className && !topic && !hasStudents) {
-     showToast("請至少填寫「班別」、「作文題目」或「學生名單」。", "warning");
-     return;
-  }
-
-  // UI 鎖定
-  const syncBtn = document.getElementById('sync-btn');
-  const originalText = syncBtn.textContent;
-  syncBtn.textContent = '同步中...';
-  syncBtn.disabled = true;
-  
-  showToast("正在同步至雲端...", "info");
-
-  try {
-    // 1. 處理班級 (Classes)
-    // 邏輯：先找有沒有這個班 (Name + Year)，沒有就 Create
-    let classId = null;
-    
-    if (className) {
-        // 嘗試尋找現有班級
-        const { data: existingClasses, error: findClassError } = await supabaseClient
-            .from('classes')
-            .select('id')
-            .eq('user_id', currentUser.id)
-            .eq('class_name', className)
-            .eq('academic_year', academicYear || '2024-2025'); // 預設年份，防止空值
-
-        if (findClassError) throw findClassError;
-
-        if (existingClasses && existingClasses.length > 0) {
-            classId = existingClasses[0].id;
-        } else {
-            // 建立新班級
-            const { data: newClass, error: createClassError } = await supabaseClient
-                .from('classes')
-                .insert([{
-                    user_id: currentUser.id,
-                    class_name: className,
-                    academic_year: academicYear || '2024-2025'
-                }])
-                .select()
-                .single();
-            
-            if (createClassError) throw createClassError;
-            classId = newClass.id;
-        }
-    }
-
-    // 2. 處理作業 (Assignments)
-    // 如果已經有 ID (更新模式)，否則新增
-    let assignmentId = window.currentAssignmentId; 
-
-    const assignmentPayload = {
-        class_id: classId, // 連結到班級
-        title: topic,
-        total_score_max: 100, // 暫時寫死或從設定拿
-        date: new Date().toISOString()
-    };
-
-    if (assignmentId) {
-        // 更新現有
-        const { error: updateAssignError } = await supabaseClient
-            .from('assignments')
-            .update(assignmentPayload)
-            .eq('id', assignmentId);
-        if (updateAssignError) throw updateAssignError;
-    } else {
-        // 插入新作業
-        // 檢查是否已存在同名同班作業 (防止重複)
-        const { data: existingAssign } = await supabaseClient
-            .from('assignments')
-            .select('id')
-            .eq('class_id', classId)
-            .eq('title', topic)
-            .maybeSingle();
-
-        if (existingAssign) {
-            assignmentId = existingAssign.id;
-            // 更新它
-             await supabaseClient.from('assignments').update(assignmentPayload).eq('id', assignmentId);
-        } else {
-            const { data: newAssign, error: insertAssignError } = await supabaseClient
-                .from('assignments')
-                .insert([assignmentPayload])
-                .select()
-                .single();
-            if (insertAssignError) throw insertAssignError;
-            assignmentId = newAssign.id;
-        }
-        window.currentAssignmentId = assignmentId; // 記住它
-    }
-
-    // 3. 處理學生與成績 (Students & Results)
-    // 這是最繁重的一步，我們需要確保學生存在，然後寫入成績
-    
-    // 為了效能，我們先讀取該班所有學生
-    const { data: dbStudents } = await supabaseClient
-        .from('students')
-        .select('id, name, student_number')
-        .eq('class_id', classId);
-    
-    const dbStudentMap = new Map(); // name -> id
-    dbStudents.forEach(s => dbStudentMap.set(s.name, s.id));
-
-    // 準備批量寫入成績
-    const resultsToUpsert = [];
-
-    for (const record of allStudentRecords) {
-        let studentDbId = record.dbId;
-
-        // 如果這個學生在 DB 還沒 ID，或者名字對不上
-        if (!studentDbId) {
-            // 嘗試用名對應
-            if (dbStudentMap.has(record.name)) {
-                studentDbId = dbStudentMap.get(record.name);
-            } else {
-                // 真係新學生，插入 DB
-                const { data: newStu, error: newStuError } = await supabaseClient
-                    .from('students')
-                    .insert([{
-                        class_id: classId,
-                        name: record.name,
-                        student_number: record.number
-                    }])
-                    .select()
-                    .single();
-                if (!newStuError) {
-                    studentDbId = newStu.id;
-                    dbStudentMap.set(record.name, studentDbId); // 更新 Map
-                }
-            }
-        }
-        record.dbId = studentDbId; // 更新本地紀錄
-
-        // 只有當該學生有成績數據時，才寫入 results 表
-        if (record.data && studentDbId) {
-            const s = record.data.scores || {};
-            resultsToUpsert.push({
-                assignment_id: assignmentId,
-                student_id: studentDbId,
-                total_score: parseFloat(s.total) || 0,
-                content_score: parseFloat(s.content) || 0,
-                expression_score: parseFloat(s.expression) || 0,
-                structure_score: parseFloat(s.structure) || 0,
-                punctuation_score: parseFloat(s.punctuation) || 0,
-                comment_full: record.data.fullComment,
-                comment_data: record.data, // 儲存完整的 JSON 以供還原
-                updated_at: new Date().toISOString()
-            });
-        }
-    }
-
-    if (resultsToUpsert.length > 0) {
-        const { error: resultsError } = await supabaseClient
-            .from('results')
-            .upsert(resultsToUpsert, { onConflict: 'assignment_id, student_id' });
-        if (resultsError) throw resultsError;
-    }
-
-    // 4. 順便儲存舊版 JSON Blob (作為備份，雙重保險)
-    // (保留原本的 student_projects 表，以防萬一)
-    await supabaseClient.from('student_projects').upsert({
-        user_id: currentUser.id,
-        class_name: className,
-        topic: topic,
-        project_data: allStudentRecords,
-        updated_at: new Date().toISOString()
-    }, { onConflict: 'user_id, class_name, topic' }); // 注意：這裡的 Unique Key 可能要視你的 DB 設定而定
-
-    // 成功！
-    isDataDirty = false;
-    showToast("同步成功！Dashboard 已更新。", "success");
-    
-    // 刷新 Dashboard 數字
-    loadDashboard();
-
-  } catch (error) {
-    showToast(`同步失敗: ${error.message}`, "error");
-    console.error(error);
-  } finally {
-    syncBtn.textContent = originalText;
-    syncBtn.disabled = false; 
-    updateUIBasedOnAuthState();
-  }
-}
 
 
 function updateUIBasedOnAuthState() {
@@ -7097,36 +6896,107 @@ async function confirmAddClass() {
     }
 }
 
-// 8. 打開作業 (修正版)
+// ==========================================
+// ====== 打開作業 (完整邏輯版) ======
+// ==========================================
 async function openAssignment(assignmentId) {
     if (assignmentId === 'local_memory') { showPage('page2'); return; }
-    if (!currentUser) { alert("請先登入"); return; }
+    if (!currentUser) { showToast("請先登入", "warning"); return; }
     
     showToast("載入中...", "info");
     try {
+        // 1. 讀取作業資料
         const { data: assignment, error } = await supabaseClient
             .from('assignments')
             .select(`*, classes(class_name, academic_year)`)
             .eq('id', assignmentId)
             .single();
-        
         if (error) throw error;
 
-        // 這裡為了簡化，暫時只 Load 基本資料跳轉，實際邏輯應包含讀取 Students/Results
-        // 為了確保你能用到，我們簡單跳轉並設定 Header
-        document.getElementById('student-class').value = assignment.classes.class_name;
+        // 2. 讀取該班學生
+        const { data: students, error: stError } = await supabaseClient
+            .from('students')
+            .select('*')
+            .eq('class_id', assignment.class_id)
+            .order('student_number', { ascending: true });
+        if (stError) throw stError;
+
+        // 3. 讀取成績
+        const { data: results, error: resError } = await supabaseClient
+            .from('results')
+            .select('*')
+            .eq('assignment_id', assignmentId);
+        if (resError) throw resError;
+
+        // --- 轉換數據 ---
+        clearAllCore(false);
+
+        // 填寫基本資料
+        const clsName = assignment.classes?.class_name || '未命名班別'; 
+        const acYear = assignment.classes?.academic_year || ''; 
+
+        document.getElementById('student-class').value = clsName;
+        document.getElementById('academic-year').value = acYear;
         document.getElementById('topic').value = assignment.title;
+        
         window.currentAssignmentId = assignment.id;
-        
-        // 真正讀取邏輯 (參考之前的 openAssignment，這裡簡略以確保不報錯)
-        // ... 讀取 students, results ...
-        
-        showPage('page2');
-        showToast(`已開啟：${assignment.title}`, "success");
+
+        // 構建學生名單
+        allStudentRecords = students.map(st => {
+            const res = results.find(r => r.student_id === st.id);
+            let dataObj = null;
+            if (res) {
+                // 如果有 comment_data (JSON) 就用，否則從 scores 欄位還原
+                const extraData = res.comment_data || {};
+                dataObj = {
+                    class: clsName,
+                    topic: assignment.title,
+                    uniqueComment: extraData.uniqueComment || '',
+                    scores: {
+                        content: res.content_score,
+                        expression: res.expression_score,
+                        structure: res.structure_score,
+                        punctuation: res.punctuation_score,
+                        total: res.total_score,
+                        typos: extraData.typosCount || 0 // 兼容
+                    },
+                    typos: extraData.typos || [],
+                    checkedCritiques: extraData.checkedCritiques || [],
+                    fullComment: res.comment_full || '',
+                    studentComment: extraData.studentComment || '',
+                    pureStudentComment: extraData.pureStudentComment || '',
+                    pureFullComment: extraData.pureFullComment || ''
+                };
+            }
+            return {
+                number: st.student_number,
+                name: st.name,
+                originalName: st.student_number ? `${st.student_number}-${st.name}` : st.name,
+                dbId: st.id,
+                data: dataObj
+            };
+        });
+
+        // 更新介面
+        document.getElementById('student-names').value = allStudentRecords.map(r => r.originalName).join('\n');
+        updateStudentDropdown();
+        renderStudentOverviewTable();
+        updateHeaderInfo();
+
+        if (!acYear) {
+            showPage('page1'); // 如果冇年份，去 Page 1 補填
+            showToast("請補填「學年」", "info");
+        } else {
+            showPage('page2');
+            showToast(`已開啟：${assignment.title}`, "success");
+        }
+
     } catch (e) {
+        console.error(e);
         alert("載入錯誤：" + e.message);
     }
 }
+
 
 // 5. 歡迎訊息更新
 function updateWelcomeMessage() {
@@ -7180,267 +7050,170 @@ if ('serviceWorker' in navigator) {
       });
     });
 }
-// -------------------------------------------------------------
-// ============================
-// ✅ 新增：Email + 密碼 登入邏輯
-// ============================
 
-// 1. 打開登入視窗
-function handleLogin() {
-  const modal = document.getElementById('pop-login-modal');
-  // 清空輸入框
-  if(document.getElementById('login-email')) document.getElementById('login-email').value = "";
-  if(document.getElementById('login-password')) document.getElementById('login-password').value = "";
-  
-  modal.classList.add('active');
-}
 
-// 2. 關閉視窗
-function closeLoginModal() {
-  const modal = document.getElementById('pop-login-modal');
-  if(modal) modal.classList.remove('active');
-}
-
-// 3. 處理 登入 或 註冊
-async function handlePasswordAuth(action) {
-  const email = document.getElementById('login-email').value.trim();
-  const password = document.getElementById('login-password').value.trim();
-  const authStatus = document.getElementById('auth-status');
-
-  if (!email || !password) {
-    alert("請輸入 Email 及 密碼");
+// ==========================================
+// ====== 雲端同步核心 (修復版) ======
+// ==========================================
+async function syncDataToCloud() {
+  if (!currentUser) {
+    showToast("尚未登入，請先登入帳戶以使用雲端同步功能。", "warning");
+    window.scrollTo({ top: 0, behavior: 'smooth' });
     return;
   }
 
-  // 鎖定按鈕
-  const btn = event.target;
-  const originalText = btn.innerText;
-  btn.innerText = "處理中...";
-  btn.disabled = true;
-  if(authStatus) authStatus.textContent = "處理中...";
+  const className = document.getElementById('student-class').value.trim();
+  const academicYear = document.getElementById('academic-year').value.trim();
+  const topic = document.getElementById('topic').value.trim();
+  const hasStudents = allStudentRecords.length > 0;
+
+  if (!className && !topic && !hasStudents) {
+     showToast("請至少填寫「班別」、「作文題目」或「學生名單」。", "warning");
+     return;
+  }
+
+  // UI 鎖定
+  const syncBtn = document.getElementById('sync-btn');
+  const originalText = syncBtn.textContent;
+  syncBtn.textContent = '同步中...';
+  syncBtn.disabled = true;
+  
+  showToast("正在同步至雲端...", "info");
 
   try {
-    if (action === 'signup') {
-      // --- 註冊 ---
-      const { data, error } = await supabaseClient.auth.signUp({
-        email: email,
-        password: password,
-      });
-      if (error) throw error;
-      
-      if (data.user) {
-         if (typeof showToast === 'function') showToast("註冊成功，已自動登入！", "success");
-         else alert("註冊成功，已自動登入！");
-         closeLoginModal();
-      }
+    // 1. 處理班級 (Classes)
+    let classId = null;
+    if (className) {
+        const { data: existingClasses, error: findClassError } = await supabaseClient
+            .from('classes')
+            .select('id')
+            .eq('user_id', currentUser.id)
+            .eq('class_name', className)
+            .eq('academic_year', academicYear || '2024-2025');
+
+        if (findClassError) throw findClassError;
+
+        if (existingClasses && existingClasses.length > 0) {
+            classId = existingClasses[0].id;
+        } else {
+            const { data: newClass, error: createClassError } = await supabaseClient
+                .from('classes')
+                .insert([{
+                    user_id: currentUser.id,
+                    class_name: className,
+                    academic_year: academicYear || '2024-2025'
+                }])
+                .select().single();
+            if (createClassError) throw createClassError;
+            classId = newClass.id;
+        }
+    }
+
+    // 2. 處理作業 (Assignments)
+    let assignmentId = window.currentAssignmentId; 
+    const assignmentPayload = {
+        class_id: classId,
+        title: topic,
+        total_score_max: 100,
+        date: new Date().toISOString()
+    };
+
+    if (assignmentId) {
+        const { error: updateAssignError } = await supabaseClient
+            .from('assignments').update(assignmentPayload).eq('id', assignmentId);
+        if (updateAssignError) throw updateAssignError;
     } else {
-      // --- 登入 ---
-      const { data, error } = await supabaseClient.auth.signInWithPassword({
-        email: email,
-        password: password,
-      });
-      if (error) throw error;
+        const { data: existingAssign } = await supabaseClient
+            .from('assignments').select('id')
+            .eq('class_id', classId).eq('title', topic).maybeSingle();
 
-      if (typeof showToast === 'function') showToast("登入成功！", "success");
-      else alert("登入成功！");
-      closeLoginModal();
+        if (existingAssign) {
+            assignmentId = existingAssign.id;
+            await supabaseClient.from('assignments').update(assignmentPayload).eq('id', assignmentId);
+        } else {
+            const { data: newAssign, error: insertAssignError } = await supabaseClient
+                .from('assignments').insert([assignmentPayload]).select().single();
+            if (insertAssignError) throw insertAssignError;
+            assignmentId = newAssign.id;
+        }
+        window.currentAssignmentId = assignmentId;
     }
-  } catch (err) {
-    console.error(err);
-    alert("操作失敗：" + err.message);
-    if(authStatus) authStatus.textContent = "操作失敗";
+
+    // 3. 處理學生與成績
+    const { data: dbStudents } = await supabaseClient
+        .from('students').select('id, name, student_number').eq('class_id', classId);
+    
+    const dbStudentMap = new Map();
+    (dbStudents || []).forEach(s => dbStudentMap.set(s.name, s.id));
+
+    const resultsToUpsert = [];
+
+    for (const record of allStudentRecords) {
+        let studentDbId = record.dbId;
+        // 嘗試匹配或新增學生
+        if (!studentDbId) {
+            if (dbStudentMap.has(record.name)) {
+                studentDbId = dbStudentMap.get(record.name);
+            } else {
+                const { data: newStu, error: newStuError } = await supabaseClient
+                    .from('students')
+                    .insert([{
+                        class_id: classId,
+                        name: record.name,
+                        student_number: record.number
+                    }]).select().single();
+                if (!newStuError) {
+                    studentDbId = newStu.id;
+                    dbStudentMap.set(record.name, studentDbId);
+                }
+            }
+        }
+        record.dbId = studentDbId;
+
+        if (record.data && studentDbId) {
+            const s = record.data.scores || {};
+            resultsToUpsert.push({
+                assignment_id: assignmentId,
+                student_id: studentDbId,
+                total_score: parseFloat(s.total) || 0,
+                content_score: parseFloat(s.content) || 0,
+                expression_score: parseFloat(s.expression) || 0,
+                structure_score: parseFloat(s.structure) || 0,
+                punctuation_score: parseFloat(s.punctuation) || 0,
+                comment_full: record.data.fullComment,
+                comment_data: record.data,
+                updated_at: new Date().toISOString()
+            });
+        }
+    }
+
+    if (resultsToUpsert.length > 0) {
+        const { error: resultsError } = await supabaseClient
+            .from('results').upsert(resultsToUpsert, { onConflict: 'assignment_id, student_id' });
+        if (resultsError) throw resultsError;
+    }
+
+    // 4. 備份到 student_projects (雙重保險)
+    await supabaseClient.from('student_projects').upsert({
+        user_id: currentUser.id,
+        class_name: className,
+        topic: topic,
+        project_data: allStudentRecords,
+        updated_at: new Date().toISOString()
+    }, { onConflict: 'user_id, class_name, topic' });
+
+    isDataDirty = false;
+    showToast("同步成功！Dashboard 已更新。", "success");
+    loadDashboard();
+
+  } catch (error) {
+    showToast(`同步失敗: ${error.message}`, "error");
+    console.error(error);
   } finally {
-    btn.innerText = originalText;
-    btn.disabled = false;
+    syncBtn.textContent = originalText;
+    syncBtn.disabled = false; 
+    updateUIBasedOnAuthState();
   }
-}
-
-// 4. 處理忘記密碼
-async function handleForgotPassword() {
-  const email = document.getElementById('login-email').value.trim();
-  if (!email) {
-    alert("請先在上方輸入您的電郵地址，然後再按「忘記密碼」。");
-    return;
-  }
-
-  if (!confirm(`系統將會發送一封「重設密碼」郵件到：\n${email}\n\n確定嗎？`)) return;
-
-  try {
-    const { data, error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-      redirectTo: window.location.href, // 重設後跳轉回本頁
-    });
-    
-    if (error) throw error;
-
-    alert("✅ 郵件已發送！\n請去 Email 點擊連結，系統會帶你回來設定新密碼。");
-    closeLoginModal();
-  } catch (err) {
-    alert("發送失敗：" + err.message);
-  }
-}
-// 2. 關閉視窗
-function closeLoginModal() {
-  document.getElementById('pop-login-modal').classList.remove('active');
-}
-
-// 3. 處理 登入 或 註冊
-async function handlePasswordAuth(action) {
-  const email = document.getElementById('login-email').value.trim();
-  const password = document.getElementById('login-password').value.trim();
-  const authStatus = document.getElementById('auth-status');
-
-  if (!email || !password) {
-    alert("請輸入 Email 及 密碼");
-    return;
-  }
-
-  // 簡單鎖定 UI
-  const btn = event.target;
-  const originalText = btn.innerText;
-  btn.innerText = "處理中...";
-  btn.disabled = true;
-  authStatus.textContent = "處理中...";
-
-  try {
-    if (action === 'signup') {
-      // --- 註冊流程 ---
-      const { data, error } = await supabaseClient.auth.signUp({
-        email: email,
-        password: password,
-      });
-      
-      if (error) throw error;
-      
-      // 因為關閉了 Confirm Email，這裡通常會直接登入成功
-      if (data.user && data.session) {
-        if (typeof showToast === 'function') showToast("註冊成功，已自動登入！", "success");
-        else alert("註冊成功，已自動登入！");
-        closeLoginModal();
-      } else {
-        // 萬一佢仲係要你收信 (極少數情況)
-        alert("請檢查 Email 進行驗證。");
-        closeLoginModal();
-      }
-
-    } else {
-      // --- 登入流程 ---
-      const { data, error } = await supabaseClient.auth.signInWithPassword({
-        email: email,
-        password: password,
-      });
-
-      if (error) throw error;
-
-      if (typeof showToast === 'function') showToast("登入成功！", "success");
-      else alert("登入成功！");
-      closeLoginModal();
-    }
-
-  } catch (err) {
-    console.error(err);
-    alert("操作失敗：" + err.message);
-    authStatus.textContent = "操作失敗";
-  } finally {
-    // 解鎖按鈕
-    btn.innerText = originalText;
-    btn.disabled = false;
-  }
-}
-
-// 4. 處理「忘記密碼 / 設定新密碼」
-async function handleForgotPassword() {
-  const email = document.getElementById('login-email').value.trim();
-  if (!email) {
-    alert("請先在上方輸入您的電郵地址，然後再按「忘記密碼」。");
-    return;
-  }
-
-  if (!confirm(`系統將會發送一封「重設密碼」郵件到：\n${email}\n\n確定嗎？`)) return;
-
-  const authStatus = document.getElementById('auth-status');
-  authStatus.textContent = "正在發送...";
-
-  try {
-    // 發送重設信，並指定登入後跳轉回本頁
-    const { data, error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-      redirectTo: window.location.href,
-    });
-    
-    if (error) throw error;
-
-    alert("✅ 郵件已發送！\n請去 Email 點擊連結，系統會帶你回來設定新密碼。");
-    closeLoginModal();
-    authStatus.textContent = "等待重設...";
-
-  } catch (err) {
-    alert("發送失敗：" + err.message);
-    authStatus.textContent = "操作失敗";
-  }
-}
-
-// 5. 監聽「重設密碼」事件 (當用戶撳完 Email Link 返嚟)
-supabaseClient.auth.onAuthStateChange(async (event, session) => {
-  // 原本的 checkUser 邏輯
-  currentUser = session ? session.user : null;
-  updateUIBasedOnAuthState();
-
-  if (event === 'SIGNED_IN') {
-    loadDataFromCloud(); // 正常登入載入資料
-  } else if (event === 'SIGNED_OUT') {
-  
-  } 
-  
-  // 🔥 新增：處理重設密碼事件
-  else if (event === 'PASSWORD_RECOVERY') {
-    const newPassword = prompt("🔐 歡迎回來！\n\n請輸入您的新密碼：");
-    
-    if (newPassword) {
-      const { data, error } = await supabaseClient.auth.updateUser({ 
-        password: newPassword 
-      });
-
-      if (error) {
-        alert("密碼更新失敗：" + error.message);
-      } else {
-        alert("🎉 密碼已成功更新！\n您現在可以使用新密碼登入了。");
-        // 更新成功後，通常已經係登入狀態，可以順便儲存一下
-        if (typeof showToast === 'function') showToast("密碼已更新", "success");
-      }
-    }
-  }
-});
-// --- 強制更新 App (解決鬼打牆專用) ---
-async function forceAppUpdate() {
-  if (!confirm("這將會清除 App 的緩存並強制下載最新版本。\n(你的學生資料不會遺失，因為已在雲端/LocalStorage)\n\n確定更新？")) return;
-
-  // 1. 註銷 Service Worker
-  if ('serviceWorker' in navigator) {
-    const registrations = await navigator.serviceWorker.getRegistrations();
-    for (const registration of registrations) {
-      await registration.unregister();
-    }
-  }
-
-  // 2. 清除 Cache Storage
-  if ('caches' in window) {
-    const keys = await caches.keys();
-    for (const key of keys) {
-      await caches.delete(key);
-    }
-  }
-
-  // 3. 強制重新載入
-  alert("緩存已清除，正在重新載入最新版...");
-  window.location.reload(true);
-}
-// 自動填入當前學年到 Page 1
-function fillPage1Year() {
-    const d = new Date();
-    const y = d.getFullYear();
-    const m = d.getMonth() + 1;
-    // 邏輯：9月開學，所以 9月後是 "2025-2026"，8月前是 "2024-2025"
-    const ay = m >= 9 ? `${y}-${y+1}` : `${y-1}-${y}`;
-    document.getElementById('academic-year').value = ay;
 }
 
 </script> <!-- 呢個係原本全個檔案唯一的結尾，保留佢 -->
