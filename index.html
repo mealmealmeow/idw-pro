@@ -4,13 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>我不想努力了</title>
-  <!-- PWA 設定 -->
-  <link rel="manifest" href="manifest.json">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="作文神器">
-  <link rel="apple-touch-icon" href="icon.png">
-  <meta name="theme-color" content="#5A8F7B">
+  
   <!-- 引入 xlsx.js 函式庫，用於處理 Excel 檔案 -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <!-- 引入 Supabase.js 函式庫 -->
@@ -2092,7 +2086,7 @@
         <div class="font-controls" style="align-self: flex-start;">
             <button class="font-control-btn" onclick="showHotkeyHelp()" title="鍵盤快捷鍵">⌨️</button> 
             <!-- 放在 <header> 裡面的 .font-controls div 入面 -->
-<button class="font-control-btn" onclick="forceAppUpdate()" title="強制更新 App (清除緩存)">🔄</button>
+<button class="font-control-btn" onclick="killPWA()" title="徹底移除 PWA 及緩存">💀</button>
           <button class="font-control-btn" onclick="adjustFontSize('decrease')" title="縮小字體">A-</button>
           <button class="font-control-btn" onclick="adjustFontSize('reset')" title="重設字體大小">重設</button>
           <button class="font-control-btn" onclick="adjustFontSize('increase')" title="放大字體">A+</button>
@@ -6792,16 +6786,7 @@ function updateWelcomeMessage() {
     else msg.textContent = "夜深了，注意休息。🌙";
 }
 
-// PWA 設定
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', function() {
-        navigator.serviceWorker.register('./sw.js').then(function(registration) {
-            console.log('ServiceWorker registration successful');
-        }, function(err) {
-            console.log('ServiceWorker registration failed: ', err);
-        });
-    });
-}
+
 
 // --- 程式入口 ---
 document.addEventListener('DOMContentLoaded', () => {
@@ -7063,29 +7048,31 @@ supabaseClient.auth.onAuthStateChange(async (event, session) => {
     }
   }
 });
-// --- 強制更新 App (解決鬼打牆專用) ---
-async function forceAppUpdate() {
-  if (!confirm("這將會清除 App 的緩存並強制下載最新版本。\n(你的學生資料不會遺失，因為已在雲端/LocalStorage)\n\n確定更新？")) return;
+// --- 徹底殺死 PWA 及清除緩存 (只執行一次) ---
+async function killPWA() {
+    if (!confirm("⚠️ 這將會強制移除所有 PWA 緩存並重新載入網頁。\n\n如果你遇到「改了代碼但沒反應」的情況，請按確定。")) return;
 
-  // 1. 註銷 Service Worker
-  if ('serviceWorker' in navigator) {
-    const registrations = await navigator.serviceWorker.getRegistrations();
-    for (const registration of registrations) {
-      await registration.unregister();
+    // 1. 註銷 Service Worker
+    if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (const registration of registrations) {
+            await registration.unregister();
+            console.log("已註銷 Service Worker");
+        }
     }
-  }
 
-  // 2. 清除 Cache Storage
-  if ('caches' in window) {
-    const keys = await caches.keys();
-    for (const key of keys) {
-      await caches.delete(key);
+    // 2. 清除所有 Cache Storage
+    if ('caches' in window) {
+        const keys = await caches.keys();
+        for (const key of keys) {
+            await caches.delete(key);
+            console.log("已清除 Cache: " + key);
+        }
     }
-  }
 
-  // 3. 強制重新載入
-  alert("緩存已清除，正在重新載入最新版...");
-  window.location.reload(true);
+    // 3. 強制重新載入 (忽略緩存)
+    alert("✅ PWA 已移除，緩存已清空！\n頁面將會自動重新載入。");
+    window.location.reload(true);
 }
 
 // ==========================================
@@ -7186,59 +7173,68 @@ async function saveProjectMeta() {
 }
 
 
-// 刪除專案功能
 async function deleteProject() {
     const id = document.getElementById('edit-project-id').value;
     const sourceType = document.getElementById('edit-source-type').value;
     const title = document.getElementById('edit-topic').value;
 
-    // Double Confirm UI
-    confirmUI(`⚠️ 危險操作\n\n確定要永久刪除「${title}」嗎？\n刪除後無法復原！`, async () => {
-        
-        // 鎖定按鈕避免重複點擊
-        const btn = document.querySelector('#pop-edit-modal .danger-btn');
-        const originalText = btn.innerHTML;
-        btn.innerHTML = "刪除中...";
-        btn.disabled = true;
+    // 改用原生 Confirm，排除 UI 庫的問題，測試用
+    if (!confirm(`⚠️ 嚴重警告\n\n確定要永久刪除「${title}」嗎？\n\n刪除後無法復原！`)) {
+        return;
+    }
 
-        try {
-            if (sourceType === 'legacy') {
-                const { error } = await supabaseClient
-                    .from('student_projects')
-                    .delete()
-                    .eq('id', id);
-                if (error) throw error;
-            } 
-            else if (sourceType === 'new') {
-                // 刪除 assignment，由於有 Cascade 設定，results 應該會自動刪除
-                const { error } = await supabaseClient
-                    .from('assignments')
-                    .delete()
-                    .eq('id', id);
-                if (error) throw error;
+    const btn = document.querySelector('#pop-edit-modal .danger-btn');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = "刪除中...";
+    btn.disabled = true;
+
+    try {
+        console.log(`正在刪除專案 ID: ${id}, 類型: ${sourceType}`); // Debug log
+
+        if (sourceType === 'legacy') {
+            const { error } = await supabaseClient
+                .from('student_projects')
+                .delete()
+                .eq('id', id); // 確保這裡刪除的是 student_projects
+            
+            if (error) {
+                console.error("Supabase Error:", error); // 顯示詳細錯誤
+                throw error;
             }
-            else if (sourceType === 'local_memory') {
-                alert("這是當前編輯中的暫存檔，請直接按「清空當前」或開新專案即可。");
-                btn.innerHTML = originalText;
-                btn.disabled = false;
-                return;
+        } 
+        else if (sourceType === 'new') {
+            const { error } = await supabaseClient
+                .from('assignments')
+                .delete()
+                .eq('id', id);
+            
+            if (error) {
+                console.error("Supabase Error:", error);
+                throw error;
             }
-
-            if (typeof showToast === 'function') showToast("專案已刪除", "success");
-            else alert("專案已刪除");
-
-            document.getElementById('pop-edit-modal').classList.remove('active');
-            loadDashboard(); // 重新整理列表
-
-        } catch (error) {
-            console.error(error);
-            alert("刪除失敗：" + error.message);
+        }
+        else if (sourceType === 'local_memory') {
+            alert("這是暫存檔，請刷新頁面或清除緩存即可。");
             btn.innerHTML = originalText;
             btn.disabled = false;
+            return;
         }
-    });
-}
 
+        // 成功
+        alert("✅ 專案已刪除");
+        document.getElementById('pop-edit-modal').classList.remove('active');
+        
+        // 重新載入
+        loadDashboard(); 
+
+    } catch (error) {
+        console.error("Delete Failed:", error);
+        alert("刪除失敗！\n\n原因: " + (error.message || error.details || "未知錯誤") + "\n\n(請檢查 Supabase RLS Policy 是否允許 DELETE)");
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
+}
 </script> <!-- 呢個係原本全個檔案唯一的結尾，保留佢 -->
 
 
