@@ -6602,29 +6602,33 @@ function renderEmptyState(container) {
     `;
 }
 
-// --- Helper: 資料分組 (終極防重複版) ---
+// --- Helper: 資料分組 (終極防重複版 - 只認數字) ---
 function groupByYearAndClass(projects) {
     const groups = {};
     
-    // 建立一個標準化 Key 的小工具
+    // 標準化工具：只提取數字，強制重組成 YYYY-YYYY
     const normalizeKey = (str) => {
         if (!str) return '未知年份';
-        // 1. 去除所有空格
-        let s = str.toString().replace(/\s+/g, '');
-        // 2. 嘗試找出 4位數字+分隔符+4位數字 的模式
-        // 無論是用 - (hyphen), – (en-dash), — (em-dash) 還是其他符號，全部統一
-        const match = s.match(/^(\d{4})[^\d](\d{4})/);
-        if (match) {
-            return `${match[1]}-${match[2]}`; // 強制格式為 YYYY-YYYY
+        
+        // 1. 轉成字串並只保留數字 (殺死所有空格、橫線、全形符號)
+        const nums = String(str).replace(/[^\d]/g, '');
+        
+        // 2. 如果剛好是 8 個數字 (例如 20252026)，就強制變身
+        if (nums.length === 8) {
+            return `${nums.substring(0, 4)}-${nums.substring(4, 8)}`;
         }
-        return s; // 如果不是年份格式，就回傳去除空格後的原字串
+        
+        // 3. 其他情況 (例如 "2025" 或 "未知") 就保留原樣，但去除頭尾空格
+        return String(str).trim();
     };
 
     projects.forEach(p => {
         // 取得原始年份
         const rawYear = p.normalizedYear || p.academic_year;
-        // 進行標準化處理
+        
+        // 進行標準化 (這是關鍵！)
         const y = normalizeKey(rawYear);
+        
         // 班別也去除前後空格
         const c = (p.class_name || '未分類').trim();
         
