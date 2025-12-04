@@ -3654,113 +3654,86 @@ async function loadProjectById(projectId) {
     }
 }
 // --- 重要的修改：雲端同步函式 ---
-/* === 全新版本 syncDataToCloud (放寬儲存條件) === */
+// [Pro-v5.7] 全域同步按鈕 (強制寫入新資料庫 assignments)
 async function syncDataToCloud() {
-  // 1. 檢查是否登入
+  // 1. 檢查登入
   if (!currentUser) {
-    showToast("尚未登入，請先登入帳戶以使用雲端同步功能。", "warning");
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    showToast("尚未登入，請先登入帳戶。", "warning");
     return;
   }
 
-  // 2. 獲取當前輸入資料
+  // 2. 獲取資料
   const className = document.getElementById('student-class').value.trim();
   const topic = document.getElementById('topic').value.trim();
-  const hasStudents = allStudentRecords.length > 0; // 是否有名單
-
-  // 3. 檢查：只要符合其中一個條件就可以儲存
-  // 條件：有班別 OR 有題目 OR 有學生名單
-  if (!className && !topic && !hasStudents) {
-     showToast("無法儲存：請至少填寫「班別」、「作文題目」或「學生名單」其中一項，才可建立專案。", "warning");
-     return;
+  
+  // 如果是 Pro 版，必須依賴 currentClassId
+  // 如果是手動模式 (沒有 currentClassId)，我們暫時不允許同步到新庫，或者僅作為草稿
+  if (!window.currentClassId) {
+      showToast("請先在「基本設定」選擇班級，才能使用雲端同步。", "warning");
+      return;
   }
 
-  // 4. UI 鎖定
   const syncBtn = document.getElementById('sync-btn');
   const originalText = syncBtn.textContent;
   syncBtn.textContent = '同步中...';
   syncBtn.disabled = true;
   
-  showToast("正在同步至雲端...", "info");
-
   try {
-    // --- A. 儲存評語庫 (Critiques) ---
-    const dataContainer = document.getElementById('critique-data');
-    const critiquesToUpsert = Array.from(dataContainer.children).map(div => ({
-      user_id: currentUser.id, 
-      critique_id: div.dataset.id, 
-      category: div.dataset.category,
-      type: div.dataset.type, 
-      title: div.querySelector('h4').textContent,
-      strength_summary: div.dataset.strengthSummary, 
-      problem_core: div.dataset.problemCore,
-      suggestion: div.dataset.suggestion, 
-      example: div.dataset.example,
-      options: div.dataset.options, 
-      options_label: div.dataset.optionsLabel,
-      updated_at: new Date().toISOString()
-    }));
-    // 先刪除舊的，再插入新的 (簡單做法)
-    await supabaseClient.from('critiques').delete().eq('user_id', currentUser.id);
-    const { error: critiquesError } = await supabaseClient.from('critiques').upsert(critiquesToUpsert);
-    if (critiquesError) throw critiquesError;
+    console.log("☁️ 正在同步專案資訊到 assignments 表...");
 
-    // --- B. 儲存錯別字庫 (Typos) ---
-    const typosToUpsert = commonTypos.map(t => ({
-      user_id: currentUser.id, 
-      typo_id: t.id, 
-      wrong: t.wrong, 
-      correct: t.correct
-    }));
-    await supabaseClient.from('common_typos').delete().eq('user_id', currentUser.id);
-    const { error: typosError } = await supabaseClient.from('common_typos').upsert(typosToUpsert);
-    if (typosError) throw typosError;
-
-    // --- C. 儲存專案 (Project) ---
-    // 邏輯：嘗試用「班別 + 題目」去搵有無舊專案。
-    // 如果搵到就更新 (Update)，搵唔到就新增 (Insert)。
+    // 3. 準備寫入 assignments 表 (Upsert)
+    // 我們嘗試用 class_id + title 來鎖定唯一性
+    let assignmentId = window.currentAssignmentId;
     
-    let projectIdToUpdate = undefined;
-
-    // 只有當班別或題目有填寫時，才嘗試去匹配舊專案
-    if (className || topic) {
-        // 構建查詢條件
-        let query = supabaseClient.from('student_projects').select('id').eq('user_id', currentUser.id);
-        
-        // 如果有班別，就必須 match 班別 (空字串 match 空字串)
-        query = query.eq('class_name', className);
-        // 如果有題目，就必須 match 題目
-        query = query.eq('topic', topic);
-
-        const { data: existingProject, error: findError } = await query.maybeSingle();
-        
-        if (!findError && existingProject) {
-            projectIdToUpdate = existingProject.id;
-        }
+    // 如果記憶體沒 ID，先查一次
+    if (!assignmentId) {
+        const { data: existing } = await supabaseClient
+            .from('assignments')
+            .select('id')
+            .eq('class_id', window.currentClassId)
+            .eq('title', topic)
+            .maybeSingle();
+        if (existing) assignmentId = existing.id;
     }
 
-    const projectToUpsert = {
-        id: projectIdToUpdate, // 如果係 undefined，Supabase 會自動當係新資料插入
+    // 執行 Upsert (更新或新增)
+    const payload = {
         user_id: currentUser.id,
-        class_name: className, 
-        topic: topic, 
-        project_data: allStudentRecords,
-        updated_at: new Date().toISOString()
+        class_id: window.currentClassId,
+        title: topic,
+        // 如果有 ID 就帶上，沒有就由 Supabase 生成
+        ...(assignmentId && { id: assignmentId }),
+        created_at: new Date().toISOString() // 更新時間
     };
-    
-    const { error: projectError } = await supabaseClient.from('student_projects').upsert(projectToUpsert);
-    if (projectError) throw projectError;
 
+    const { data, error } = await supabaseClient
+        .from('assignments')
+        .upsert(payload)
+        .select()
+        .single();
+
+    if (error) throw error;
+
+    // 更新記憶體 ID
+    window.currentAssignmentId = data.id;
+    
+    // 4. (可選) 如果你在 Page 2，順便儲存當前學生
+    if (document.getElementById('page2').classList.contains('active')) {
+        await saveCurrentStudentData(); // 這會處理 results 表
+    } else {
+        showToast("✅ 專案資訊已同步 (新版)！", "success");
+    }
+
+    // 標記資料已乾淨
     isDataDirty = false;
-    showToast("同步成功！專案已儲存到雲端。", "success");
+    updateUIBasedOnAuthState();
 
   } catch (error) {
+    console.error("同步失敗:", error);
     showToast(`同步失敗: ${error.message}`, "error");
-    console.error(error);
   } finally {
     syncBtn.textContent = originalText;
     syncBtn.disabled = false; 
-    updateUIBasedOnAuthState();
   }
 }
 // ====== 登入/介面狀態 強制修復版 ======
