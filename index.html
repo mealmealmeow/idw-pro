@@ -3840,24 +3840,39 @@ function scrollToSection(event, targetId) {
   });
 }
 
+// [Pro-v7.3.2-AutoRefresh] 修復：每次切換回首頁時，強制刷新 Dashboard
 function showPage(pageId, focusElementId = null) {
+  // 1. 隱藏所有頁面
   document.querySelectorAll('.page-content').forEach(p => p.classList.remove('active'));
+  
+  // 2. 顯示目標頁面
   const page = document.getElementById(pageId);
   if(page) page.classList.add('active');
 
+  // 3. 更新導覽按鈕狀態
   document.querySelectorAll('.nav-btn').forEach(n => n.classList.remove('active'));
   const nav = document.getElementById('nav-' + pageId);
   if(nav) nav.classList.add('active');
   
+  // 4. 懸浮導覽列只在 Page 2 顯示
   const floatingNav = document.getElementById('floating-nav');
   if (floatingNav) {
       floatingNav.classList.toggle('visible', pageId === 'page2');
   }
 
-  if (pageId === 'page2') {
+  // 🔥 [核心修復] 針對不同頁面的自動刷新邏輯
+  if (pageId === 'page-home') {
+      // 每次回到首頁，都重新讀取一次 Dashboard，確保看到剛剛建立的作業
+      // 加入少許延遲，讓轉頁動畫順暢點
+      setTimeout(() => {
+          if (typeof loadDashboard === 'function') loadDashboard();
+      }, 50);
+  }
+  else if (pageId === 'page2') {
     const studentSelect = document.getElementById('student-select');
-    if (studentSelect.value) {
-        loadStudentData(studentSelect.value); // 強制重新載入當前學生的最新資料
+    if (studentSelect && studentSelect.value) {
+        // 如果批改頁已經有選人，確保資料是最新的 (防止不同步)
+        loadStudentData(studentSelect.value); 
     }
   } 
   else if (pageId === 'page3') {
@@ -3867,6 +3882,7 @@ function showPage(pageId, focusElementId = null) {
   } else if (pageId === 'page5') {
     renderAnalysisPage();
   } else if (pageId === 'page7') {
+    // AI 頁面提示更新
     const records = allStudentRecords.filter(r => r.data);
     const promptTextarea = document.getElementById('ai-feedback-prompt-preview');
     if (promptTextarea) {
@@ -3875,7 +3891,12 @@ function showPage(pageId, focusElementId = null) {
           : "點擊「生成回饋 Prompt」按鈕後，這裏會顯示給 AI 的完整指令...";
     }
   }
+  else if (pageId === 'page8') {
+    // 班級管理頁自動刷新
+    if (typeof loadAllClasses === 'function') loadAllClasses();
+  }
 
+  // 5. 自動聚焦 (如果有指定元素)
   if (focusElementId) {
     setTimeout(() => {
       const targetElement = document.getElementById(focusElementId);
@@ -3888,7 +3909,6 @@ function showPage(pageId, focusElementId = null) {
     }, 150);
   }
 }
-
 function initFloatingNavObserver() {
     const sections = document.querySelectorAll('#page2 .section-box');
     const navLinks = document.querySelectorAll('#floating-nav .floating-nav-btn');
