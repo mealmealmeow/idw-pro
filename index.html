@@ -77,99 +77,123 @@
   opacity: 0.5;
   margin: 0 2px;
 }
-  /* ========================================= */
-/* === 以下係 Pop Art 彈窗專用樣式 (必貼) === */
+
+/* ========================================= */
+/* === [Pro-v7.5] Pop Art 彈窗樣式 (終極修復版) === */
 /* ========================================= */
 
-/* [Pro-v7.2] 彈窗樣式 (強制固定置中) */
+/* 1. 底紙 (Overlay) - 確保覆蓋全螢幕，鎖死背景 */
 .pop-overlay {
-  position: fixed; /* 必須是 fixed */
-  top: 0; 
-  left: 0; 
-  width: 100vw;    /* 視窗寬度 */
-  height: 100vh;   /* 視窗高度 */
+  position: fixed; /* 懸浮定位，無視頁面捲動 */
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  
+  /* 背景顏色與模糊 */
   background: rgba(105, 129, 118, 0.6);
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(5px); /* 背景模糊效果 */
+  
+  /* 彈窗置中核心 (Flexbox) */
   display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 2147483647; /* 最大值，保證在最上層 */
+  justify-content: center; /* 水平置中 */
+  align-items: center;     /* 垂直置中 */
+  
+  z-index: 2147483647; /* 確保在最上層 */
+  
+  /* 預設隱藏 */
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.2s;
-  overflow: hidden; /* 防止背景滾動 */
+  transition: opacity 0.25s ease;
 }
 
+/* 顯示時的狀態 */
 .pop-overlay.active {
   opacity: 1;
   pointer-events: auto;
 }
 
-/* [Pro-v7.3] 彈窗內容框 (強制絕對置中) */
+/* 2. 彈窗本體 (Modal) - 自動適應大小 */
 .pop-modal {
   background: #ffffff;
+  
+  /* 寬度控制 */
   width: 90%;
-  max-width: 500px;
-  max-height: 85vh; /* 留一點邊距 */
-  overflow-y: auto;
+  max-width: 460px; /* 電腦版不會太闊 */
   
-  /* 核心定位代碼 */
-  position: fixed; /* 不再是 relative */
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%) scale(0.95); /* 結合置中與縮放動畫初始值 */
+  /* 高度控制：最多佔螢幕 85%，內容多時內部捲動 */
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column; /* 讓 Header/Body/Footer 垂直排列 */
   
-  border-radius: 30px;
-  box-shadow: -8px 8px 0px 0px #F2C037; 
-  border: 2px solid #F2C037;
-  padding: 30px;
+  /* 外觀裝飾 */
+  border-radius: 24px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3); /* 深邃陰影 */
+  border: 4px solid #F2C037; /* Pop Art 黃色粗框 */
+  padding: 24px;
+  
+  /* 文字設定 */
   text-align: center;
   color: #4a4a4a;
-  transition: transform 0.2s, opacity 0.2s;
-  z-index: 2147483648; /* 比 Overlay 更高一層 */
+  
+  /* 進入動畫 */
+  transform: scale(0.9);
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative; /* 確保內部元件定位正常 */
 }
 
-/* 當 Overlay active 時的動畫 */
+/* 彈窗顯示時的放大動畫 */
 .pop-overlay.active .pop-modal {
-  transform: translate(-50%, -50%) scale(1); /* 保持置中並放大 */
+  transform: scale(1);
 }
+
+/* 3. 彈窗內部元件 */
 
 .pop-icon {
-  font-size: 32px;
-  margin-bottom: 10px;
+  font-size: 36px;
+  margin-bottom: 8px;
   display: block;
 }
 
 .pop-modal h3 {
   margin: 0 0 10px 0;
-  font-size: 1.3rem;
+  font-size: 1.4rem;
   color: #333;
   font-weight: 700;
+  flex-shrink: 0; /* 防止標題被壓縮 */
 }
 
 .pop-desc {
   font-size: 0.95rem;
   color: #666;
-  margin-bottom: 20px;
+  margin-bottom: 15px;
   line-height: 1.5;
+  flex-shrink: 0;
 }
 
-/* 列表區域 */
+/* 捲動區域 (如專案列表、學生列表) */
 .pop-scroll-area {
   text-align: left;
   background: #fffdf5;
-  border-radius: 15px;
-  padding: 15px;
-  max-height: 200px;
-  overflow-y: auto;
+  border-radius: 12px;
+  padding: 10px;
+  
+  /* 關鍵：讓它佔據剩餘空間，但有最大高度 */
+  flex: 1; 
+  overflow-y: auto; /* 超出時顯示捲軸 */
+  min-height: 100px; /* 至少有少少高度 */
+  
   margin-bottom: 20px;
   border: 2px solid #eee;
 }
 
+/* 列表項目 */
 .pop-list-item {
-  padding: 8px 12px;
+  padding: 10px 12px;
   border-bottom: 1px dashed #ddd;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   color: #555;
   cursor: pointer;
   border-radius: 8px;
@@ -181,67 +205,79 @@
   color: #333;
 }
 
-.pop-list-item strong {
-  color: #d48806;
-  margin-right: 5px;
-}
-
 /* 輸入框 */
 .pop-input {
-  width: 80%;
-  padding: 12px 20px;
+  width: 100%; /* 改為 100% 填滿容器 */
+  box-sizing: border-box; /* 確保 padding 不會撐爆寬度 */
+  padding: 12px 15px;
   border: 2px solid #e0e0e0;
-  border-radius: 50px;
-  font-size: 16px;
+  border-radius: 12px;
+  font-size: 16px; /* 防止 iOS 放大 */
   outline: none;
-  text-align: center;
+  text-align: left; /* 一般輸入靠左較好看 */
   transition: border-color 0.3s;
   font-family: inherit;
-  margin-bottom: 20px;
+  margin-bottom: 15px;
   display: block;
-  margin-left: auto;
-  margin-right: auto;
 }
 
 .pop-input:focus {
   border-color: #F2C037;
+  background-color: #fffdf8;
 }
 
-/* 按鈕 */
+/* 按鈕區域 */
 .pop-footer {
   display: flex;
   justify-content: center;
-  gap: 15px;
+  gap: 12px;
+  margin-top: auto; /* 推到底部 */
+  flex-shrink: 0;
 }
 
 .pop-btn {
-  padding: 10px 30px;
+  padding: 10px 24px;
   border: none;
-  border-radius: 50px;
+  border-radius: 99px;
   font-size: 1rem;
   font-weight: bold;
   cursor: pointer;
   font-family: inherit;
-  transition: transform 0.1s;
+  transition: transform 0.1s, opacity 0.2s;
+  flex: 1; /* 按鈕平均分配寬度 */
+  max-width: 150px;
 }
 
 .pop-btn:active {
-  transform: scale(0.95);
+  transform: scale(0.96);
 }
 
 .pop-btn-cancel {
   background: #f0f0f0;
-  color: #888;
+  color: #666;
 }
 
 .pop-btn-confirm {
   background: #F2C037;
   color: #fff;
-  box-shadow: 0 4px 10px rgba(242, 192, 55, 0.4);
+  box-shadow: 0 4px 12px rgba(242, 192, 55, 0.4);
 }
 .pop-btn-confirm:hover {
   background: #e0b132;
 }
+
+/* 手機版適配 (防止鍵盤彈出時遮擋) */
+@media (max-height: 600px) {
+  .pop-modal {
+    max-height: 95vh;
+    padding: 15px;
+  }
+  .pop-icon {
+    display: none; /* 螢幕矮時隱藏 icon 省位 */
+  }
+}
+
+
   /* --- 文青風色彩與字體定義 --- */
   :root {
     --primary-bg: #f7f3eb;       /* 主背景色 - 溫潤米白偏灰 */
@@ -3676,7 +3712,7 @@ async function loadProjectById(projectId) {
     }
 }
 // --- 重要的修改：雲端同步函式 ---
-// [Pro-v5.7] 全域同步按鈕 (強制寫入新資料庫 assignments)
+// [Pro-v7.4] 全域同步按鈕 (強制寫入新資料庫 assignments + 修復閃爍)
 async function syncDataToCloud() {
   // 1. 檢查登入
   if (!currentUser) {
@@ -3688,8 +3724,6 @@ async function syncDataToCloud() {
   const className = document.getElementById('student-class').value.trim();
   const topic = document.getElementById('topic').value.trim();
   
-  // 如果是 Pro 版，必須依賴 currentClassId
-  // 如果是手動模式 (沒有 currentClassId)，我們暫時不允許同步到新庫，或者僅作為草稿
   if (!window.currentClassId) {
       showToast("請先在「基本設定」選擇班級，才能使用雲端同步。", "warning");
       return;
@@ -3697,17 +3731,18 @@ async function syncDataToCloud() {
 
   const syncBtn = document.getElementById('sync-btn');
   const originalText = syncBtn.textContent;
+  
+  // 鎖定按鈕
   syncBtn.textContent = '同步中...';
   syncBtn.disabled = true;
+  syncBtn.classList.remove('dirty'); // 立即停止閃爍
   
   try {
     console.log("☁️ 正在同步專案資訊到 assignments 表...");
 
     // 3. 準備寫入 assignments 表 (Upsert)
-    // 我們嘗試用 class_id + title 來鎖定唯一性
     let assignmentId = window.currentAssignmentId;
     
-    // 如果記憶體沒 ID，先查一次
     if (!assignmentId) {
         const { data: existing } = await supabaseClient
             .from('assignments')
@@ -3718,14 +3753,12 @@ async function syncDataToCloud() {
         if (existing) assignmentId = existing.id;
     }
 
-    // 執行 Upsert (更新或新增)
     const payload = {
         user_id: currentUser.id,
         class_id: window.currentClassId,
         title: topic,
-        // 如果有 ID 就帶上，沒有就由 Supabase 生成
         ...(assignmentId && { id: assignmentId }),
-        created_at: new Date().toISOString() // 更新時間
+        created_at: new Date().toISOString()
     };
 
     const { data, error } = await supabaseClient
@@ -3736,26 +3769,41 @@ async function syncDataToCloud() {
 
     if (error) throw error;
 
-    // 更新記憶體 ID
     window.currentAssignmentId = data.id;
     
-    // 4. (可選) 如果你在 Page 2，順便儲存當前學生
+    // 4. 如果在 Page 2，順便儲存當前學生
     if (document.getElementById('page2').classList.contains('active')) {
-        await saveCurrentStudentData(); // 這會處理 results 表
+        await saveCurrentStudentData(); 
     } else {
         showToast("✅ 專案資訊已同步 (新版)！", "success");
     }
 
-    // 標記資料已乾淨
+    // 🔥 關鍵修復：確保狀態重置
     isDataDirty = false;
-    updateUIBasedOnAuthState();
+    updateUIBasedOnAuthState(); 
+    
+    // 再次強制確保按鈕狀態正確 (雙重保險)
+    setTimeout(() => {
+        const btn = document.getElementById('sync-btn');
+        if(btn) {
+            btn.classList.remove('dirty');
+            btn.textContent = '資料已同步';
+        }
+    }, 100);
 
   } catch (error) {
     console.error("同步失敗:", error);
     showToast(`同步失敗: ${error.message}`, "error");
+    // 失敗的話，回復 Dirty 狀態提示用戶重試
+    isDataDirty = true;
+    updateUIBasedOnAuthState();
   } finally {
-    syncBtn.textContent = originalText;
-    syncBtn.disabled = false; 
+    if (isDataDirty) {
+        syncBtn.disabled = false;
+        syncBtn.textContent = '儲存變更到雲端';
+    } else {
+        syncBtn.disabled = false; // 雖然已同步，但保持可點擊狀態 (沒壞處)
+    }
   }
 }
 // ====== 登入/介面狀態 強制修復版 ======
@@ -7674,19 +7722,32 @@ async function saveProjectMeta() {
     }
 }
 
+// [Pro-v7.4] 刪除專案 (修復雙重彈窗)
 async function deleteProject() {
     const id = document.getElementById('edit-project-id').value;
     const sourceType = document.getElementById('edit-source-type').value;
     const title = document.getElementById('edit-topic').value;
 
-    if (!confirm(`⚠️ 確定要刪除「${title}」嗎？\n\n如果這是「(備份)」檔案，刪除後將無法還原。`)) {
+    // 🔥 移除舊的 confirm()，直接使用自定義 UI 確認
+    // 注意：這裡我們暫時隱藏編輯 Modal，以免兩個 Modal 重疊很難看
+    document.getElementById('pop-edit-modal').classList.remove('active');
+
+    const userConfirmed = await showCustomModal({
+        icon: '⚠️',
+        title: '刪除確認',
+        desc: `確定要刪除「${title}」嗎？\n此操作無法復原。`,
+        confirmText: '忍痛刪除',
+        cancelText: '保留'
+    });
+
+    if (!userConfirmed) {
+        // 如果取消，重新打開編輯 Modal (或者就讓它關閉，看你 UX 喜好)
+        // 這裡選擇不重新打開，讓用戶感覺是「取消操作」
         return;
     }
 
-    const btn = document.querySelector('#pop-edit-modal .danger-btn');
-    const originalText = btn.innerHTML;
-    btn.innerHTML = "刪除中...";
-    btn.disabled = true;
+    // 用戶確認後，顯示 Loading 狀態 (這裡因為編輯 Modal 已關，我們用 Toast 提示)
+    if (typeof showToast === 'function') showToast("正在刪除...", "info");
 
     try {
         if (sourceType === 'legacy') {
@@ -7709,17 +7770,14 @@ async function deleteProject() {
         }
 
         if (typeof showToast === 'function') showToast("已成功刪除", "success");
-        else alert("已成功刪除");
-
-        document.getElementById('pop-edit-modal').classList.remove('active');
+        
+        // 刷新 Dashboard
         loadDashboard(); 
 
     } catch (error) {
         console.error("Delete Failed:", error);
         alert("刪除失敗：" + (error.message || "未知錯誤"));
-    } finally {
-        btn.innerHTML = originalText;
-        btn.disabled = false;
+        // 如果失敗，可能需要重新打開編輯 Modal 讓用戶重試，但這裡簡單處理
     }
 }
 
