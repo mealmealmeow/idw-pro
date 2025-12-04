@@ -8069,26 +8069,19 @@ async function deleteStudentFromMaster(studentId) {
 // ====== Phase 2.1 (Part 2): 班級頁邏輯 ======
 // ==========================================
 
-// [Pro-v2.3] 加入 loadPage1ClassDropdown() 聯動刷新
+// [Pro-v6.12] 讀取班級列表 (加入編輯按鈕)
 async function loadAllClasses() {
     const container = document.getElementById('class-management-list');
     if (!container) return; 
 
-    // 檢查是否登入
     if (!currentUser) {
-        container.innerHTML = `
-            <div style="grid-column: 1 / -1; text-align:center; padding:3rem; background:#fff0f0; border-radius:12px; border:1px dashed #c86a5a;">
-                <h3 style="color:#c86a5a;">⚠️ 未登入</h3>
-                <p>班級管理需要雲端同步功能。</p>
-                <button class="btn light-btn" onclick="handleLogin()">立即登入 / 註冊</button>
-            </div>`;
+        container.innerHTML = `<div style="text-align:center; padding:20px; color:#999;">請先登入以管理班級</div>`;
         return;
     }
 
     container.innerHTML = '<div class="dashboard-loading"><div class="spinner"></div> 讀取中...</div>';
 
     try {
-        // 1. 讀取班級列表
         const { data: classes, error } = await supabaseClient
             .from('classes')
             .select('*')
@@ -8098,14 +8091,9 @@ async function loadAllClasses() {
 
         if (error) throw error;
 
-        // 🔥 [新增] 同步刷新 Page 1 的下拉選單
-        // 這裡我們強制清空 Page 1 的 select，讓它下次點開時重新讀取，或者直接在這裡重讀
+        // 同步刷新 Page 1 下拉選單
         const page1Select = document.getElementById('setup-class-select');
-        if(page1Select) {
-             page1Select.innerHTML = '<option value="">(資料更新中...)</option>'; // 視覺提示
-             // 稍微延遲一下再讀取，確保 UX 順暢
-             setTimeout(() => { if(typeof loadPage1ClassDropdown === 'function') loadPage1ClassDropdown(true); }, 500);
-        }
+        if(page1Select) setTimeout(() => { if(typeof loadPage1ClassDropdown === 'function') loadPage1ClassDropdown(true); }, 500);
 
         if (classes.length === 0) {
             container.innerHTML = `
@@ -8116,7 +8104,6 @@ async function loadAllClasses() {
             return;
         }
 
-        // 2. 渲染班級卡片
         container.innerHTML = ''; 
         for (const cls of classes) {
             const { count } = await supabaseClient
@@ -8127,22 +8114,27 @@ async function loadAllClasses() {
             const card = document.createElement('div');
             card.className = 'task-item';
             card.style.cursor = 'default';
+            
+            // 準備 safe string
+            const safeName = escapeHtml(cls.class_name);
+            const safeYear = escapeHtml(cls.academic_year);
+            const safeId = cls.id;
+
             card.innerHTML = `
                 <div class="task-meta">
-                    <span class="task-class-badge" style="background:#e0f2f1; color:#00695c;">${escapeHtml(cls.academic_year)}</span>
-                    <span class="task-topic" style="font-size:1.4rem;">${escapeHtml(cls.class_name)}</span>
+                    <span class="task-class-badge" style="background:#e0f2f1; color:#00695c;">${safeYear}</span>
+                    <span class="task-topic" style="font-size:1.4rem;">${safeName}</span>
                 </div>
-                <div class="task-footer" style="margin-top:1rem; align-items:center;">
+                <div class="task-footer" style="margin-top:1rem; align-items:center; justify-content: space-between;">
                     <div style="color:#666; font-size:0.9rem;">
-                        👤 學生人數：<strong>${count || 0}</strong> 人
+                        👤 ${count || 0} 人
                     </div>
-                    <div>
-                        <button class="secondary-btn" style="padding:5px 12px; font-size:0.85rem;" onclick="manageStudents('${cls.id}', '${escapeHtml(cls.class_name)}')">
-                            👥 管理名單
-                        </button>
-                         <button class="danger-btn" style="padding:5px 12px; font-size:0.85rem; margin-left:5px;" onclick="deleteClass('${cls.id}', '${escapeHtml(cls.class_name)}')">
-                            🗑️
-                        </button>
+                    <div style="display:flex; gap:5px;">
+                        <!-- 🔥 [新增] 編輯按鈕 -->
+                        <button class="light-btn" style="padding:5px 10px; font-size:0.85rem;" onclick="editClass('${safeId}', '${safeYear}', '${safeName}')" title="編輯班級資料">✏️</button>
+                        
+                        <button class="secondary-btn" style="padding:5px 10px; font-size:0.85rem;" onclick="manageStudents('${safeId}', '${safeName}')" title="管理名單">👥</button>
+                        <button class="danger-btn" style="padding:5px 10px; font-size:0.85rem;" onclick="deleteClass('${safeId}', '${safeName}')" title="刪除班級">🗑️</button>
                     </div>
                 </div>
             `;
@@ -8155,7 +8147,7 @@ async function loadAllClasses() {
     }
 }
 
-// [Pro-v6.3] 新增班級 (智能學年 + 自訂 UI)
+// [Pro-v6.11] 新增班級 (自動跳轉管理名單)
 async function createNewClass() {
     if (!currentUser) {
         showCustomModal({ icon:'🔒', title:'請先登入', desc:'班級管理需要雲端同步功能。', confirmText:'去登入' })
@@ -8166,22 +8158,20 @@ async function createNewClass() {
     // 1. 計算智能學年
     const today = new Date();
     const year = today.getFullYear();
-    const month = today.getMonth() + 1; // 1-12
-    // 如果是 9月或之後，就是 "2025-2026"；否則就是 "2024-2025"
+    const month = today.getMonth() + 1; 
     const defaultYear = month >= 9 ? `${year}-${year+1}` : `${year-1}-${year}`;
 
-    // 2. 彈出輸入學年
+    // 2. 輸入學年
     const inputYear = await showCustomModal({
         icon: '📅',
         title: '新增班級 - 步驟 1/2',
-        desc: '請確認學年 (Academic Year)',
+        desc: '請確認學年',
         showInput: true,
         defaultValue: defaultYear
     });
+    if (!inputYear) return;
 
-    if (!inputYear) return; // 用戶取消
-
-    // 3. 彈出輸入班名
+    // 3. 輸入班名
     const className = await showCustomModal({
         icon: '🏫',
         title: '新增班級 - 步驟 2/2',
@@ -8189,30 +8179,35 @@ async function createNewClass() {
         showInput: true,
         defaultValue: ''
     });
-
     if (!className) return;
 
-    // 4. 寫入 Database
     try {
-        const { error } = await supabaseClient
+        // 4. 寫入 Database 並獲取回傳資料 (select)
+        const { data, error } = await supabaseClient
             .from('classes')
             .insert([{ 
                 user_id: currentUser.id,
                 academic_year: inputYear.trim(),
                 class_name: className.trim()
-            }]);
+            }])
+            .select() // 🔥 關鍵：要拿回 ID
+            .single();
 
         if (error) throw error;
 
-        showCustomModal({ icon:'✅', title:'成功', desc:'班級已建立，請點擊「管理名單」加入學生。', cancelText:'關閉', confirmText:'好' });
-        loadAllClasses(); 
+        // 5. 成功後，先刷新列表，然後直接打開管理名單
+        await loadAllClasses(); 
+        
+        // 🔥 自動打開管理名單，不用老師再點
+        manageStudents(data.id, data.class_name);
+        
+        if (typeof showToast === 'function') showToast("班級已建立，請輸入學生名單", "success");
 
     } catch (error) {
         console.error(error);
         showCustomModal({ icon:'❌', title:'建立失敗', desc: error.message });
     }
 }
-
 // [Pro-v6.3] 刪除班級 (自訂 UI)
 async function deleteClass(classId, className) {
     const confirmDelete = await showCustomModal({
@@ -8472,8 +8467,8 @@ function toggleAllSetupStudents(checked) {
 // ==========================================
 // ====== 核心橋接函數 (雙軌兼容版) ======
 // ==========================================
-// [Pro-v5.1] 啟動批改 (確保 dbId 正確傳遞)
-function startGradingWithSetup(actionType) {
+// [Pro-v6.13] 啟動批改 (加入強制 ID 同步，解決新班級儲存失敗問題)
+async function startGradingWithSetup(actionType) {
     const modeRadio = document.querySelector('input[name="setup-mode"]:checked');
     const mode = modeRadio ? modeRadio.value : 'manual';
     const topicInput = document.getElementById('topic');
@@ -8497,7 +8492,6 @@ function startGradingWithSetup(actionType) {
             return;
         }
         
-        // 獲取勾選的卡片
         const checkedCards = document.querySelectorAll('#setup-student-checklist .student-check-card.checked');
         
         if (checkedCards.length === 0) {
@@ -8505,31 +8499,62 @@ function startGradingWithSetup(actionType) {
             return;
         }
 
-        // 🔥 [關鍵] 讀取 dataset.dbId 並存入記憶體
+        sourceClass = select.options[select.selectedIndex].dataset.className || '';
+        window.currentProjectType = 'cloud';
+        window.currentClassId = select.value;
+
+        // 🔥 [關鍵修復] 雖然卡片有 dataset，但為了保險，我們直接去 DB 抓一次 ID 對照表
+        // 這能解決「剛新增完班級，DOM 可能未完全更新」的邊緣情況
+        let dbStudentsMap = {}; // { "陳大文": "uuid", "01-陳大文": "uuid" }
+        
+        try {
+            const { data: dbStudents } = await supabaseClient
+                .from('students')
+                .select('id, name, student_number')
+                .eq('class_id', window.currentClassId);
+            
+            if (dbStudents) {
+                dbStudents.forEach(s => {
+                    // 建立多種 key 以便匹配
+                    dbStudentsMap[s.name.trim()] = s.id;
+                    
+                    let displayNum = s.student_number;
+                    if (displayNum && /^\d$/.test(displayNum)) displayNum = '0' + displayNum;
+                    const fullName = `${displayNum ? displayNum + '-' : ''}${s.name.trim()}`;
+                    dbStudentsMap[fullName] = s.id;
+                });
+            }
+        } catch(e) { console.error("ID Pre-fetch error", e); }
+
+        // 構建名單
         const tempRecords = [];
         checkedCards.forEach(card => {
             const info = card.dataset.info; // "01-陳大文"
-            const dbId = card.dataset.dbId; // 從 Page 1 卡片獲取 UUID
             
-            rawStudentList += info + "\n";
+            // 優先用卡片上的 ID，如果沒有(例如剛新增)，就查表
+            let dbId = card.dataset.dbId;
             
             const p = parseStudentName(info);
+            
+            // 如果卡片沒 ID，嘗試從剛才抓的 Map 找回 ID
+            if (!dbId || dbId === 'undefined') {
+                if (dbStudentsMap[info]) dbId = dbStudentsMap[info];
+                else if (dbStudentsMap[p.name]) dbId = dbStudentsMap[p.name];
+            }
+
+            rawStudentList += info + "\n";
+            
             tempRecords.push({
                 number: p.number,
                 name: p.name,
                 originalName: p.originalName,
-                dbId: dbId, // ✅ 這裡必須有值！
+                dbId: dbId, // 這裡應該要有值了
                 data: null
             });
         });
         
         allStudentRecords = tempRecords;
-        // 使用共用排序再排一次，確保萬無一失
         sortStudents(allStudentRecords);
-
-        sourceClass = select.options[select.selectedIndex].dataset.className || '';
-        window.currentProjectType = 'cloud';
-        window.currentClassId = select.value; // 確保 Class ID 存在
 
     } else {
         // === [Track A: 手動模式] ===
@@ -8550,7 +8575,7 @@ function startGradingWithSetup(actionType) {
             number: p.number,
             name: p.name,
             originalName: p.originalName,
-            dbId: null, // 手動模式沒有 ID
+            dbId: null, 
             data: null
         }));
         
@@ -8562,13 +8587,13 @@ function startGradingWithSetup(actionType) {
         window.currentClassId = null;
     }
 
-    // 3. 同步 UI 到 Page 2
+    // 同步 UI 到 Page 2
     const p2Names = document.getElementById('student-names');
     if(p2Names) p2Names.value = rawStudentList;
     
     if(document.getElementById('student-class')) document.getElementById('student-class').value = sourceClass;
 
-    // 4. 觸發渲染 (這會用到我們剛更新的 updateStudentDropdown 或 renderDropdownFromMemory)
+    // 渲染
     if (typeof renderDropdownFromMemory === 'function') {
         renderDropdownFromMemory();
     } else {
@@ -8576,7 +8601,7 @@ function startGradingWithSetup(actionType) {
     }
     updateHeaderInfo();
 
-    // 5. 跳轉
+    // 跳轉
     if (actionType === 'default') {
         if (typeof loadCannedCritiquesAndFocus === 'function') loadCannedCritiquesAndFocus();
     } else {
@@ -8772,6 +8797,38 @@ function showCustomModal({ icon='✨', title, desc, showInput=false, defaultValu
             confirmBtn.onkeydown = (e) => { if(e.key === 'Enter') confirmBtn.click(); }
         }
     });
+}
+
+// [Pro-v6.12] 編輯班級功能
+async function editClass(classId, oldYear, oldName) {
+    // 1. 修改學年
+    const newYear = await showCustomModal({
+        icon: '📅', title: '編輯班級', desc: '修改學年',
+        showInput: true, defaultValue: oldYear
+    });
+    if (!newYear) return;
+
+    // 2. 修改班名
+    const newName = await showCustomModal({
+        icon: '🏫', title: '編輯班級', desc: '修改班別名稱',
+        showInput: true, defaultValue: oldName
+    });
+    if (!newName) return;
+
+    try {
+        const { error } = await supabaseClient
+            .from('classes')
+            .update({ academic_year: newYear.trim(), class_name: newName.trim() })
+            .eq('id', classId);
+
+        if (error) throw error;
+        
+        if(typeof showToast === 'function') showToast("班級資料已更新", "success");
+        loadAllClasses();
+
+    } catch (e) {
+        alert("更新失敗：" + e.message);
+    }
 }
 </script> <!-- 呢個係原本全個檔案唯一的結尾，保留佢 -->
 
