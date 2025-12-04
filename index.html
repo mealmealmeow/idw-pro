@@ -8168,10 +8168,13 @@ async function deleteStudentFromMaster(studentId) {
 // ====== Phase 2.1 (Part 2): 班級頁邏輯 ======
 // ==========================================
 
-// [Pro-v6.12] 讀取班級列表 (加入編輯按鈕)
+// [Pro-v8.2] 讀取班級列表 (防殘影版)
 async function loadAllClasses() {
     const container = document.getElementById('class-management-list');
     if (!container) return; 
+
+    // 🔥 關鍵修正：一開始就清空，防止重複附加
+    container.innerHTML = ''; 
 
     if (!currentUser) {
         container.innerHTML = `<div style="text-align:center; padding:20px; color:#999;">請先登入以管理班級</div>`;
@@ -8190,9 +8193,8 @@ async function loadAllClasses() {
 
         if (error) throw error;
 
-        // 同步刷新 Page 1 下拉選單
-        const page1Select = document.getElementById('setup-class-select');
-        if(page1Select) setTimeout(() => { if(typeof loadPage1ClassDropdown === 'function') loadPage1ClassDropdown(true); }, 500);
+        // 清空 Loading
+        container.innerHTML = '';
 
         if (classes.length === 0) {
             container.innerHTML = `
@@ -8203,8 +8205,8 @@ async function loadAllClasses() {
             return;
         }
 
-        container.innerHTML = ''; 
         for (const cls of classes) {
+            // 獲取學生人數
             const { count } = await supabaseClient
                 .from('students')
                 .select('*', { count: 'exact', head: true })
@@ -8214,7 +8216,6 @@ async function loadAllClasses() {
             card.className = 'task-item';
             card.style.cursor = 'default';
             
-            // 準備 safe string
             const safeName = escapeHtml(cls.class_name);
             const safeYear = escapeHtml(cls.academic_year);
             const safeId = cls.id;
@@ -8229,11 +8230,9 @@ async function loadAllClasses() {
                         👤 ${count || 0} 人
                     </div>
                     <div style="display:flex; gap:5px;">
-                        <!-- 🔥 [新增] 編輯按鈕 -->
-                        <button class="light-btn" style="padding:5px 10px; font-size:0.85rem;" onclick="editClass('${safeId}', '${safeYear}', '${safeName}')" title="編輯班級資料">✏️</button>
-                        
-                        <button class="secondary-btn" style="padding:5px 10px; font-size:0.85rem;" onclick="manageStudents('${safeId}', '${safeName}')" title="管理名單">👥</button>
-                        <button class="danger-btn" style="padding:5px 10px; font-size:0.85rem;" onclick="deleteClass('${safeId}', '${safeName}')" title="刪除班級">🗑️</button>
+                        <button class="light-btn" style="padding:5px 10px; font-size:0.85rem;" onclick="editClass('${safeId}', '${safeYear}', '${safeName}')" title="編輯">✏️</button>
+                        <button class="secondary-btn" style="padding:5px 10px; font-size:0.85rem;" onclick="manageStudents('${safeId}', '${safeName}')" title="名單">👥</button>
+                        <button class="danger-btn" style="padding:5px 10px; font-size:0.85rem;" onclick="deleteClass('${safeId}', '${safeName}')" title="刪除">🗑️</button>
                     </div>
                 </div>
             `;
@@ -8246,7 +8245,7 @@ async function loadAllClasses() {
     }
 }
 
-// [Pro-v6.11] 新增班級 (自動跳轉管理名單)
+/// [Pro-v8.2] 新增班級 (修復同步問題)
 async function createNewClass() {
     if (!currentUser) {
         showCustomModal({ icon:'🔒', title:'請先登入', desc:'班級管理需要雲端同步功能。', confirmText:'去登入' })
@@ -8254,34 +8253,22 @@ async function createNewClass() {
         return;
     }
 
-    // 1. 計算智能學年
     const today = new Date();
     const year = today.getFullYear();
     const month = today.getMonth() + 1; 
     const defaultYear = month >= 9 ? `${year}-${year+1}` : `${year-1}-${year}`;
 
-    // 2. 輸入學年
     const inputYear = await showCustomModal({
-        icon: '📅',
-        title: '新增班級 - 步驟 1/2',
-        desc: '請確認學年',
-        showInput: true,
-        defaultValue: defaultYear
+        icon: '📅', title: '新增班級 - 步驟 1/2', desc: '請確認學年', showInput: true, defaultValue: defaultYear
     });
     if (!inputYear) return;
 
-    // 3. 輸入班名
     const className = await showCustomModal({
-        icon: '🏫',
-        title: '新增班級 - 步驟 2/2',
-        desc: '請輸入班別名稱 (例如：6A)',
-        showInput: true,
-        defaultValue: ''
+        icon: '🏫', title: '新增班級 - 步驟 2/2', desc: '請輸入班別名稱 (例如：6A)', showInput: true, defaultValue: ''
     });
     if (!className) return;
 
     try {
-        // 4. 寫入 Database 並獲取回傳資料 (select)
         const { data, error } = await supabaseClient
             .from('classes')
             .insert([{ 
@@ -8289,30 +8276,33 @@ async function createNewClass() {
                 academic_year: inputYear.trim(),
                 class_name: className.trim()
             }])
-            .select() // 🔥 關鍵：要拿回 ID
+            .select()
             .single();
 
         if (error) throw error;
 
-        // 5. 成功後，先刷新列表，然後直接打開管理名單
+        // 🔥 關鍵修正 1：強制刷新 Page 1 的下拉選單 (傳入 true)
+        await loadPage1ClassDropdown(true);
+
+        // 🔥 關鍵修正 2：重新讀取 Page 8 列表 (確保沒有殘影)
         await loadAllClasses(); 
         
-        // 🔥 自動打開管理名單，不用老師再點
+        // 自動打開管理名單
         manageStudents(data.id, data.class_name);
         
-        if (typeof showToast === 'function') showToast("班級已建立，請輸入學生名單", "success");
+        if (typeof showToast === 'function') showToast("班級已建立", "success");
 
     } catch (error) {
         console.error(error);
         showCustomModal({ icon:'❌', title:'建立失敗', desc: error.message });
     }
 }
-// [Pro-v6.3] 刪除班級 (自訂 UI)
+// [Pro-v8.2] 刪除班級 (修復同步問題)
 async function deleteClass(classId, className) {
     const confirmDelete = await showCustomModal({
         icon: '⚠️',
         title: '刪除確認',
-        desc: `確定要刪除「${className}」嗎？\n這將會同時刪除該班級的所有學生名單。\n(已批改的作業記錄不會受影響)`,
+        desc: `確定要刪除「${className}」嗎？\n這將會同時刪除該班級的所有學生名單。`,
         confirmText: '確認刪除',
         cancelText: '再諗諗'
     });
@@ -8328,7 +8318,10 @@ async function deleteClass(classId, className) {
         if (error) throw error;
         
         if (typeof showToast === 'function') showToast(`已刪除班級：${className}`, "success");
-        loadAllClasses(); 
+
+        // 🔥 關鍵修正：刪除後，必須強制 Page 1 和 Page 8 都刷新
+        await loadPage1ClassDropdown(true); 
+        await loadAllClasses(); 
 
     } catch (error) {
         console.error(error);
@@ -8965,4 +8958,4 @@ async function editClass(classId, oldYear, oldName) {
 
 
 </body>
-</html>
+</html>[Pro-v8.2-ClassSyncFix]
