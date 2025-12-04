@@ -4441,17 +4441,32 @@ function parseStudentName(rawName) {
     };
 }
 
+// [Pro-v2.4] 更新下拉選單 (含強制排序)
 function updateStudentDropdown() {
   const namesText = document.getElementById('student-names').value;
   const studentSelect = document.getElementById('student-select');
-  const parsedNames = namesText.split('\n').map(name => parseStudentName(name)).filter(p => p.name);
+  
+  // 1. 解析名單
+  let parsedNames = namesText.split('\n')
+      .map(name => parseStudentName(name))
+      .filter(p => p.name);
 
+  // 🔥 [關鍵修改] 在生成選單前，強制按學號數值排序
+  parsedNames.sort((a, b) => {
+      const numA = a.number || 999999; // parseStudentName 已經幫我們轉成 int 了
+      const numB = b.number || 999999;
+      if (numA !== numB) return numA - numB;
+      return a.name.localeCompare(b.name);
+  });
+
+  // 2. 更新全域變數 allStudentRecords (保持資料同步)
   const oldRecords = [...allStudentRecords];
   allStudentRecords = parsedNames.map(p => {
     const existingRecord = oldRecords.find(r => r.originalName === p.originalName);
     return existingRecord || { ...p, data: null };
   });
 
+  // 3. 重新渲染下拉選單
   const currentSelected = studentSelect.value;
   studentSelect.innerHTML = parsedNames.length === 0 ? '<option value="">請先在上方輸入學生名單</option>' : '';
   
@@ -4459,6 +4474,7 @@ function updateStudentDropdown() {
   parsedNames.forEach(p => {
     const option = document.createElement('option');
     option.value = p.originalName;
+    // 顯示格式： "01 陳大文"
     option.textContent = p.originalName;
     studentSelect.appendChild(option);
     if (p.originalName === currentSelected) {
@@ -4466,12 +4482,17 @@ function updateStudentDropdown() {
     }
   });
 
+  // 嘗試保持原本的選擇，如果沒選或被刪了，就選第一個
   if (newSelectionExists) {
       studentSelect.value = currentSelected;
+  } else if (studentSelect.options.length > 0) {
+      studentSelect.selectedIndex = 0;
+      // 如果換了人，要觸發載入資料
+      loadStudentData(studentSelect.value);
   }
   
   updateAllOutputs();
-  renderStudentOverviewTable();
+  renderStudentOverviewTable(); // 這裡面的表格也會跟著變順序
 }
 
 function toggleOtherBlock(selectId, value) {
@@ -8096,59 +8117,60 @@ async function loadPage1ClassDropdown(forceRefresh = false) {
     }
 }
 
-// 3. 當選取班級後，載入學生 Checkbox
+// [Pro-v2.4] 載入班級學生並進行「數值排序」
 async function handleClassSelectChange() {
     const select = document.getElementById('setup-class-select');
-    const classId = select.value;
-    const area = document.getElementById('setup-student-area');
     const container = document.getElementById('setup-student-checklist');
+    const area = document.getElementById('setup-student-area');
     
     container.innerHTML = '';
     area.style.display = 'none';
-
-    if (!classId) return;
+    if (!select.value) return;
 
     area.style.display = 'block';
-    container.innerHTML = '<div style="color:#888;">正在讀取學生名單...</div>';
+    container.innerHTML = '<div>讀取中...</div>';
 
     try {
         const { data: students, error } = await supabaseClient
             .from('students')
             .select('*')
-            .eq('class_id', classId)
-            .order('student_number', { ascending: true });
+            .eq('class_id', select.value);
+            // 這裡我們不在 SQL 排序，改在下面用 JS 排
 
         if (error) throw error;
 
-        container.innerHTML = ''; // Clear loading
-
-        if (students.length === 0) {
-            container.innerHTML = '<div style="color:#c86a5a;">此班級暫無學生名單。</div>';
-            return;
+        container.innerHTML = '';
+        if (!students || students.length === 0) { 
+            container.innerHTML = '<div>暫無學生</div>'; 
+            return; 
         }
+
+        // 🔥 [關鍵修改] 加入數值排序邏輯
+        students.sort((a, b) => {
+            // 把學號轉成整數 (Integer) 來比較
+            const numA = parseInt(a.student_number, 10) || 999999; // 無學號排最後
+            const numB = parseInt(b.student_number, 10) || 999999;
+            if (numA !== numB) return numA - numB;
+            // 如果學號一樣 (或都是空)，就按姓名排
+            return (a.name || '').localeCompare(b.name || '');
+        });
 
         students.forEach(s => {
             const div = document.createElement('div');
-            div.className = 'student-check-card checked'; // 預設全選
-            // 存學號和姓名，方便之後生成 string
+            div.className = 'student-check-card checked'; 
             div.dataset.info = `${s.student_number || ''}${s.student_number ? '-' : ''}${s.name}`;
-            div.innerHTML = `
-                <input type="checkbox" checked style="pointer-events:none;"> 
-                <span>${escapeHtml(s.student_number)} ${escapeHtml(s.name)}</span>
-            `;
-            // 點擊卡片切換 checkbox
+            div.innerHTML = `<input type="checkbox" checked><span>${escapeHtml(s.student_number)}<br>${escapeHtml(s.name)}</span>`;
             div.onclick = () => {
                 const cb = div.querySelector('input');
                 cb.checked = !cb.checked;
-                if(cb.checked) div.classList.add('checked');
-                else div.classList.remove('checked');
+                div.classList.toggle('checked', cb.checked);
             };
             container.appendChild(div);
         });
 
     } catch (err) {
         console.error(err);
-        container.innerHTML = `<div style="color:red;">讀取錯誤：${err.message}</div>`;
+        container.innerHTML = `<div style="color:red;">讀取失敗</div>`;
     }
 }
 
