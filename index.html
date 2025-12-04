@@ -7907,16 +7907,23 @@ document.addEventListener('click', () => {
 // ====== Phase 2.1: 學生名單管理邏輯 ======
 // ==========================================
 
-// 1. 打開「管理名單」視窗
+// [Pro-v7.5] 管理名單 (DOM 逃脫術修復版)
 async function manageStudents(classId, className) {
+    const modal = document.getElementById('pop-manage-students-modal');
+    
+    // 🔥 [關鍵修復] 同樣搬到 body 最外層
+    if (modal.parentNode !== document.body) {
+        document.body.appendChild(modal);
+    }
+
     document.getElementById('manage-class-id').value = classId;
     document.getElementById('manage-class-title').textContent = `管理名單：${className}`;
-    document.getElementById('pop-manage-students-modal').classList.add('active');
+    
+    modal.classList.add('active');
     
     // 載入該班現有的學生
     await loadMasterStudentList(classId);
 }
-
 // 2. 關閉視窗並刷新班級列表 (更新人數)
 function closeManageStudentsModal() {
     document.getElementById('pop-manage-students-modal').classList.remove('active');
@@ -8792,10 +8799,16 @@ function sortStudents(studentsArray) {
         return collator.compare(nameA, nameB);
     });
 }
-// [Pro-v7.2] 通用 Modal (支援 Enter 確認 / Esc 取消 / Tab 聚焦)
+// [Pro-v7.5] 通用 Modal (DOM 逃脫術修復版)
 function showCustomModal({ icon='✨', title, desc, showInput=false, defaultValue='', confirmText='確定', cancelText='取消' }) {
     return new Promise((resolve) => {
         const modal = document.getElementById('pop-generic-modal');
+        
+        // 🔥 [關鍵修復] 將 Modal 移動到 body 的最後面，避免被其他容器遮擋或截斷
+        if (modal.parentNode !== document.body) {
+            document.body.appendChild(modal);
+        }
+
         const titleEl = document.getElementById('pop-generic-title');
         const descEl = document.getElementById('pop-generic-desc');
         const iconEl = document.getElementById('pop-generic-icon');
@@ -8819,6 +8832,7 @@ function showCustomModal({ icon='✨', title, desc, showInput=false, defaultValu
             inputContainer.style.display = 'none';
         }
 
+        // 顯示
         modal.classList.add('active');
 
         // 聚焦邏輯
@@ -8827,13 +8841,13 @@ function showCustomModal({ icon='✨', title, desc, showInput=false, defaultValu
                 input.focus();
                 input.select();
             } else {
-                confirmBtn.focus(); // 讓 Enter 可以直接觸發
+                confirmBtn.focus(); 
             }
         }, 100);
 
         const cleanup = () => {
             modal.classList.remove('active');
-            input.onkeydown = null;
+            document.removeEventListener('keydown', handleKeydown);
             confirmBtn.onclick = null;
             cancelBtn.onclick = null;
         };
@@ -8842,15 +8856,15 @@ function showCustomModal({ icon='✨', title, desc, showInput=false, defaultValu
         cancelBtn.onclick = () => { cleanup(); resolve(false); };
 
         // 鍵盤監聽
-        input.onkeydown = (e) => {
-            if (e.key === 'Enter') confirmBtn.click();
-            if (e.key === 'Escape') cancelBtn.click();
+        const handleKeydown = (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault(); 
+                confirmBtn.click();
+            } else if (e.key === 'Escape') {
+                cancelBtn.click();
+            }
         };
-        
-        // 如果沒有輸入框，監聽全域按鍵 (簡單版)
-        if (!showInput) {
-            confirmBtn.onkeydown = (e) => { if(e.key === 'Enter') confirmBtn.click(); }
-        }
+        document.addEventListener('keydown', handleKeydown);
     });
 }
 
