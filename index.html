@@ -4421,53 +4421,23 @@ function concretizeExample(id, rawExample) {
   return lines.slice(0, 2);
 }
 
-// [Pro-v3.3] 名單解析器 (強力過濾 JSON 垃圾)
 function parseStudentName(rawName) {
-    if (!rawName) return { number: null, name: '', originalName: '' };
-    
-    let clean = rawName.trim();
-
-    // 🔥 [新增] 如果偵測到這是 JSON 格式的垃圾，嘗試搶救裡面的 name
-    if (clean.startsWith('{') || clean.startsWith('[')) {
-        try {
-            // 嘗試把它轉回物件，提取有用的資訊
-            // 這裡只是一個簡單的 heuristic，針對截圖中的情況
-            if (clean.includes('"name":')) {
-                const nameMatch = clean.match(/"name":"([^"]+)"/);
-                const numMatch = clean.match(/"num":"([^"]+)"/);
-                if (nameMatch) {
-                    const n = nameMatch[1];
-                    const no = numMatch ? numMatch[1] : null;
-                    return {
-                        number: no ? parseInt(no, 10) : null,
-                        name: n,
-                        originalName: `${no ? no + '-' : ''}${n}` // 重建成正常格式
-                    };
-                }
-            }
-        } catch (e) {}
-        // 如果搶救失敗，就當作空行忽略
-        return { number: null, name: '', originalName: '' };
-    }
-
-    // 正常解析邏輯
-    clean = clean.replace(/^"|"$/g, ''); // 去除首尾引號
-    const match = clean.match(/^(\d+)[-\s._]*(.*)$/);
+    const match = rawName.trim().match(/^(\d+)[-\s._]*(.*)$/);
     if (match) {
         return {
             number: parseInt(match[1], 10),
             name: match[2].trim(),
-            originalName: clean
+            originalName: rawName.trim()
         };
     }
     return {
         number: null,
-        name: clean,
-        originalName: clean
+        name: rawName.trim(),
+        originalName: rawName.trim()
     };
 }
 
-// [Pro-v3.0-Final] 更新下拉選單 (整合排序、顯示與 ID 獲取)
+// [Pro-v2.7] Page 2 下拉選單 (強制數值排序 + 學號補零顯示)
 function updateStudentDropdown() {
   const namesText = document.getElementById('student-names').value;
   const studentSelect = document.getElementById('student-select');
@@ -4477,20 +4447,20 @@ function updateStudentDropdown() {
       .map(name => parseStudentName(name))
       .filter(p => p.name);
 
-  // 2. 強制數值排序 (1, 2... 10)
+  // 2. 強制數值排序 (保證 1 < 2 < 10)
   parsedNames.sort((a, b) => {
       const numA = parseInt(a.number, 10) || 999999;
       const numB = parseInt(b.number, 10) || 999999;
+      
       if (numA !== numB) return numA - numB;
       return a.name.localeCompare(b.name);
   });
 
-  // 3. 更新全域變數 allStudentRecords
+  // 3. 更新全域變數
   const oldRecords = [...allStudentRecords];
   allStudentRecords = parsedNames.map(p => {
     const existingRecord = oldRecords.find(r => r.originalName === p.originalName);
-    // 確保新記錄有 dbId 欄位預留
-    return existingRecord || { ...p, data: null, dbId: null };
+    return existingRecord || { ...p, data: null };
   });
 
   // 4. 重新渲染下拉選單
@@ -4502,7 +4472,7 @@ function updateStudentDropdown() {
     const option = document.createElement('option');
     option.value = p.originalName;
     
-    // [視覺優化] 補零顯示 (1 -> 01)
+    // 🔥 [視覺優化] 如果有學號，補零顯示 (1 -> 01)，方便閱讀
     let displayName = p.name;
     if (p.number !== null) {
         const paddedNum = p.number.toString().padStart(2, '0');
@@ -4516,7 +4486,6 @@ function updateStudentDropdown() {
     }
   });
 
-  // 5. 保持選取狀態
   if (newSelectionExists) {
       studentSelect.value = currentSelected;
   } else if (studentSelect.options.length > 0) {
@@ -4526,30 +4495,6 @@ function updateStudentDropdown() {
   
   updateAllOutputs();
   renderStudentOverviewTable();
-
-  // 🔥 [Pro-v3.0 新增] 靜默獲取學生 ID (為寫入資料庫做準備)
-  // 這是寫入 Phase 3 數據庫的關鍵橋樑
-  if (window.currentClassId) {
-      supabaseClient
-          .from('students')
-          .select('id, name, student_number')
-          .eq('class_id', window.currentClassId)
-          .then(({ data, error }) => {
-              if (error) {
-                  console.error("獲取學生 ID 失敗:", error);
-                  return;
-              }
-              if (data) {
-                  data.forEach(d => {
-                      // 嘗試匹配名單 (用名字匹配)
-                      const rec = allStudentRecords.find(r => r.name === d.name);
-                      if (rec) {
-                          rec.dbId = d.id; // 注入 ID，稍後儲存時會用到
-                      }
-                  });
-              }
-          });
-  }
 }
 
 function toggleOtherBlock(selectId, value) {
@@ -4958,13 +4903,14 @@ function navigateToStudent(direction) {
   select.dispatchEvent(new Event('change'));
 }
 
-// [Pro-v3.1] 強制寫入版儲存邏輯 (修復 Results 空白問題)
+// [Pro-v3.3-Full] 完整儲存邏輯 (修復寫入錯誤 + 完整資料收集)
 async function saveCurrentStudentData() {
   const studentSelect = document.getElementById('student-select');
   const studentOriginalName = studentSelect.value; 
 
   if (!studentOriginalName) {
     if (typeof showToast === 'function') showToast('請先選擇一位學生。', 'warning');
+    else alert('請先選擇一位學生。');
     return;
   }
 
@@ -4974,12 +4920,14 @@ async function saveCurrentStudentData() {
     return;
   }
 
-  // 1. 收集表單數據 (保留原邏輯)
+  // 1. 收集表單數據 (這是之前省略的部分，必須補回)
   const checkedCritiques = [];
   const selectedTags = []; 
+  
   document.querySelectorAll('#checklist-container input[type="checkbox"]:checked').forEach(cb => {
-    selectedTags.push(cb.id);
+    selectedTags.push(cb.id); // 收集 ID 用於 Tags
     const data = { id: cb.id, selectValues: [] };
+    
     const module = document.getElementById(`module-${cb.id}`);
     if (module) {
         module.querySelectorAll('select').forEach((select, index) => {
@@ -4995,6 +4943,7 @@ async function saveCurrentStudentData() {
     checkedCritiques.push(data);
   });
 
+  // 收集分數
   const scores = {
       content: document.getElementById('score-content').value,
       expression: document.getElementById('score-expression').value,
@@ -5004,25 +4953,27 @@ async function saveCurrentStudentData() {
       total: document.getElementById('score-total').value,
   };
   
+  // 收集評語文字
+  const uniqueComment = document.getElementById('unique-comment').value;
   const fullComment = document.getElementById('full-output').value;
   const studentComment = document.getElementById('student-report-output').value;
 
-  // 2. 更新記憶體 (讓 UI 即時反應)
+  // 2. 更新記憶體 (讓 UI 即時反應，例如表格變色)
   studentRecord.data = {
     class: document.getElementById('student-class').value,
     topic: document.getElementById('topic').value,
-    uniqueComment: document.getElementById('unique-comment').value,
+    uniqueComment: uniqueComment,
     scores: scores,
     typos: [...currentTypos],
     checkedCritiques: checkedCritiques,
-    selectedTitles: checkedCritiques.join(','), // 簡化
+    selectedTitles: checkedCritiques.join(','), // 簡化顯示
     fullComment: fullComment,
     studentComment: studentComment,
     pureFullComment: fullComment,
     pureStudentComment: studentComment,
   };
 
-  // 🔥 3. 雲端寫入 (強制檢查 ID)
+  // 🔥 3. 雲端寫入 (對應修正後的 DB 欄位)
   if (window.currentClassId && currentUser) {
       const saveBtn = document.querySelector('#grading-section-save .action-btn');
       const originalBtnText = saveBtn.textContent;
@@ -5057,17 +5008,15 @@ async function saveCurrentStudentData() {
               window.currentAssignmentId = assignmentId;
           }
 
-          // B. 獲取 Student ID (最關鍵的一步)
-          // 直接用名字去 DB 查，不依賴之前的異步加載，保證準確
+          // B. 獲取 Student ID
           let studentId = studentRecord.dbId;
           if (!studentId) {
-              // 解析名字，去除學號部分 (因為 DB 存的是純 Name)
-              // 假設 studentRecord.name 是 "陳大文" (已經被 parse 過)
+              // 如果記憶體沒 ID，嘗試用名字去查 (去除學號部分)
               const { data: stData } = await supabaseClient
                   .from('students')
                   .select('id')
                   .eq('class_id', window.currentClassId)
-                  .eq('name', studentRecord.name) // 這裡假設 DB name 和 記憶體 name 一致
+                  .eq('name', studentRecord.name)
                   .maybeSingle();
               
               if (stData) studentId = stData.id;
@@ -5075,37 +5024,42 @@ async function saveCurrentStudentData() {
 
           if (!studentId) throw new Error(`無法在資料庫找到學生: ${studentRecord.name}`);
 
-          // C. 寫入 Results
+          // C. 寫入 Results (已包含 comment_student)
           const { error: resultError } = await supabaseClient
               .from('results')
               .upsert({
                   assignment_id: assignmentId,
                   student_id: studentId,
-                  content_score: scores.content || 0,
-                  expression_score: scores.expression || 0,
-                  structure_score: scores.structure || 0,
-                  punctuation_score: scores.punctuation || 0,
-                  typo_score: scores.typos || 0,
-                  total_score: scores.total || 0,
+                  
+                  content_score: parseFloat(scores.content) || 0,
+                  expression_score: parseFloat(scores.expression) || 0,
+                  structure_score: parseFloat(scores.structure) || 0,
+                  punctuation_score: parseFloat(scores.punctuation) || 0,
+                  typo_score: parseFloat(scores.typos) || 0,
+                  total_score: parseFloat(scores.total) || 0,
+                  
                   comment_full: fullComment,
-                  comment_student: studentComment,
+                  comment_student: studentComment, // 這是剛剛 SQL 加回來的欄位
+                  
                   tags: selectedTags,
                   typos: currentTypos,
                   updated_at: new Date().toISOString()
               }, { onConflict: 'assignment_id, student_id' });
 
           if (resultError) throw resultError;
-          showToast("✅ 已同步至雲端！", "success");
+          if (typeof showToast === 'function') showToast("✅ 已同步至雲端！", "success");
 
       } catch (e) {
           console.error("儲存錯誤:", e);
-          showToast(`雲端寫入失敗: ${e.message}`, "error");
+          if (typeof showToast === 'function') showToast(`雲端寫入失敗: ${e.message}`, "error");
+          else alert(`雲端寫入失敗: ${e.message}`);
       } finally {
           saveBtn.textContent = originalBtnText;
           saveBtn.disabled = false;
       }
   } else {
-      showToast("已儲存 (離線模式)", "info");
+      // 離線模式
+      if (typeof showToast === 'function') showToast("已儲存 (離線模式)", "info");
   }
 
   renderStudentOverviewTable();
@@ -5115,6 +5069,7 @@ async function saveCurrentStudentData() {
   // 自動滾動回上方
   setTimeout(() => scrollToSection(new Event('dummy'), 'student-select'), 100);
 }
+
 
 function loadStudentData(studentOriginalName) {
   const studentRecord = allStudentRecords.find(r => r.originalName === studentOriginalName);
@@ -8221,7 +8176,7 @@ async function loadPage1ClassDropdown(forceRefresh = false) {
     }
 }
 
-// [Pro-v3.3] Page 1 班級名單 (強制純文字格式)
+// [Rollback-Fix] Page 1 班級名單 (強制純文字，修復亂碼)
 async function handleClassSelectChange() {
     const select = document.getElementById('setup-class-select');
     const container = document.getElementById('setup-student-checklist');
@@ -8243,12 +8198,8 @@ async function handleClassSelectChange() {
         if (error) throw error;
 
         container.innerHTML = '';
-        if (!students || students.length === 0) { 
-            container.innerHTML = '<div>暫無學生</div>'; 
-            return; 
-        }
-
-        // 自然排序
+        
+        // 自然排序 (1, 2, 10)
         const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
         students.sort((a, b) => {
             const numA = (a.student_number || '').toString();
@@ -8262,11 +8213,11 @@ async function handleClassSelectChange() {
             const div = document.createElement('div');
             div.className = 'student-check-card checked'; 
             
-            // 補零顯示
+            // 補零顯示 (例如 01)
             let displayNum = s.student_number;
             if (displayNum && /^\d$/.test(displayNum)) displayNum = '0' + displayNum;
 
-            // 🔥 [修正重點] 這裡只傳最簡單的 "學號-姓名" 字串
+            // 🔥 重點：這裡只傳純文字 "01-陳大文"，絕對不要傳 JSON
             const cleanInfo = `${displayNum ? displayNum + '-' : ''}${s.name}`;
             div.dataset.info = cleanInfo;
             
@@ -8353,7 +8304,7 @@ async function handleClassSelectChange() {
     students.forEach(s => {
         const div = document.createElement('div');
         div.className = 'student-check-card checked'; 
-        div.dataset.info = JSON.stringify({ num: s.student_number, name: s.name, id: s.id });
+        div.dataset.info = `${s.student_number || ''}${s.student_number ? '-' : ''}${s.name}`;
         div.innerHTML = `<input type="checkbox" checked><span>${escapeHtml(s.student_number)}<br>${escapeHtml(s.name)}</span>`;
         div.onclick = () => {
             const cb = div.querySelector('input');
