@@ -7531,22 +7531,20 @@ function buildCardHtml(item, uniqueId) {
         </div>
     </div>`;
 }
-// [Pro-v9.2] 開啟作業 (加入文體自動偵測，修復評語消失)
+// [Pro-v9.1-Restored] 開啟作業 (穩定還原版)
 async function openAssignment(assignmentId) {
-    // A. 離線記憶體
+    // A. 離線與備份處理
     if (assignmentId === 'local_memory') {
         showPage('page2');
         showToast("已返回編輯中的草稿", "success");
         return;
     }
-
-    // B. 本機備份
     if (assignmentId === 'local_backup') {
         restoreFromLocalBackup(); 
         return;
     }
 
-    // C. 雲端讀取
+    // B. 雲端讀取檢查
     if (!currentUser) {
         showToast("請先登入以開啟此雲端專案", "warning");
         return;
@@ -7572,40 +7570,31 @@ async function openAssignment(assignmentId) {
             .order('student_number', { ascending: true }); 
         if (studentError) throw studentError;
 
-        // 3. 讀取成績與評語
+        // 3. 讀取成績
         const { data: results, error: resultError } = await supabaseClient
             .from('results')
             .select('*')
             .eq('assignment_id', assignmentId);
         if (resultError) throw resultError;
 
-        // 🔥 [核心修復] 智能偵測文體 (Auto-Detect Genre)
-        // 掃描所有成績，看看是用什麼類型的評語 ID
-        let detectedGenre = 'common'; // 預設
-        const allTags = results.flatMap(r => r.tags || []); // 收集所有用過的 ID
-        const tagString = allTags.join(',');
-
-        if (tagString.includes('nar_')) detectedGenre = 'narrative';      // 記敘
-        else if (tagString.includes('des_')) detectedGenre = 'descriptive'; // 描寫
-        else if (tagString.includes('arg_')) detectedGenre = 'argumentative'; // 議論
-        else if (tagString.includes('lyr_')) detectedGenre = 'lyrical';     // 抒情
-        
-        console.log(`🕵️‍♂️ 偵測到文體類型: ${detectedGenre}`);
-
-        // 立即切換評語庫，確保 Checkbox 能對應上
-        await reloadCritiqueLibrary(detectedGenre);
-
         // 4. 重建記憶體數據
         clearAllCore(false); 
-        document.getElementById('student-class').value = assignment.classes.class_name;
-        document.getElementById('topic').value = assignment.title;
+        
+        // 填寫 Header 資訊
+        if(document.getElementById('student-class')) document.getElementById('student-class').value = assignment.classes.class_name;
+        if(document.getElementById('topic')) document.getElementById('topic').value = assignment.title;
+        
+        // 鎖定 ID
         window.currentAssignmentId = assignment.id;
         window.currentClassId = assignment.class_id;
 
+        // 5. 組合學生數據
         allStudentRecords = students.map(st => {
             const res = results.find(r => r.student_id === st.id);
             let dataObj = null;
+            
             if (res) {
+                // 如果有成績，還原它
                 const extraData = res.comment_data || {}; 
                 dataObj = {
                     class: assignment.classes.class_name,
@@ -7617,7 +7606,8 @@ async function openAssignment(assignmentId) {
                         structure: res.structure_score,
                         punctuation: res.punctuation_score,
                         total: res.total_score,
-                        typos: extraData.typosCount || 0 // 修正 typos 取值
+                        // 優先使用 DB 的 typo_score，如果沒有才用 extraData
+                        typos: res.typo_score || 0 
                     },
                     typos: extraData.typos || [],
                     checkedCritiques: extraData.checkedCritiques || [],
@@ -7627,6 +7617,7 @@ async function openAssignment(assignmentId) {
                     pureFullComment: extraData.pureFullComment || ''
                 };
             }
+            
             return {
                 number: st.student_number,
                 name: st.name,
@@ -7636,20 +7627,20 @@ async function openAssignment(assignmentId) {
             };
         });
 
+        // 6. 更新 UI
         document.getElementById('student-names').value = allStudentRecords.map(r => r.originalName).join('\n');
         updateStudentDropdown();
         renderStudentOverviewTable();
         updateHeaderInfo();
         
         showPage('page2');
-        showToast(`已載入：${assignment.title} (${detectedGenre === 'common' ? '通用' : detectedGenre})`, "success");
+        showToast(`已載入：${assignment.title}`, "success");
 
     } catch (error) {
         console.error(error);
         alert(`載入失敗：${error.message}`);
     }
 }
-
 // 5. 歡迎訊息更新
 function updateWelcomeMessage() {
     const h = new Date().getHours();
@@ -9131,58 +9122,7 @@ async function editClass(classId, oldYear, oldName) {
         alert("更新失敗：" + e.message);
     }
 }
-// [Pro-v9.2] 智能重載評語庫 (根據文體 + 用戶自定義)
-async function reloadCritiqueLibrary(genre) {
-    const dataContainer = document.getElementById('critique-data');
-    dataContainer.innerHTML = ''; // 清空現有
 
-    // 1. 載入罐頭評語 (Canned)
-    // 如果沒有指定，預設載入 common
-    const genresToLoad = genre ? [genre, 'common'] : ['common'];
-    const critiquesToLoad = new Map();
-
-    const addCritique = (critique) => {
-        if (!critiquesToLoad.has(critique.id)) {
-            critiquesToLoad.set(critique.id, critique);
-        }
-    };
-
-    genresToLoad.forEach(g => {
-        if (cannedCritiques[g]) {
-            cannedCritiques[g].forEach(addCritique);
-        }
-    });
-
-    // 2. 載入用戶自定義評語 (Custom from Cloud)
-    if (currentUser) {
-        try {
-            const { data: customData } = await supabaseClient
-                .from('critiques')
-                .select('*')
-                .eq('user_id', currentUser.id);
-            
-            if (customData) {
-                customData.forEach(c => {
-                    addCritique({
-                        id: c.critique_id, category: c.category, type: c.type, title: c.title,
-                        strengthSummary: c.strength_summary, problemCore: c.problem_core,
-                        suggestion: c.suggestion, example: c.example, options: c.options, optionsLabel: c.options_label
-                    });
-                });
-            }
-        } catch (e) { console.error("Reload Custom Critiques Error", e); }
-    }
-
-    // 3. 寫入 DOM
-    const finalCritiques = Array.from(critiquesToLoad.values());
-    applyCritiquesToDOM(finalCritiques);
-    
-    // 4. 重建 UI
-    buildChecklist();
-    buildOverviewPage();
-    
-    console.log(`✅ 評語庫已切換至：${genre || '通用'} (共 ${finalCritiques.length} 條)`);
-}
 
 </script> <!-- 呢個係原本全個檔案唯一的結尾，保留佢 -->
 
