@@ -7095,96 +7095,112 @@ function restoreFromLocalBackup() {
    ========================================== */
 let isDashboardRendering = false; // 加入鎖定旗標
 
+// [Pro-v8.0-Real-Dashboard] 真實數據儀表板 (直接查詢 Table，解決登入延遲)
 async function loadDashboard() {
     const focusList = document.getElementById('focus-task-list');
     const classContainer = document.getElementById('class-accordion-container');
     if(!focusList) return; 
 
-    // 1. 顯示讀取中 (僅在第一次載入時)
-    if (!focusList.innerHTML.includes('task-item')) {
-        focusList.innerHTML = '<div class="dashboard-loading"><div class="spinner"></div> 正在整理作業...</div>';
-    }
+    // 1. 顯示讀取中狀態
+    focusList.style.display = 'block';
+    focusList.innerHTML = '<div class="dashboard-loading"><div class="spinner"></div> 正在同步雲端數據...</div>';
+    if(classContainer) classContainer.innerHTML = '';
 
-    let allProjects = [];
-
-    // 2. 讀取雲端資料
-    try {
-        if (currentUser) {
-            const [newRes, legacyRes] = await Promise.all([
-                supabaseClient.from('view_new_assignments_meta').select('*').eq('user_id', currentUser.id).order('last_updated', { ascending: false }),
-                supabaseClient.from('view_legacy_projects_meta').select('*').eq('user_id', currentUser.id).order('last_updated', { ascending: false })
-            ]);
-
-            if (newRes.data) allProjects = allProjects.concat(newRes.data);
-            if (legacyRes.data) allProjects = allProjects.concat(legacyRes.data);
-        }
-    } catch (e) {
-        console.error("Dashboard load failed", e);
-        focusList.innerHTML = `<div style="color:red; padding:1rem;">讀取失敗，請檢查網絡連線。</div>`;
-        return;
-    }
-
-    // 3. 加入離線資料 (並進行去重檢查)
-    const offlineData = getOfflineProjectMeta();
-    if (offlineData) {
-        // 檢查雲端是否已經有這份資料 (避免剛同步完未刷新時出現重複)
-        const isDuplicate = allProjects.some(p => 
-            p.topic === offlineData.topic && p.class_name === offlineData.class_name
-        );
-        if (!isDuplicate) {
-            allProjects.unshift(offlineData);
-        }
-    }
-
-    // 4. 資料處理
-    if (allProjects.length === 0) {
+    if (!currentUser) {
         renderEmptyState(focusList);
-        if(classContainer) classContainer.innerHTML = ''; // 確保清空
         return;
     }
 
-    const processedProjects = allProjects.map(p => {
-        const total = p.total_students || 0;
-        const graded = p.graded_count || 0;
-        const progress = (total > 0 && graded > 0) ? Math.round((graded/total)*100) : 0;
+    try {
+        // --- 步驟 A: 直接讀取 assignments 表 (最準確，無延遲) ---
+        const { data: assignments, error: assignError } = await supabaseClient
+            .from('assignments')
+            .select(`
+                id, title, created_at, class_id,
+                classes!inner ( class_name, academic_year ),
+                results ( count )
+            `)
+            .eq('user_id', currentUser.id)
+            .order('created_at', { ascending: false });
+
+        if (assignError) throw assignError;
+
+        if (!assignments || assignments.length === 0) {
+            renderEmptyState(focusList);
+            return;
+        }
+
+        // --- 步驟 B: 獲取班級總人數 (用於計算進度分母) ---
+        // 提取作業相關的所有 class_id
+        const uniqueClassIds = [...new Set(assignments.map(a => a.class_id))];
         
-        let year = p.academic_year;
-        if (!year && p.last_updated) {
-            const d = new Date(p.last_updated);
-            const m = d.getMonth() + 1; 
-            const y = d.getFullYear();
-            year = (m >= 9) ? `${y}-${y+1}` : `${y-1}-${y}`;
+        // 查詢 students 表，統計每班人數
+        const { data: studentsData, error: stuError } = await supabaseClient
+            .from('students')
+            .select('class_id')
+            .in('class_id', uniqueClassIds);
+
+        if (stuError) throw stuError;
+
+        // 在 JS 端聚合計算: { 'class_id_A': 30, 'class_id_B': 25 }
+        const classStudentCounts = {};
+        studentsData.forEach(s => {
+            classStudentCounts[s.class_id] = (classStudentCounts[s.class_id] || 0) + 1;
+        });
+
+        // --- 步驟 C: 數據整合 ---
+        const processedProjects = assignments.map(a => {
+            // 分子：已批改數 (從 results 關聯查詢的 count 獲取)
+            const graded = a.results && a.results[0] ? a.results[0].count : 0;
+            // 分母：總人數
+            const total = classStudentCounts[a.class_id] || 0;
+            // 進度 %
+            const progress = total > 0 ? Math.round((graded / total) * 100) : 0;
+            // 是否完成
+            const isCompleted = (total > 0 && graded >= total);
+
+            return {
+                id: a.id,
+                source_type: 'new', // 標記為新版結構
+                topic: a.title,
+                class_id: a.class_id,
+                class_name: a.classes.class_name || '未命名班級',
+                academic_year: a.classes.academic_year || '未知學年',
+                normalizedYear: a.classes.academic_year || '未知年份',
+                last_updated: a.created_at, // 統一用建立時間排序
+                graded_count: graded,
+                total_students: total,
+                progress: progress,
+                isCompleted: isCompleted
+            };
+        });
+
+        // --- 步驟 D: 渲染 UI ---
+        
+        // 1. Focus Mode (未完成的作業)
+        const focusItems = processedProjects
+            .filter(p => !p.isCompleted)
+            .slice(0, 5); 
+
+        focusList.innerHTML = ''; 
+        renderFocusList(focusItems, focusList);
+
+        // 2. Class Archives (全部作業歸檔)
+        const grouped = groupByYearAndClass(processedProjects);
+        
+        if(classContainer) {
+            classContainer.innerHTML = ''; 
+            renderClassAccordion(grouped, classContainer);
         }
         
-        return {
-            ...p,
-            normalizedYear: year || '未知年份',
-            progress: progress,
-            isCompleted: (total > 0 && graded >= total),
-            isRecent: (new Date() - new Date(p.last_updated)) < (7 * 24 * 60 * 60 * 1000)
-        };
-    });
+        updateWelcomeMessage();
 
-    // 5. 渲染 Focus Mode
-    const focusItems = processedProjects
-        .filter(p => !p.isCompleted)
-        .sort((a, b) => new Date(b.last_updated) - new Date(a.last_updated))
-        .slice(0, 5);
-
-    // 🔥 關鍵修正：渲染前一刻才清空，並立即寫入 🔥
-    focusList.innerHTML = ''; 
-    renderFocusList(focusItems, focusList);
-
-    // 6. 渲染 班級歸檔
-    const grouped = groupByYearAndClass(processedProjects);
-    
-    // 🔥 關鍵修正：渲染前一刻才清空，並立即寫入 🔥
-    if(classContainer) {
-        classContainer.innerHTML = ''; 
-        renderClassAccordion(grouped, classContainer);
+    } catch (error) {
+        console.error("Dashboard Load Error:", error);
+        focusList.innerHTML = `<div style="color:#c86a5a; padding:1rem; text-align:center;">
+            數據讀取失敗<br><span style="font-size:0.8rem">${error.message}</span>
+        </div>`;
     }
-    
-    updateWelcomeMessage();
 }
 
 
