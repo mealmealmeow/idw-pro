@@ -3098,16 +3098,21 @@
     <!-- 預設評語會由 JS 載入 -->
   </div>
 
-  <!-- 新增：右側懸浮導覽列 -->
-  <nav id="floating-nav">
+  <!-- [Pro-v6.1] 懸浮導覽列 (已修正儲存按鈕分流) -->
+<nav id="floating-nav">
+    <!-- 快速導航 -->
     <a href="#grading-section-student" class="floating-nav-btn" onclick="scrollToSection(event, 'grading-section-student')" data-tooltip="學生">😽</a>
     <a href="#grading-section-checklist" class="floating-nav-btn" onclick="scrollToSection(event, 'grading-section-checklist')" data-tooltip="評語項目">✅</a>
     <a href="#grading-section-typo-score" class="floating-nav-btn" onclick="scrollToSection(event, 'grading-section-typo-score')" data-tooltip="錯別字/評分">📝</a>
     <a href="#grading-section-feedback" class="floating-nav-btn" onclick="scrollToSection(event, 'grading-section-feedback')" data-tooltip="學生評語">📄</a>
-  <a href="javascript:void(0)" class="floating-nav-btn" onclick="saveCurrentStudentData()" data-tooltip="儲存當前學生">💾</a>
-    <!-- 新增：與雲端同步按鈕 -->
-    <a href="javascript:void(0)" class="floating-nav-btn" onclick="syncDataToCloud()" data-tooltip="同步至雲端">☁️</a>
-  </nav>
+    
+    <!-- 分隔線 (視覺上分開導航與操作) -->
+    <div style="width: 60%; height: 1px; background: rgba(0,0,0,0.1); margin: 4px auto;"></div>
+
+    <!-- 操作按鈕 -->
+    <a href="javascript:void(0)" class="floating-nav-btn" onclick="saveCurrentStudentData('local')" data-tooltip="💾 暫存草稿 (Local)">💾</a>
+    <a href="javascript:void(0)" class="floating-nav-btn" onclick="saveCurrentStudentData('cloud')" data-tooltip="☁️ 同步上雲 (Cloud)">☁️</a>
+</nav>
 <!-- 自定義 Pop Art 風格 Project Selection Modal -->
 <div id="pop-project-modal" class="pop-overlay">
   <div class="pop-modal">
@@ -5085,7 +5090,7 @@ async function saveCurrentStudentData(mode = 'cloud') {
 
               if (resultError) throw resultError;
               
-              if (typeof showToast === 'function') showToast("☁️ ✅ 已同步至雲端！", "success");
+              if (typeof showToast === 'function') showToast("☁️ 已同步至雲端！", "success");
               
               // 同步成功後，順便備份一次本地，確保一致
               saveToLocalBackup();
