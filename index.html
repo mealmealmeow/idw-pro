@@ -2634,12 +2634,22 @@
                 </div>
             </div>
 
-            <div id="grading-section-save" class="section-box" style="background: transparent; border-top: none; text-align: center; padding-top: 1rem; padding-bottom: 2rem;">
-                <div class="btn-group" style="justify-content: center;">
-                    <button class="action-btn" onclick="saveCurrentStudentData()">💾 儲存當前學生</button>
-                    <button class="action-btn clear-all" onclick="confirmUI('確定清空當前所有輸入？', () => clearAllCore())">清空當前</button>
-                </div>
-            </div>
+            <!-- [Pro-v6.0] 雙模儲存按鈕 -->
+<div class="btn-group" style="justify-content: center; gap: 15px;">
+    <!-- 按鈕 1：只存本地 -->
+    <button class="secondary-btn" onclick="saveCurrentStudentData('local')" title="只儲存於瀏覽器，不需網絡">
+        💾 暫存草稿
+    </button>
+    
+    <!-- 按鈕 2：同步上雲 -->
+    <button class="action-btn" onclick="saveCurrentStudentData('cloud')" title="儲存並同步至雲端資料庫">
+        ☁️ 同步上雲
+    </button>
+    
+    <button class="action-btn clear-all" onclick="confirmUI('確定清空當前所有輸入？', () => clearAllCore())">
+        清空
+    </button>
+</div>
 
             <!-- 新增的空白區域，用作頁底緩衝，防止懸浮導覽列（尤其在手機版）遮擋上方的儲存按鈕 -->
             <div style="height: 8rem;"></div>
@@ -4934,8 +4944,8 @@ function navigateToStudent(direction) {
   select.dispatchEvent(new Event('change'));
 }
 
-// [Pro-v5.3] 儲存邏輯 (暴力獲取 ID 修復版)
-async function saveCurrentStudentData() {
+// [Pro-v6.0] 雙模儲存邏輯 (支援 local/cloud 分流)
+async function saveCurrentStudentData(mode = 'cloud') {
   const studentSelect = document.getElementById('student-select');
   const studentOriginalName = studentSelect.value; 
 
@@ -4983,7 +4993,7 @@ async function saveCurrentStudentData() {
   const fullComment = document.getElementById('full-output').value;
   const studentComment = document.getElementById('student-report-output').value;
 
-  // 2. 更新記憶體
+  // 2. 更新記憶體 (無論 Local 或 Cloud 都要做)
   studentRecord.data = {
     class: document.getElementById('student-class').value,
     topic: document.getElementById('topic').value,
@@ -4998,111 +5008,109 @@ async function saveCurrentStudentData() {
     pureStudentComment: studentComment,
   };
 
-  // 3. 雲端寫入
-  if (window.currentClassId && currentUser) {
-      console.log("🚀 開始雲端儲存流程...");
-      const saveBtn = document.querySelector('#grading-section-save .action-btn');
-      const originalBtnText = saveBtn.textContent;
-      saveBtn.textContent = "寫入資料庫...";
-      saveBtn.disabled = true;
+  // 3. 分流處理
+  if (mode === 'local') {
+      // === 模式 A: 僅本地儲存 ===
+      // 觸發 LocalStorage 備份
+      saveToLocalBackup(); 
+      renderStudentOverviewTable(); // 刷新表格狀態
+      isDataDirty = true; // 標記有未同步資料
+      updateUIBasedOnAuthState();
+      
+      if (typeof showToast === 'function') showToast("💾 草稿已儲存 (本機)", "success");
+      
+      // 滾動回上方選下一位
+      setTimeout(() => scrollToSection(new Event('dummy'), 'student-select'), 100);
 
-      try {
-          // A. 獲取 Assignment ID
-          const topicTitle = document.getElementById('topic').value.trim();
-          let assignmentId = window.currentAssignmentId;
-
-          if (!assignmentId) {
-              // 嘗試查找或建立作業
-              const { data: assignData } = await supabaseClient
-                  .from('assignments')
-                  .select('id')
-                  .eq('class_id', window.currentClassId)
-                  .eq('title', topicTitle)
-                  .maybeSingle();
-
-              if (assignData) {
-                  assignmentId = assignData.id;
-              } else {
-                  const { data: newAssign, error: createError } = await supabaseClient
-                      .from('assignments')
-                      .insert([{ user_id: currentUser.id, class_id: window.currentClassId, title: topicTitle }])
-                      .select()
-                      .single();
-                  
-                  if (createError) throw createError;
-                  assignmentId = newAssign.id;
-              }
-              window.currentAssignmentId = assignmentId;
-          }
-
-          // B. 獲取 Student ID (暴力補救邏輯)
-          let studentId = studentRecord.dbId;
-          
-          if (!studentId) {
-              console.warn("⚠️ 記憶體中無 ID，嘗試暴力查詢...");
-              // 去除學號，只用名字查 (假設名字是唯一的，或者容錯)
-              // studentRecord.name 應該已經被 parseStudentName 處理過，是純名字
-              const cleanName = studentRecord.name.trim();
-              
-              const { data: stData, error: stError } = await supabaseClient
-                  .from('students')
-                  .select('id')
-                  .eq('class_id', window.currentClassId)
-                  .eq('name', cleanName)
-                  .maybeSingle();
-
-              if (stData) {
-                  studentId = stData.id;
-                  studentRecord.dbId = stData.id; // 補回記憶體
-                  console.log("✅ 暴力查詢成功，ID:", studentId);
-              } else {
-                  console.error("❌ 暴力查詢失敗，找不到學生:", cleanName);
-              }
-          }
-
-          if (!studentId) {
-              throw new Error(`無法在資料庫找到學生: ${studentRecord.name} (請檢查 Page 8 名單是否與此一致)`);
-          }
-
-          // C. 寫入 Results
-          const { error: resultError } = await supabaseClient
-              .from('results')
-              .upsert({
-                  assignment_id: assignmentId,
-                  student_id: studentId,
-                  content_score: parseFloat(scores.content) || 0,
-                  expression_score: parseFloat(scores.expression) || 0,
-                  structure_score: parseFloat(scores.structure) || 0,
-                  punctuation_score: parseFloat(scores.punctuation) || 0,
-                  typo_score: parseFloat(scores.typos) || 0,
-                  total_score: parseFloat(scores.total) || 0,
-                  comment_full: fullComment,
-                  comment_student: studentComment, 
-                  tags: selectedTags,
-                  typos: currentTypos,
-                  updated_at: new Date().toISOString()
-              }, { onConflict: 'assignment_id, student_id' });
-
-          if (resultError) throw resultError;
-          
-          if (typeof showToast === 'function') showToast("✅ 已同步至雲端！", "success");
-
-      } catch (e) {
-          console.error("🛑 儲存錯誤:", e);
-          alert(`雲端寫入失敗:\n${e.message}`);
-      } finally {
-          saveBtn.textContent = originalBtnText;
-          saveBtn.disabled = false;
-      }
   } else {
-      if (typeof showToast === 'function') showToast("已儲存 (離線模式)", "info");
-  }
+      // === 模式 B: 同步上雲 ===
+      if (window.currentClassId && currentUser) {
+          const saveBtn = document.querySelector('button[onclick*="cloud"]'); // 抓取雲端按鈕
+          const originalBtnText = saveBtn ? saveBtn.textContent : '同步上雲';
+          if(saveBtn) {
+              saveBtn.textContent = "寫入中...";
+              saveBtn.disabled = true;
+          }
 
-  renderStudentOverviewTable();
-  isDataDirty = true;
-  updateUIBasedOnAuthState();
-  
-  setTimeout(() => scrollToSection(new Event('dummy'), 'student-select'), 100);
+          try {
+              // A. 獲取/建立 Assignment
+              const topicTitle = document.getElementById('topic').value.trim();
+              let assignmentId = window.currentAssignmentId;
+
+              if (!assignmentId) {
+                  const { data: assignData } = await supabaseClient
+                      .from('assignments')
+                      .select('id')
+                      .eq('class_id', window.currentClassId)
+                      .eq('title', topicTitle)
+                      .maybeSingle();
+
+                  if (assignData) {
+                      assignmentId = assignData.id;
+                  } else {
+                      const { data: newAssign, error: createError } = await supabaseClient
+                          .from('assignments')
+                          .insert([{ user_id: currentUser.id, class_id: window.currentClassId, title: topicTitle }])
+                          .select()
+                          .single();
+                      if (createError) throw createError;
+                      assignmentId = newAssign.id;
+                  }
+                  window.currentAssignmentId = assignmentId;
+              }
+
+              // B. 檢查 Student ID
+              if (!studentRecord.dbId) {
+                  throw new Error(`缺少學生 ID (請嘗試刷新頁面)`);
+              }
+
+              // C. 寫入 Results
+              const { error: resultError } = await supabaseClient
+                  .from('results')
+                  .upsert({
+                      assignment_id: assignmentId,
+                      student_id: studentRecord.dbId,
+                      content_score: parseFloat(scores.content) || 0,
+                      expression_score: parseFloat(scores.expression) || 0,
+                      structure_score: parseFloat(scores.structure) || 0,
+                      punctuation_score: parseFloat(scores.punctuation) || 0,
+                      typo_score: parseFloat(scores.typos) || 0,
+                      total_score: parseFloat(scores.total) || 0,
+                      comment_full: fullComment,
+                      comment_student: studentComment, 
+                      tags: selectedTags,
+                      typos: currentTypos,
+                      updated_at: new Date().toISOString()
+                  }, { onConflict: 'assignment_id, student_id' });
+
+              if (resultError) throw resultError;
+              
+              if (typeof showToast === 'function') showToast("☁️ ✅ 已同步至雲端！", "success");
+              
+              // 同步成功後，順便備份一次本地，確保一致
+              saveToLocalBackup();
+
+          } catch (e) {
+              console.error("儲存錯誤:", e);
+              alert(`雲端寫入失敗:\n${e.message}`);
+          } finally {
+              if(saveBtn) {
+                  saveBtn.textContent = originalBtnText;
+                  saveBtn.disabled = false;
+              }
+          }
+      } else {
+          // 如果沒登入但按了雲端，就當作本地存
+          saveToLocalBackup();
+          if (typeof showToast === 'function') showToast("⚠️ 未登入，僅儲存於本機", "warning");
+      }
+      
+      renderStudentOverviewTable();
+      isDataDirty = true; // 雖然同步了，但保持 Dirty 讓 AutoSave 繼續運作
+      updateUIBasedOnAuthState();
+      
+      setTimeout(() => scrollToSection(new Event('dummy'), 'student-select'), 100);
+  }
 }
 
 
