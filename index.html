@@ -3340,20 +3340,88 @@ async function checkUser() {
     if (typeof loadDashboard === 'function') loadDashboard();
   }
 
-  supabaseClient.auth.onAuthStateChange(async (event, session) => {
+  // [Pro-v6.4] 全局登入狀態監聽 (含邀請與重設密碼流程)
+supabaseClient.auth.onAuthStateChange(async (event, session) => {
+    console.log("Auth Event:", event);
     currentUser = session ? session.user : null;
     updateUIBasedOnAuthState();
+
+    // 1. 偵測網址是否包含邀請標記 (type=invite)
+    // Supabase 會在處理完 hash 後清除它，所以我們要儘快檢查
+    const hash = window.location.hash;
+    const isInvite = hash && hash.includes('type=invite');
+    const isRecovery = hash && hash.includes('type=recovery');
+
     if (event === 'SIGNED_IN') {
-      loadDataFromCloud();
-      if (typeof loadDashboard === 'function') loadDashboard();
-      if (typeof loadPage1ClassDropdown === 'function') loadPage1ClassDropdown(); // ✅ 登入時載入
-    } else if (event === 'SIGNED_OUT') {
-        // ... (原有登出邏輯) ...
-        const sel = document.getElementById('setup-class-select');
-        if(sel) sel.innerHTML = '<option value="">(請先登入)</option>';
+        loadDataFromCloud();
+        // 這裡可以加載 Dashboard
+
+        // 🔥 如果是用戶點擊「邀請信」進來的
+        if (isInvite) {
+            // 稍微延遲，確保介面已載入
+            setTimeout(() => {
+                showCustomModal({
+                    icon: '👋',
+                    title: '歡迎加入！',
+                    desc: '這是您第一次登入。請設定您的專屬密碼，以便日後使用 Email 登入。',
+                    confirmText: '設定密碼',
+                    cancelText: '稍後再說' // 雖然有取消，但建議引導佢設定
+                }).then(ok => {
+                    if(ok) {
+                        // 打開重設密碼視窗 (重用現有 UI)
+                        document.getElementById('pop-reset-password-modal').classList.add('active');
+                    }
+                });
+            }, 1000);
+        }
+    } 
+    
+    // 2. 處理「忘記密碼」流程 (這是 Supabase 標準事件)
+    else if (event === 'PASSWORD_RECOVERY') {
+        // 打開重設密碼視窗
+        const modal = document.getElementById('pop-reset-password-modal');
+        const input = document.getElementById('new-password-input');
+        const btn = document.getElementById('confirm-reset-btn');
+        
+        modal.classList.add('active');
+        input.value = '';
+        input.focus();
+
+        btn.onclick = async () => {
+            const newPassword = input.value.trim();
+            if (newPassword.length < 6) {
+                alert("❌ 密碼太短！最少 6 個字元。");
+                return;
+            }
+            btn.innerText = "更新中...";
+            btn.disabled = true;
+
+            const { error } = await supabaseClient.auth.updateUser({ password: newPassword });
+
+            if (error) {
+                alert("❌ 更新失敗：" + error.message);
+                btn.innerText = "確認修改";
+                btn.disabled = false;
+            } else {
+                alert("🎉 密碼已設定成功！\n請記住您的密碼，下次請直接登入。");
+                modal.classList.remove('active');
+                // 清除網址 hash，避免刷新後又彈出
+                history.replaceState(null, null, ' ');
+            }
+        };
     }
-  });
-}
+    
+    else if (event === 'SIGNED_OUT') {
+        // 清理工作
+        sessionStorage.removeItem('projectPromptShownThisSession');
+        commonTypos = [];
+        allStudentRecords = [];
+        // 如果有 Dashboard 載入函數，這裡可以重置它
+        // loadDashboard(); 
+        alert("已登入，歡迎回來！"); // 這裡其實不需要 alert，看你需要
+    }
+});
+
 // 修正版登出：無論 Server 發生什麼事，本地都強制登出
 async function handleLogout() {
   if (!confirm("確定要登出嗎？所有未同步的變更將會遺失。")) return;
