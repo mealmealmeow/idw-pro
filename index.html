@@ -4903,7 +4903,7 @@ function navigateToStudent(direction) {
   select.dispatchEvent(new Event('change'));
 }
 
-// [Pro-v3.3-Full] 完整儲存邏輯 (修復寫入錯誤 + 完整資料收集)
+// [Pro-v3.4] 儲存邏輯 (強化學生 ID 匹配與錯誤提示)
 async function saveCurrentStudentData() {
   const studentSelect = document.getElementById('student-select');
   const studentOriginalName = studentSelect.value; 
@@ -4920,14 +4920,13 @@ async function saveCurrentStudentData() {
     return;
   }
 
-  // 1. 收集表單數據 (這是之前省略的部分，必須補回)
+  // 1. 收集表單數據
   const checkedCritiques = [];
   const selectedTags = []; 
   
   document.querySelectorAll('#checklist-container input[type="checkbox"]:checked').forEach(cb => {
-    selectedTags.push(cb.id); // 收集 ID 用於 Tags
+    selectedTags.push(cb.id); 
     const data = { id: cb.id, selectValues: [] };
-    
     const module = document.getElementById(`module-${cb.id}`);
     if (module) {
         module.querySelectorAll('select').forEach((select, index) => {
@@ -4943,7 +4942,6 @@ async function saveCurrentStudentData() {
     checkedCritiques.push(data);
   });
 
-  // 收集分數
   const scores = {
       content: document.getElementById('score-content').value,
       expression: document.getElementById('score-expression').value,
@@ -4953,27 +4951,25 @@ async function saveCurrentStudentData() {
       total: document.getElementById('score-total').value,
   };
   
-  // 收集評語文字
-  const uniqueComment = document.getElementById('unique-comment').value;
   const fullComment = document.getElementById('full-output').value;
   const studentComment = document.getElementById('student-report-output').value;
 
-  // 2. 更新記憶體 (讓 UI 即時反應，例如表格變色)
+  // 2. 更新記憶體
   studentRecord.data = {
     class: document.getElementById('student-class').value,
     topic: document.getElementById('topic').value,
-    uniqueComment: uniqueComment,
+    uniqueComment: document.getElementById('unique-comment').value,
     scores: scores,
     typos: [...currentTypos],
     checkedCritiques: checkedCritiques,
-    selectedTitles: checkedCritiques.join(','), // 簡化顯示
+    selectedTitles: checkedCritiques.join(','), 
     fullComment: fullComment,
     studentComment: studentComment,
     pureFullComment: fullComment,
     pureStudentComment: studentComment,
   };
 
-  // 🔥 3. 雲端寫入 (對應修正後的 DB 欄位)
+  // 3. 雲端寫入
   if (window.currentClassId && currentUser) {
       const saveBtn = document.querySelector('#grading-section-save .action-btn');
       const originalBtnText = saveBtn.textContent;
@@ -4985,7 +4981,6 @@ async function saveCurrentStudentData() {
           const topicTitle = document.getElementById('topic').value.trim();
           let assignmentId = window.currentAssignmentId;
 
-          // 如果記憶體沒有，再去 DB 查/建一次
           if (!assignmentId) {
               const { data: assignData } = await supabaseClient
                   .from('assignments')
@@ -5011,7 +5006,8 @@ async function saveCurrentStudentData() {
           // B. 獲取 Student ID
           let studentId = studentRecord.dbId;
           if (!studentId) {
-              // 如果記憶體沒 ID，嘗試用名字去查 (去除學號部分)
+              // 嘗試用名字去查 (必須完全匹配)
+              // 注意：這裡的 studentRecord.name 應該是純名字 (e.g., "陳大文")
               const { data: stData } = await supabaseClient
                   .from('students')
                   .select('id')
@@ -5022,43 +5018,43 @@ async function saveCurrentStudentData() {
               if (stData) studentId = stData.id;
           }
 
-          if (!studentId) throw new Error(`無法在資料庫找到學生: ${studentRecord.name}`);
+          if (!studentId) {
+              // 🔥 [DEBUG] 這裡會告訴我們為什麼找不到人
+              throw new Error(`無法在 DB 找到學生: "${studentRecord.name}" (ClassID: ${window.currentClassId})`);
+          }
 
-          // C. 寫入 Results (已包含 comment_student)
+          // C. 寫入 Results
           const { error: resultError } = await supabaseClient
               .from('results')
               .upsert({
                   assignment_id: assignmentId,
                   student_id: studentId,
-                  
                   content_score: parseFloat(scores.content) || 0,
                   expression_score: parseFloat(scores.expression) || 0,
                   structure_score: parseFloat(scores.structure) || 0,
                   punctuation_score: parseFloat(scores.punctuation) || 0,
                   typo_score: parseFloat(scores.typos) || 0,
                   total_score: parseFloat(scores.total) || 0,
-                  
                   comment_full: fullComment,
-                  comment_student: studentComment, // 這是剛剛 SQL 加回來的欄位
-                  
+                  comment_student: studentComment, 
                   tags: selectedTags,
                   typos: currentTypos,
                   updated_at: new Date().toISOString()
               }, { onConflict: 'assignment_id, student_id' });
 
           if (resultError) throw resultError;
+          
           if (typeof showToast === 'function') showToast("✅ 已同步至雲端！", "success");
 
       } catch (e) {
           console.error("儲存錯誤:", e);
-          if (typeof showToast === 'function') showToast(`雲端寫入失敗: ${e.message}`, "error");
-          else alert(`雲端寫入失敗: ${e.message}`);
+          // 用 alert 讓你能看到完整錯誤訊息
+          alert(`儲存失敗:\n${e.message}`);
       } finally {
           saveBtn.textContent = originalBtnText;
           saveBtn.disabled = false;
       }
   } else {
-      // 離線模式
       if (typeof showToast === 'function') showToast("已儲存 (離線模式)", "info");
   }
 
@@ -5066,7 +5062,6 @@ async function saveCurrentStudentData() {
   isDataDirty = true;
   updateUIBasedOnAuthState();
   
-  // 自動滾動回上方
   setTimeout(() => scrollToSection(new Event('dummy'), 'student-select'), 100);
 }
 
@@ -6990,21 +6985,21 @@ function restoreFromLocalBackup() {
    ========================================== */
 let isDashboardRendering = false; // 加入鎖定旗標
 
+// [Pro-v3.4] Dashboard 載入 (加入前端去重邏輯)
 async function loadDashboard() {
     const focusList = document.getElementById('focus-task-list');
     const classContainer = document.getElementById('class-accordion-container');
     if(!focusList) return; 
 
-    // 1. 顯示讀取中 (僅在第一次載入時)
     if (!focusList.innerHTML.includes('task-item')) {
         focusList.innerHTML = '<div class="dashboard-loading"><div class="spinner"></div> 正在整理作業...</div>';
     }
 
     let allProjects = [];
 
-    // 2. 讀取雲端資料
     try {
         if (currentUser) {
+            // 這裡可能會讀到重複的 view 資料，我們在下面處理
             const [newRes, legacyRes] = await Promise.all([
                 supabaseClient.from('view_new_assignments_meta').select('*').eq('user_id', currentUser.id).order('last_updated', { ascending: false }),
                 supabaseClient.from('view_legacy_projects_meta').select('*').eq('user_id', currentUser.id).order('last_updated', { ascending: false })
@@ -7019,22 +7014,25 @@ async function loadDashboard() {
         return;
     }
 
-    // 3. 加入離線資料 (並進行去重檢查)
-    const offlineData = getOfflineProjectMeta();
-    if (offlineData) {
-        // 檢查雲端是否已經有這份資料 (避免剛同步完未刷新時出現重複)
-        const isDuplicate = allProjects.some(p => 
-            p.topic === offlineData.topic && p.class_name === offlineData.class_name
-        );
-        if (!isDuplicate) {
-            allProjects.unshift(offlineData);
+    // 🔥 [關鍵修正] 前端去重 (根據 ID)
+    // 使用 Map 來保留唯一的 ID，如果有重複 ID，只留最新的
+    const uniqueProjects = new Map();
+    allProjects.forEach(p => {
+        if (!uniqueProjects.has(p.id)) {
+            uniqueProjects.set(p.id, p);
         }
-    }
+    });
+    allProjects = Array.from(uniqueProjects.values());
+
+
+    // 3. 加入離線資料 (getOfflineProjectMeta 已改為回傳 null，所以這裡不會加東西)
+    const offlineData = getOfflineProjectMeta();
+    if (offlineData) allProjects.unshift(offlineData);
 
     // 4. 資料處理
     if (allProjects.length === 0) {
         renderEmptyState(focusList);
-        if(classContainer) classContainer.innerHTML = ''; // 確保清空
+        if(classContainer) classContainer.innerHTML = ''; 
         return;
     }
 
@@ -7066,14 +7064,12 @@ async function loadDashboard() {
         .sort((a, b) => new Date(b.last_updated) - new Date(a.last_updated))
         .slice(0, 5);
 
-    // 🔥 關鍵修正：渲染前一刻才清空，並立即寫入 🔥
     focusList.innerHTML = ''; 
     renderFocusList(focusItems, focusList);
 
     // 6. 渲染 班級歸檔
     const grouped = groupByYearAndClass(processedProjects);
     
-    // 🔥 關鍵修正：渲染前一刻才清空，並立即寫入 🔥
     if(classContainer) {
         classContainer.innerHTML = ''; 
         renderClassAccordion(grouped, classContainer);
