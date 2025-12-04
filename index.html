@@ -3254,8 +3254,40 @@
 </div>
 
 
+<!-- ... (這是原本的重設密碼 Modal) ... -->
+<div id="pop-reset-password-modal" class="pop-overlay">
+  <!-- ... 略 ... -->
+    <div class="pop-footer">
+    <!-- 確保 onclick 指向我們的新函數 -->
+<button class="pop-btn pop-btn-confirm" id="confirm-reset-btn" onclick="confirmResetPassword()">確認修改</button>
+    </div>
+  </div>
+</div>
+
+<!-- ✅✅✅ 請將新代碼貼在這裡 (兩者中間) ✅✅✅ -->
+
+<!-- 學生個人成長圖表 Modal -->
+<div id="pop-student-history-modal" class="pop-overlay">
+  <div class="pop-modal" style="max-width: 600px;">
+    <div class="pop-icon">📈</div>
+    <h3 id="history-student-name">學生歷程</h3>
+    <p class="pop-desc">該生在不同作業中的表現趨勢。</p>
+    
+    <!-- 圖表容器 -->
+    <div style="width: 100%; height: 300px; position: relative;">
+        <canvas id="studentHistoryChart"></canvas>
+    </div>
+
+    <div class="pop-footer">
+      <button class="pop-btn pop-btn-confirm" onclick="document.getElementById('pop-student-history-modal').classList.remove('active')">關閉</button>
+    </div>
+  </div>
+</div>
+
+<!-- ✅✅✅ 貼上結束 ✅✅✅ -->
 
 <script>
+
 // --- Supabase 初始化與設定 ---
 const SUPABASE_URL = 'https://wtcegbkfuklnkurrouka.supabase.co'; 
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind0Y2VnYmtmdWtsbmt1cnJvdWthIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM0MTU5MjgsImV4cCI6MjA3ODk5MTkyOH0.mQT2TXLR6m41D1WzmqH35mKdoGDGqHaHhZm-sTpPmpQ';
@@ -5291,95 +5323,145 @@ function handleOverviewScoreChange(input) {
     updateUIBasedOnAuthState();
 }
 
+// [Pro-v8.9] 學生總覽 (加入成長圖按鈕)
 function renderStudentOverviewTable() {
   const tbody = document.querySelector("#student-overview-table tbody");
   const classDisplay = document.getElementById("overview-class-display");
-  
-  // 獲取新加的文青進度元素
   const progressBox = document.getElementById("literary-progress");
-  const progressText = document.getElementById("progress-text");
-  const progressNumbers = document.getElementById("progress-numbers");
-  const progressBar = document.getElementById("progress-bar");
-
+  
   if (!tbody || !classDisplay) return;
-
   tbody.innerHTML = '';
   
-  // 如果完全無學生資料
   if (allStudentRecords.length === 0) {
     classDisplay.textContent = '';
     if (progressBox) progressBox.style.display = 'none';
-    tbody.innerHTML = `<tr><td colspan="10" class="empty-state-message">尚未輸入學生名單或儲存任何記錄。</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="10" class="empty-state-message">尚未輸入學生名單。</td></tr>`;
     return;
   }
 
-  // 計算數據
+  // 統計進度
   const withData = allStudentRecords.filter(r => r.data);
   const withoutData = allStudentRecords.filter(r => !r.data);
   const totalCount = allStudentRecords.length;
   const gradedCount = withData.length;
-  const remainingCount = withoutData.length;
-  
-  // 計算百分比
   const percentage = Math.round((gradedCount / totalCount) * 100);
 
-  const sorter = (a, b) => (a.number || 999) - (b.number || 999) || a.name.localeCompare(b.name, 'zh-Hant');
-  withData.sort(sorter);
-  withoutData.sort(sorter);
-
-  const firstWithData = withData[0];
-  const className = firstWithData?.data.class || document.getElementById('student-class').value || '未指定班別';
-  
-  classDisplay.textContent = `班別：${className}`;
-
-  // --- 更新文青進度板 ---
+  // 更新進度板
   if (progressBox) {
     progressBox.style.display = 'block';
-    progressBox.classList.remove('finished');
-
-    // 更新數字
-    progressNumbers.textContent = `${gradedCount} / ${totalCount}`;
-    
-    // 更新進度條長度
-    progressBar.style.width = `${percentage}%`;
-
-    // 設定文案
-    if (gradedCount === 0) {
-      progressText.innerHTML = `尚有 <strong>${remainingCount}<strong> 篇待閱</span>`;
-    } else if (remainingCount > 0) {
-      progressText.innerHTML = `尚有 <strong>${remainingCount}</strong> 篇篇待閱。`;
-    } else {
-      progressBox.classList.add('finished');
-      progressText.innerHTML = `全班批改完成。`;
-    }
+    progressBox.classList.toggle('finished', gradedCount === totalCount);
+    document.getElementById("progress-numbers").textContent = `${gradedCount} / ${totalCount}`;
+    document.getElementById("progress-bar").style.width = `${percentage}%`;
+    const remaining = totalCount - gradedCount;
+    document.getElementById("progress-text").innerHTML = remaining > 0 
+        ? `尚有 <strong>${remaining}</strong> 篇待閱。` 
+        : `全班批改完成。`;
   }
-  // -----------------------
+
+  const className = withData[0]?.data.class || document.getElementById('student-class').value || '未指定班別';
+  classDisplay.textContent = `班別：${className}`;
 
   const renderRow = (record, hasData) => {
-    // ... (這一部分完全不用改，照舊) ...
     const s = hasData ? record.data.scores : { content:'',expression:'',structure:'',punctuation:'',typos:'',total:'' };
     const tr = document.createElement('tr');
     if (!hasData) tr.classList.add('row-missing');
-    const safeOriginalName = escapeHtmlAttr(record.originalName);
-    
+    const safeName = escapeHtmlAttr(record.originalName);
+    const dbId = record.dbId || ''; // 獲取 Database ID
+
     tr.innerHTML = `
       <td>${record.number || ''}</td>
-      <td><a href="javascript:void(0)" onclick="jumpToStudentFromOverview('${safeOriginalName}')" style="color:#2563eb; text-decoration:underline;">${escapeHtmlAttr(record.name) || ''}</a></td>
-      <td><input type="number" value="${escapeHtmlAttr(s.content)}" data-student-name="${safeOriginalName}" data-score-type="content" oninput="handleOverviewScoreChange(this)"></td>
-      <td><input type="number" value="${escapeHtmlAttr(s.expression)}" data-student-name="${safeOriginalName}" data-score-type="expression" oninput="handleOverviewScoreChange(this)"></td>
-      <td><input type="number" value="${escapeHtmlAttr(s.structure)}" data-student-name="${safeOriginalName}" data-score-type="structure" oninput="handleOverviewScoreChange(this)"></td>
-      <td><input type="number" value="${escapeHtmlAttr(s.punctuation)}" data-student-name="${safeOriginalName}" data-score-type="punctuation" oninput="handleOverviewScoreChange(this)"></td>
-      <td><input type="number" value="${escapeHtmlAttr(s.typos)}" data-student-name="${safeOriginalName}" data-score-type="typos" oninput="handleOverviewScoreChange(this)"></td>
-      <td class="total-score-cell" id="total-score-${safeOriginalName}">${hasData ? (escapeHtmlAttr(s.total) || '') : '未填'}</td>
-      <td><textarea data-student-name="${safeOriginalName}" data-field="pureStudentComment" oninput="handleTableEdit(this); autoResizeTextarea(this);">${hasData ? escapeHtmlAttr(record.data.pureStudentComment) : ''}</textarea></td>
-      <td><textarea data-student-name="${safeOriginalName}" data-field="pureFullComment" oninput="handleTableEdit(this); autoResizeTextarea(this);">${hasData ? escapeHtmlAttr(record.data.pureFullComment) : ''}</textarea></td>
+      <td style="text-align:left;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <a href="javascript:void(0)" onclick="jumpToStudentFromOverview('${safeName}')" style="color:#2563eb; text-decoration:underline; font-weight:bold;">${escapeHtmlAttr(record.name)}</a>
+            <!-- 🔥 新增：成長圖按鈕 (只有已連結 DB 的學生才顯示) -->
+            ${dbId ? `<button class="light-btn" style="padding:2px 6px; font-size:0.8rem; margin-left:5px;" onclick="showStudentHistory('${dbId}', '${safeName}')" title="查看成長歷程">📈</button>` : ''}
+        </div>
+      </td>
+      <td><input type="number" value="${escapeHtmlAttr(s.content)}" data-student-name="${safeName}" data-score-type="content" oninput="handleOverviewScoreChange(this)"></td>
+      <td><input type="number" value="${escapeHtmlAttr(s.expression)}" data-student-name="${safeName}" data-score-type="expression" oninput="handleOverviewScoreChange(this)"></td>
+      <td><input type="number" value="${escapeHtmlAttr(s.structure)}" data-student-name="${safeName}" data-score-type="structure" oninput="handleOverviewScoreChange(this)"></td>
+      <td><input type="number" value="${escapeHtmlAttr(s.punctuation)}" data-student-name="${safeName}" data-score-type="punctuation" oninput="handleOverviewScoreChange(this)"></td>
+      <td><input type="number" value="${escapeHtmlAttr(s.typos)}" data-student-name="${safeName}" data-score-type="typos" oninput="handleOverviewScoreChange(this)"></td>
+      <td class="total-score-cell" id="total-score-${safeName}">${hasData ? (escapeHtmlAttr(s.total) || '') : '未填'}</td>
+      <td><textarea data-student-name="${safeName}" data-field="pureStudentComment" oninput="handleTableEdit(this); autoResizeTextarea(this);">${hasData ? escapeHtmlAttr(record.data.pureStudentComment) : ''}</textarea></td>
+      <td><textarea data-student-name="${safeName}" data-field="pureFullComment" oninput="handleTableEdit(this); autoResizeTextarea(this);">${hasData ? escapeHtmlAttr(record.data.pureFullComment) : ''}</textarea></td>
     `;
-
     tbody.appendChild(tr);
   };
-  withData.forEach(r => renderRow(r, true));
-  withoutData.forEach(r => renderRow(r, false));
+
+  // 排序：有分先定後，按學號
+  const sorter = (a, b) => (a.number || 999) - (b.number || 999);
+  [...withData].sort(sorter).forEach(r => renderRow(r, true));
+  [...withoutData].sort(sorter).forEach(r => renderRow(r, false));
+  
   setTimeout(() => tbody.querySelectorAll('textarea').forEach(autoResizeTextarea), 0);
+}
+
+// [Pro-v8.9] 顯示學生歷史圖表 (讀取該學生所有作業成績)
+let _historyChart = null;
+
+async function showStudentHistory(studentId, studentName) {
+    if (!studentId) return;
+    
+    // 1. 打開 Modal 並顯示 Loading
+    const modal = document.getElementById('pop-student-history-modal');
+    document.getElementById('history-student-name').textContent = `${studentName} 的成長歷程`;
+    modal.classList.add('active');
+    
+    // 2. 讀取數據 (從 results 表 join assignments 表)
+    try {
+        const { data, error } = await supabaseClient
+            .from('results')
+            .select(`
+                total_score,
+                assignments!inner ( title, created_at )
+            `)
+            .eq('student_id', studentId)
+            .order('created_at', { foreignTable: 'assignments', ascending: true }); // 按時間排序
+
+        if (error) throw error;
+
+        // 3. 準備圖表數據
+        const labels = data.map(d => d.assignments.title);
+        const scores = data.map(d => d.total_score);
+
+        // 4. 繪製圖表
+        const ctx = document.getElementById('studentHistoryChart');
+        if (_historyChart) _historyChart.destroy(); // 銷毀舊圖表
+
+        _historyChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: '總分走勢',
+                    data: scores,
+                    borderColor: '#5A8F7B',
+                    backgroundColor: 'rgba(90, 143, 123, 0.1)',
+                    borderWidth: 3,
+                    pointBackgroundColor: '#F2C037',
+                    pointRadius: 5,
+                    tension: 0.3, // 平滑曲線
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true, suggestedMax: 100 }
+                },
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+
+    } catch (err) {
+        console.error("History Error:", err);
+        alert("無法讀取歷史數據：" + err.message);
+        modal.classList.remove('active');
+    }
 }
 
 function jumpToStudentFromOverview(originalName) {
