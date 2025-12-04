@@ -7542,17 +7542,16 @@ function closeLoginModal() {
   if(modal) modal.classList.remove('active');
 }
 
-// [Pro-v2.1] 白名單邏輯實裝
+// [Pro-v8.2] 登入/註冊處理 (修復：登入後立即刷新數據)
 async function handlePasswordAuth(action) {
   const email = document.getElementById('login-email').value.trim();
   const password = document.getElementById('login-password').value.trim();
   const authStatus = document.getElementById('auth-status');
 
-  // 找出按鈕 (兼用於顯示 loading)
-  const btn = document.querySelector('#pop-login-modal .pop-btn-confirm'); // 這是登入按鈕
-  // 為了精準控制，我們重新獲取觸發事件的按鈕 (註冊或登入)
-  const targetBtn = event.target; 
-  const originalText = targetBtn.innerText;
+  // 獲取按鈕元素以顯示狀態
+  // 注意：這裡使用 event.target 可能會抓到 span，所以我們用更穩定的選擇器
+  const btn = document.querySelector('#pop-login-modal .pop-btn-confirm');
+  const originalText = btn ? btn.innerText : '登入';
 
   if (!email || !password) {
     alert("請輸入 Email 及 密碼");
@@ -7560,53 +7559,59 @@ async function handlePasswordAuth(action) {
   }
 
   // 鎖定 UI
-  targetBtn.innerText = "檢查中...";
-  targetBtn.disabled = true;
+  if(btn) {
+      btn.innerText = "檢查中...";
+      btn.disabled = true;
+  }
   if(authStatus) authStatus.textContent = "處理中...";
 
   try {
-    // === 步驟 1: 如果是「註冊」，先檢查白名單 ===
+    // === 步驟 1: 白名單檢查 (僅註冊時) ===
     if (action === 'signup') {
         const { data: whiteData, error: whiteError } = await supabaseClient
             .from('whitelist')
             .select('email')
             .eq('email', email)
-            .maybeSingle(); // 查詢是否有一筆資料
+            .maybeSingle();
 
-        if (whiteError) {
-            console.error("白名單檢查錯誤:", whiteError);
-            throw new Error("系統連線錯誤，無法驗證權限。");
-        }
+        if (whiteError) throw new Error("系統連線錯誤，無法驗證權限。");
 
         if (!whiteData) {
             alert("⛔ 抱歉，此 Email 不在邀請名單內，無法註冊。\n\n目前僅開放受邀的測試人員使用。");
             // 解鎖並離開
-            targetBtn.innerText = originalText;
-            targetBtn.disabled = false;
+            if(btn) { btn.innerText = originalText; btn.disabled = false; }
             if(authStatus) authStatus.textContent = "未連接";
             return; 
         }
     }
 
-    // === 步驟 2: 通過檢查，執行原本的 Supabase 驗證 ===
+    // === 步驟 2: 執行 Supabase 驗證 ===
+    let resultError = null;
+    let resultData = null;
+
     if (action === 'signup') {
       const { data, error } = await supabaseClient.auth.signUp({ email, password });
-      if (error) throw error;
-      
-      if (data.user) {
-         if (typeof showToast === 'function') showToast("註冊成功！", "success");
-         else alert("註冊成功！");
-         closeLoginModal();
-         // 註冊成功後通常會自動登入，updateUI 會由監聽器處理
-      }
+      resultError = error;
+      resultData = data;
     } else {
-      // --- 登入 ---
       const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-      if (error) throw error;
+      resultError = error;
+      resultData = data;
+    }
 
-      if (typeof showToast === 'function') showToast("登入成功！", "success");
-      else alert("登入成功！");
-      closeLoginModal();
+    if (resultError) throw resultError;
+
+    // === 步驟 3: 成功後的處理 (🔥 關鍵修復) ===
+    if (typeof showToast === 'function') showToast(action === 'signup' ? "註冊成功！" : "登入成功！", "success");
+    else alert(action === 'signup' ? "註冊成功！" : "登入成功！");
+    
+    closeLoginModal();
+
+    // 🔥 暴力刷新：直接呼叫 checkUser，讓它重新跑一次「載入 Dashboard、載入選單」的流程
+    // 這等同於你按了一下 F5，但不用重新加載網頁
+    if (typeof checkUser === 'function') {
+        console.log("登入成功，正在強制刷新數據...");
+        await checkUser();
     }
 
   } catch (err) {
@@ -7614,10 +7619,10 @@ async function handlePasswordAuth(action) {
     alert("操作失敗：" + err.message);
     if(authStatus) authStatus.textContent = "操作失敗";
   } finally {
-    // 無論成功失敗，最後解鎖按鈕
-    if(targetBtn) {
-        targetBtn.innerText = originalText;
-        targetBtn.disabled = false;
+    // 解鎖按鈕
+    if(btn) {
+        btn.innerText = action === 'signup' ? '註冊' : '登入'; // 恢復原本文字
+        btn.disabled = false;
     }
   }
 }
