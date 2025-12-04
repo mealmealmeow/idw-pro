@@ -3399,7 +3399,6 @@ async function loadDataFromCloud() {
   }
 }
 
-// [Pro-v2.7] 雲端讀取視窗 (讀取 assignments 表)
 async function promptAndLoadCloudProject() {
     if (!currentUser) {
         alert("請先登入以使用雲端專案功能。");
@@ -3409,126 +3408,131 @@ async function promptAndLoadCloudProject() {
     const originalText = authStatus.textContent;
     authStatus.textContent = '正在搜尋雲端專案...';
 
-    // 🔥 關鍵修正：讀取 assignments 表，並關聯 classes 表以獲取班級名稱
     const { data: projectsData, error: projectsError } = await supabaseClient
-        .from('assignments')
-        .select('id, title, created_at, classes(class_name)')
-        .eq('user_id', currentUser.id)
-        .order('created_at', { ascending: false });
+        .from('student_projects').select('id, class_name, topic, updated_at').eq('user_id', currentUser.id);
     
     authStatus.textContent = originalText;
 
     if (projectsError) {
-        console.error("讀取專案錯誤:", projectsError);
-        // 不彈出 alert 嚇人，只在 Console 顯示，UI 顯示空狀態即可
-        // alert(`讀取雲端專案列表時出錯：${projectsError.message}`); 
+        alert(`讀取雲端專案列表時出錯：${projectsError.message}`);
+        return;
+    }
+    if (!projectsData || projectsData.length === 0) {
+        if (sessionStorage.getItem('projectPromptShownThisSession')) {
+            if (typeof showToast === 'function') showToast("雲端上沒有找到任何專案。", "info");
+            else alert("雲端上沒有找到任何專案。");
+        }
+        return;
     }
 
+    // --- Pop Art Modal 邏輯 ---
+    const sortedProjects = projectsData.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
+    
     return new Promise((resolve) => {
         const modal = document.getElementById('pop-project-modal');
         const listContainer = document.getElementById('pop-project-list');
         const input = document.getElementById('pop-project-input');
         const confirmBtn = document.getElementById('pop-project-confirm');
         const cancelBtn = document.getElementById('pop-project-cancel');
-        const footer = modal.querySelector('.pop-footer');
-
-        // 1. 備份檢查
-        const backupStr = localStorage.getItem('idw_grading_backup_v1');
-        let hasBackup = false;
-        let backupTime = '';
         
-        const oldBackupBtn = document.getElementById('pop-backup-btn-container');
-        if (oldBackupBtn) oldBackupBtn.remove();
-
-        if (backupStr) {
-            try {
-                const b = JSON.parse(backupStr);
-                if (b.timestamp && (b.students && b.students.length > 0)) {
-                    hasBackup = true;
-                    const d = new Date(b.timestamp);
-                    backupTime = `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${d.getMinutes() < 10 ? '0'+d.getMinutes() : d.getMinutes()}`;
-                }
-            } catch(e){}
-        }
-
-        // 2. 渲染列表
+        // 1. 渲染列表
         listContainer.innerHTML = '';
-        const safeProjects = projectsData || []; // 確保不為 null
-
-        if (safeProjects.length === 0) {
-             listContainer.innerHTML = '<div style="padding:20px; color:#999;">雲端上沒有專案。</div>';
-        } else {
-            safeProjects.forEach((p, index) => {
-                const dateStr = new Date(p.created_at).toLocaleDateString();
-                const className = p.classes ? p.classes.class_name : '未分類';
-                const div = document.createElement('div');
-                div.className = 'pop-list-item';
-                div.innerHTML = `<strong>${index + 1}.</strong> ${escapeHtmlAttr(className)} - ${escapeHtmlAttr(p.title)} <span style="font-size:0.8em;color:#999">(${dateStr})</span>`;
-                
-                div.onclick = () => {
-                    input.value = index + 1;
-                    triggerConfirm();
-                };
-                listContainer.appendChild(div);
-            });
-        }
-
-        // 3. 插入備份按鈕
-        if (hasBackup) {
-            const backupContainer = document.createElement('div');
-            backupContainer.id = 'pop-backup-btn-container';
-            backupContainer.style.cssText = 'margin-top: 15px; border-top: 1px solid #eee; padding-top: 15px; text-align: center;';
+        sortedProjects.forEach((p, index) => {
+            const dateStr = new Date(p.updated_at).toLocaleDateString();
+            const div = document.createElement('div');
+            div.className = 'pop-list-item';
+            div.innerHTML = `<strong>${index + 1}.</strong> ${escapeHtmlAttr(p.class_name || '未命名')} - ${escapeHtmlAttr(p.topic || '未命名')} <span style="font-size:0.8em;color:#999">(${dateStr})</span>`;
             
-            backupContainer.innerHTML = `
-                <div style="font-size: 0.9rem; color: #666; margin-bottom: 8px;">
-                    ♻️ 發現未儲存的本機備份 (${backupTime})
-                </div>
-                <button class="pop-btn" style="background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; width: 100%; padding: 8px;">
-                    還原此備份
-                </button>
-            `;
-            
-            footer.parentNode.insertBefore(backupContainer, footer);
-            
-            backupContainer.querySelector('button').onclick = () => {
-                closeModal();
-                restoreFromLocalBackup();
-                resolve(true);
+            // 點擊列表項目直接選中
+            div.onclick = () => {
+                input.value = index + 1;
+                triggerConfirm();
             };
-        }
+            listContainer.appendChild(div);
+        });
 
+        // 2. 顯示 Modal
         modal.classList.add('active');
         input.value = '';
         setTimeout(() => input.focus(), 100); 
 
+        // 3. 定義確認邏輯
         const triggerConfirm = async () => {
             const val = parseInt(input.value, 10);
-            if (!isNaN(val) && val >= 1 && val <= safeProjects.length) {
-                const projectId = safeProjects[val - 1].id;
+            if (!isNaN(val) && val >= 1 && val <= sortedProjects.length) {
+                const projectId = sortedProjects[val - 1].id;
                 closeModal();
-                await openAssignment(projectId);
+                await loadProjectById(projectId); // 呼叫載入函數
                 resolve(true);
             } else {
-                input.style.borderColor = '#c86a5a';
+                input.style.borderColor = '#c86a5a'; // 錯誤時變紅
                 setTimeout(() => input.style.borderColor = '#e0e0e0', 500);
             }
         };
 
-        const closeModal = () => {
+       
+        
+      // === 這裡是用來取代原本的 closeModal ===
+        const closeModal = async () => {
             modal.classList.remove('active');
+            // 防止重複綁定
             confirmBtn.onclick = null;
             cancelBtn.onclick = null;
             input.onkeydown = null;
-            const btn = document.getElementById('pop-backup-btn-container');
-            if(btn) btn.remove();
+
+            // 1. 清空學生與基本資料
+            clearAllCore(false);
+            allStudentRecords = [];
+            document.getElementById('student-names').value = '';
+            document.getElementById('student-class').value = '';
+            document.getElementById('topic').value = '';
+
+            // 2. 【關鍵修正】清空評語庫 DOM，防止上一份專案殘留
+            document.getElementById('critique-data').innerHTML = '';
+
+            // 3. 嘗試載入使用者的「全域評語設定」或者「還原系統預設」
+            if (currentUser) {
+                try {
+                    const { data: globalData } = await supabaseClient
+                        .from('critiques')
+                        .select('*')
+                        .eq('user_id', currentUser.id);
+                        
+                    if (globalData && globalData.length > 0) {
+                        applyCritiquesToDOM(globalData.map(c => ({
+                            id: c.critique_id, category: c.category, type: c.type, title: c.title,
+                            strengthSummary: c.strength_summary, problemCore: c.problem_core,
+                            suggestion: c.suggestion, example: c.example, options: c.options, optionsLabel: c.options_label
+                        })));
+                    } else {
+                        resetToDefaultCritiques(false);
+                    }
+                } catch(e) {
+                    console.error("載入預設評語失敗", e);
+                    resetToDefaultCritiques(false);
+                }
+            } else {
+                resetToDefaultCritiques(false);
+            }
+
+            // 4. 刷新介面
+            updateStudentDropdown();
+            renderStudentOverviewTable();
+           updateHeaderInfo();      
+            buildChecklist(); 
+            buildOverviewPage();
+            showPage('page1'); // 回到基本設定頁
+            
+            if (typeof showToast === 'function') showToast("已建立新專案 (評語庫已重置)", "info");
+
+            resolve(false);
         };
 
+        // 4. 綁定按鈕事件
         confirmBtn.onclick = triggerConfirm;
-        cancelBtn.textContent = "開新專案";
-        cancelBtn.onclick = () => {
-            closeModal();
-            showPage('page1');
-            resolve(false);
+        cancelBtn.onclick = closeModal; // <--- 確保這行有指向新的 closeModal
+        input.onkeydown = (e) => {
+            if (e.key === 'Enter') triggerConfirm();
         };
         input.onkeydown = (e) => {
             if (e.key === 'Enter') triggerConfirm();
@@ -4437,7 +4441,7 @@ function parseStudentName(rawName) {
     };
 }
 
-// [Pro-v2.7] Page 2 下拉選單 (強制數值排序 + 學號補零顯示)
+// [Pro-v4.1] Page 2 下拉選單 (同步自然排序邏輯)
 function updateStudentDropdown() {
   const namesText = document.getElementById('student-names').value;
   const studentSelect = document.getElementById('student-select');
@@ -4447,23 +4451,27 @@ function updateStudentDropdown() {
       .map(name => parseStudentName(name))
       .filter(p => p.name);
 
-  // 2. 強制數值排序 (保證 1 < 2 < 10)
+  // 🔥 修正排序：使用同樣的 Collator 邏輯
+  const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
+  
   parsedNames.sort((a, b) => {
-      const numA = parseInt(a.number, 10) || 999999;
-      const numB = parseInt(b.number, 10) || 999999;
+      // 確保比對的是字串
+      const numA = (a.number !== null ? a.number : '').toString();
+      const numB = (b.number !== null ? b.number : '').toString();
       
-      if (numA !== numB) return numA - numB;
-      return a.name.localeCompare(b.name);
+      const numCompare = collator.compare(numA, numB);
+      if (numCompare !== 0) return numCompare;
+      return collator.compare(a.name, b.name);
   });
 
-  // 3. 更新全域變數
+  // 2. 更新全域變數
   const oldRecords = [...allStudentRecords];
   allStudentRecords = parsedNames.map(p => {
     const existingRecord = oldRecords.find(r => r.originalName === p.originalName);
     return existingRecord || { ...p, data: null };
   });
 
-  // 4. 重新渲染下拉選單
+  // 3. 渲染選單
   const currentSelected = studentSelect.value;
   studentSelect.innerHTML = parsedNames.length === 0 ? '<option value="">請先在上方輸入學生名單</option>' : '';
   
@@ -4472,7 +4480,7 @@ function updateStudentDropdown() {
     const option = document.createElement('option');
     option.value = p.originalName;
     
-    // 🔥 [視覺優化] 如果有學號，補零顯示 (1 -> 01)，方便閱讀
+    // 🔥 修正顯示：選單內也補零 (01 陳大文)
     let displayName = p.name;
     if (p.number !== null) {
         const paddedNum = p.number.toString().padStart(2, '0');
@@ -4903,169 +4911,94 @@ function navigateToStudent(direction) {
   select.dispatchEvent(new Event('change'));
 }
 
-// [Pro-v3.4] 儲存邏輯 (強化學生 ID 匹配與錯誤提示)
-async function saveCurrentStudentData() {
-  const studentSelect = document.getElementById('student-select');
-  const studentOriginalName = studentSelect.value; 
-
+function saveCurrentStudentData() {
+  const studentOriginalName = document.getElementById('student-select').value;
   if (!studentOriginalName) {
-    if (typeof showToast === 'function') showToast('請先選擇一位學生。', 'warning');
-    else alert('請先選擇一位學生。');
+    // 改用 Toast 提示錯誤，體驗更好
+    if (typeof showToast === 'function') showToast('請先從下拉選單中選擇一位學生。', 'warning');
+    else alert('請先從下拉選單中選擇一位學生。');
     return;
   }
-
   const studentRecord = allStudentRecords.find(r => r.originalName === studentOriginalName);
   if (!studentRecord) {
-    alert('錯誤：找不到該學生資料 (Memory Error)。');
+    if (typeof showToast === 'function') showToast('錯誤：在資料庫中找不到該學生。', 'error');
+    else alert('錯誤：在資料庫中找不到該學生。');
     return;
   }
 
-  // 1. 收集表單數據
   const checkedCritiques = [];
-  const selectedTags = []; 
-  
+  const excellentCritiques = [];
+  const problemCritiques = [];
   document.querySelectorAll('#checklist-container input[type="checkbox"]:checked').forEach(cb => {
-    selectedTags.push(cb.id); 
-    const data = { id: cb.id, selectValues: [] };
-    const module = document.getElementById(`module-${cb.id}`);
+    const id = cb.id;
+    const data = { id: id, selectValues: [] };
+    
+    const module = document.getElementById(`module-${id}`);
     if (module) {
         module.querySelectorAll('select').forEach((select, index) => {
             let value = select.value;
             let otherValue = '';
             if (value === '其他') {
-                const otherInput = document.getElementById(`${cb.id}-other-${index + 1}-text`);
+                const otherInput = document.getElementById(`${id}-other-${index + 1}-text`);
                 otherValue = otherInput ? otherInput.value : '';
             }
             data.selectValues.push({ value, otherValue });
         });
     }
+    
     checkedCritiques.push(data);
+    const el = document.querySelector(`#critique-data div[data-id="${id}"]`);
+    if (el) {
+        if (el.dataset.type === 'excellent') excellentCritiques.push({ id });
+        else problemCritiques.push({ id });
+    }
   });
 
-  const scores = {
+  const uniqueCommentText = document.getElementById('unique-comment').value.trim();
+  const uniqueCommentBlock = uniqueCommentText ? `【特別留言】\n${uniqueCommentText}\n\n` : '';
+
+  studentRecord.data = {
+    class: document.getElementById('student-class').value,
+    topic: document.getElementById('topic').value,
+    uniqueComment: document.getElementById('unique-comment').value,
+    scores: {
       content: document.getElementById('score-content').value,
       expression: document.getElementById('score-expression').value,
       structure: document.getElementById('score-structure').value,
       punctuation: document.getElementById('score-punctuation').value,
       typos: document.getElementById('score-typos').value,
       total: document.getElementById('score-total').value,
-  };
-  
-  const fullComment = document.getElementById('full-output').value;
-  const studentComment = document.getElementById('student-report-output').value;
-
-  // 2. 更新記憶體
-  studentRecord.data = {
-    class: document.getElementById('student-class').value,
-    topic: document.getElementById('topic').value,
-    uniqueComment: document.getElementById('unique-comment').value,
-    scores: scores,
+    },
     typos: [...currentTypos],
     checkedCritiques: checkedCritiques,
-    selectedTitles: checkedCritiques.join(','), 
-    fullComment: fullComment,
-    studentComment: studentComment,
-    pureFullComment: fullComment,
-    pureStudentComment: studentComment,
+    selectedTitles: checkedCritiques.map(c => getCritiqueData(c.id, 'title')).filter(Boolean).join('；'),
+    fullComment: document.getElementById('full-output').value,
+    studentComment: document.getElementById('student-report-output').value,
+    pureFullComment: `${uniqueCommentBlock}${generatePureFullVersion(excellentCritiques, problemCritiques)}`.trim(),
+    pureStudentComment: `${uniqueCommentBlock}${generatePureStudentReport(excellentCritiques, problemCritiques)}`.trim(),
   };
-
-  // 3. 雲端寫入
-  if (window.currentClassId && currentUser) {
-      const saveBtn = document.querySelector('#grading-section-save .action-btn');
-      const originalBtnText = saveBtn.textContent;
-      saveBtn.textContent = "寫入資料庫...";
-      saveBtn.disabled = true;
-
-      try {
-          // A. 獲取 Assignment ID
-          const topicTitle = document.getElementById('topic').value.trim();
-          let assignmentId = window.currentAssignmentId;
-
-          if (!assignmentId) {
-              const { data: assignData } = await supabaseClient
-                  .from('assignments')
-                  .select('id')
-                  .eq('class_id', window.currentClassId)
-                  .eq('title', topicTitle)
-                  .maybeSingle();
-
-              if (assignData) {
-                  assignmentId = assignData.id;
-              } else {
-                  const { data: newAssign, error: createError } = await supabaseClient
-                      .from('assignments')
-                      .insert([{ user_id: currentUser.id, class_id: window.currentClassId, title: topicTitle }])
-                      .select()
-                      .single();
-                  if (createError) throw createError;
-                  assignmentId = newAssign.id;
-              }
-              window.currentAssignmentId = assignmentId;
-          }
-
-          // B. 獲取 Student ID
-          let studentId = studentRecord.dbId;
-          if (!studentId) {
-              // 嘗試用名字去查 (必須完全匹配)
-              // 注意：這裡的 studentRecord.name 應該是純名字 (e.g., "陳大文")
-              const { data: stData } = await supabaseClient
-                  .from('students')
-                  .select('id')
-                  .eq('class_id', window.currentClassId)
-                  .eq('name', studentRecord.name)
-                  .maybeSingle();
-              
-              if (stData) studentId = stData.id;
-          }
-
-          if (!studentId) {
-              // 🔥 [DEBUG] 這裡會告訴我們為什麼找不到人
-              throw new Error(`無法在 DB 找到學生: "${studentRecord.name}" (ClassID: ${window.currentClassId})`);
-          }
-
-          // C. 寫入 Results
-          const { error: resultError } = await supabaseClient
-              .from('results')
-              .upsert({
-                  assignment_id: assignmentId,
-                  student_id: studentId,
-                  content_score: parseFloat(scores.content) || 0,
-                  expression_score: parseFloat(scores.expression) || 0,
-                  structure_score: parseFloat(scores.structure) || 0,
-                  punctuation_score: parseFloat(scores.punctuation) || 0,
-                  typo_score: parseFloat(scores.typos) || 0,
-                  total_score: parseFloat(scores.total) || 0,
-                  comment_full: fullComment,
-                  comment_student: studentComment, 
-                  tags: selectedTags,
-                  typos: currentTypos,
-                  updated_at: new Date().toISOString()
-              }, { onConflict: 'assignment_id, student_id' });
-
-          if (resultError) throw resultError;
-          
-          if (typeof showToast === 'function') showToast("✅ 已同步至雲端！", "success");
-
-      } catch (e) {
-          console.error("儲存錯誤:", e);
-          // 用 alert 讓你能看到完整錯誤訊息
-          alert(`儲存失敗:\n${e.message}`);
-      } finally {
-          saveBtn.textContent = originalBtnText;
-          saveBtn.disabled = false;
-      }
-  } else {
-      if (typeof showToast === 'function') showToast("已儲存 (離線模式)", "info");
-  }
 
   renderStudentOverviewTable();
   isDataDirty = true;
   updateUIBasedOnAuthState();
+
+  // === 修改部分開始 ===
   
-  setTimeout(() => scrollToSection(new Event('dummy'), 'student-select'), 100);
+  // 1. 顯示成功訊息
+  if (typeof showToast === 'function') {
+      showToast(`已成功儲存 ${studentOriginalName} 的評語資料！`, 'success');
+  } else {
+      alert(`已成功儲存 ${studentOriginalName} 的評語資料！`);
+  }
+
+ setTimeout(() => {
+      scrollToSection(new Event('dummy'), 'student-select');
+  }, 100);
+
+  // *已移除 focus() 代碼，解決手機版彈出選單問題*
+  
+  // === 修改部分結束 ===
 }
-
-
 function loadStudentData(studentOriginalName) {
   const studentRecord = allStudentRecords.find(r => r.originalName === studentOriginalName);
   clearAllCore(false); 
@@ -6882,11 +6815,9 @@ function checkLocalBackup() {
     }
 }
 
-// [Pro-v2.7] 還原備份 (移除舊按鈕參考)
+// 4. 還原備份 (修復版)
 function restoreFromLocalBackup() {
-    // 如果是從 Header Modal 呼叫，不需要再 confirm，因為按鈕上已經寫得很清楚
-    // 但為了安全，我們還是問一次
-    // if (!confirm("確定要還原備份嗎？\n這將會覆蓋當前頁面上的所有資料。")) return;
+    if (!confirm("確定要還原備份嗎？\n這將會覆蓋當前頁面上的所有資料。")) return;
 
     const backup = localStorage.getItem(BACKUP_KEY);
     if (!backup) {
@@ -6899,17 +6830,14 @@ function restoreFromLocalBackup() {
 
         // A. 還原評語庫
         if (data.critiques && data.critiques.length > 0) {
-            const cData = document.getElementById('critique-data');
-            if(cData) {
-                cData.innerHTML = '';
-                applyCritiquesToDOM(data.critiques);
-            }
+            document.getElementById('critique-data').innerHTML = '';
+            applyCritiquesToDOM(data.critiques);
         }
 
         // B. 還原基礎資料
-        if(document.getElementById('student-class')) document.getElementById('student-class').value = data.className || '';
-        if(document.getElementById('topic')) document.getElementById('topic').value = data.topic || '';
-        if(document.getElementById('student-names')) document.getElementById('student-names').value = data.namesText || '';
+        document.getElementById('student-class').value = data.className || '';
+        document.getElementById('topic').value = data.topic || '';
+        document.getElementById('student-names').value = data.namesText || '';
         commonTypos = data.typos || [];
 
         // C. 還原學生資料庫
@@ -6931,7 +6859,6 @@ function restoreFromLocalBackup() {
         buildOverviewPage();
         renderCommonTypoList();
         renderStudentOverviewTable();
-        updateHeaderInfo();
 
         // E. 跳轉回上次編輯的學生
         if (data.currentStudent) {
@@ -6961,18 +6888,15 @@ function restoreFromLocalBackup() {
                 }
                 
                 showPage('page2');
-                showToast(`還原成功！已回到學生：${data.currentStudent}`, "success");
+                alert(`備份還原成功！已回到學生：${data.currentStudent}`);
             } else {
-                showToast("還原成功！", "success");
+                alert("備份還原成功！(但上次編輯的學生不在名單中，請手動選擇)");
             }
         } else {
-            showToast("還原成功！", "success");
+            alert("備份還原成功！");
         }
-
-        // 🔥 [修正] 移除這一行，因為舊按鈕已經不存在了
-        // document.getElementById('restore-backup-btn').style.display = 'none';
-
-        loadDashboard(); // 刷新首頁
+        document.getElementById('restore-backup-btn').style.display = 'none';
+        loadDashboard(); // 還原後刷新首頁
 
     } catch (e) {
         console.error(e);
@@ -6985,21 +6909,21 @@ function restoreFromLocalBackup() {
    ========================================== */
 let isDashboardRendering = false; // 加入鎖定旗標
 
-// [Pro-v3.4] Dashboard 載入 (加入前端去重邏輯)
 async function loadDashboard() {
     const focusList = document.getElementById('focus-task-list');
     const classContainer = document.getElementById('class-accordion-container');
     if(!focusList) return; 
 
+    // 1. 顯示讀取中 (僅在第一次載入時)
     if (!focusList.innerHTML.includes('task-item')) {
         focusList.innerHTML = '<div class="dashboard-loading"><div class="spinner"></div> 正在整理作業...</div>';
     }
 
     let allProjects = [];
 
+    // 2. 讀取雲端資料
     try {
         if (currentUser) {
-            // 這裡可能會讀到重複的 view 資料，我們在下面處理
             const [newRes, legacyRes] = await Promise.all([
                 supabaseClient.from('view_new_assignments_meta').select('*').eq('user_id', currentUser.id).order('last_updated', { ascending: false }),
                 supabaseClient.from('view_legacy_projects_meta').select('*').eq('user_id', currentUser.id).order('last_updated', { ascending: false })
@@ -7014,25 +6938,22 @@ async function loadDashboard() {
         return;
     }
 
-    // 🔥 [關鍵修正] 前端去重 (根據 ID)
-    // 使用 Map 來保留唯一的 ID，如果有重複 ID，只留最新的
-    const uniqueProjects = new Map();
-    allProjects.forEach(p => {
-        if (!uniqueProjects.has(p.id)) {
-            uniqueProjects.set(p.id, p);
-        }
-    });
-    allProjects = Array.from(uniqueProjects.values());
-
-
-    // 3. 加入離線資料 (getOfflineProjectMeta 已改為回傳 null，所以這裡不會加東西)
+    // 3. 加入離線資料 (並進行去重檢查)
     const offlineData = getOfflineProjectMeta();
-    if (offlineData) allProjects.unshift(offlineData);
+    if (offlineData) {
+        // 檢查雲端是否已經有這份資料 (避免剛同步完未刷新時出現重複)
+        const isDuplicate = allProjects.some(p => 
+            p.topic === offlineData.topic && p.class_name === offlineData.class_name
+        );
+        if (!isDuplicate) {
+            allProjects.unshift(offlineData);
+        }
+    }
 
     // 4. 資料處理
     if (allProjects.length === 0) {
         renderEmptyState(focusList);
-        if(classContainer) classContainer.innerHTML = ''; 
+        if(classContainer) classContainer.innerHTML = ''; // 確保清空
         return;
     }
 
@@ -7064,12 +6985,14 @@ async function loadDashboard() {
         .sort((a, b) => new Date(b.last_updated) - new Date(a.last_updated))
         .slice(0, 5);
 
+    // 🔥 關鍵修正：渲染前一刻才清空，並立即寫入 🔥
     focusList.innerHTML = ''; 
     renderFocusList(focusItems, focusList);
 
     // 6. 渲染 班級歸檔
     const grouped = groupByYearAndClass(processedProjects);
     
+    // 🔥 關鍵修正：渲染前一刻才清空，並立即寫入 🔥
     if(classContainer) {
         classContainer.innerHTML = ''; 
         renderClassAccordion(grouped, classContainer);
@@ -7080,10 +7003,42 @@ async function loadDashboard() {
 
 
 
-// [Pro-v2.5-Fix] 停止載入離線備份到 Dashboard (避免重複混亂)
+// --- Helper: 獲取離線資料 ---
 function getOfflineProjectMeta() {
-    // 強制回傳 null，讓 Dashboard 只顯示雲端資料
-    // 因為備份還原功能已經移到 Header 的資料夾按鈕 (📂) 內了
+    // 優先檢查當前記憶體
+    if (typeof allStudentRecords !== 'undefined' && allStudentRecords.length > 0) {
+        const cName = document.getElementById('student-class').value || '未命名班別';
+        const topic = document.getElementById('topic').value || '未命名題目';
+        const graded = allStudentRecords.filter(r => r.data).length;
+        return {
+            id: 'local_memory',
+            class_name: cName,
+            topic: topic,
+            total_students: allStudentRecords.length,
+            graded_count: graded,
+            last_updated: new Date().toISOString(),
+            source_type: 'local_memory'
+        };
+    }
+    // 其次檢查 LocalStorage 備份
+    try {
+        const backupStr = localStorage.getItem('idw_grading_backup_v1');
+        if (backupStr) {
+            const backup = JSON.parse(backupStr);
+            if (backup.students && backup.students.length > 0) {
+                const graded = backup.students.filter(r => r.data).length;
+                return {
+                    id: 'local_backup',
+                    class_name: (backup.className || '未命名') + ' (備份)',
+                    topic: backup.topic || '未命名',
+                    total_students: backup.students.length,
+                    graded_count: graded,
+                    last_updated: new Date(backup.timestamp).toISOString(),
+                    source_type: 'local_backup'
+                };
+            }
+        }
+    } catch(e) {}
     return null;
 }
 
@@ -8172,7 +8127,7 @@ async function loadPage1ClassDropdown(forceRefresh = false) {
     }
 }
 
-// [Rollback-Fix] Page 1 班級名單 (強制純文字，修復亂碼)
+// [Pro-v4.1] Page 1 班級名單 (自然排序 + 補零顯示)
 async function handleClassSelectChange() {
     const select = document.getElementById('setup-class-select');
     const container = document.getElementById('setup-student-checklist');
@@ -8194,13 +8149,18 @@ async function handleClassSelectChange() {
         if (error) throw error;
 
         container.innerHTML = '';
-        
-        // 自然排序 (1, 2, 10)
+        if (!students || students.length === 0) { 
+            container.innerHTML = '<div>暫無學生</div>'; 
+            return; 
+        }
+
+        // 🔥 修正排序：使用 Intl.Collator 處理數字順序 (1, 2, 10)
         const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
         students.sort((a, b) => {
             const numA = (a.student_number || '').toString();
             const numB = (b.student_number || '').toString();
             const numResult = collator.compare(numA, numB);
+            // 如果學號一樣(或沒學號)，再比對姓名
             if (numResult !== 0) return numResult;
             return collator.compare(a.name || '', b.name || '');
         });
@@ -8209,15 +8169,19 @@ async function handleClassSelectChange() {
             const div = document.createElement('div');
             div.className = 'student-check-card checked'; 
             
-            // 補零顯示 (例如 01)
+            // 🔥 修正顯示：個位數自動補零 (1 -> 01)
             let displayNum = s.student_number;
-            if (displayNum && /^\d$/.test(displayNum)) displayNum = '0' + displayNum;
+            if (displayNum && /^\d$/.test(displayNum)) {
+                displayNum = '0' + displayNum;
+            }
 
-            // 🔥 重點：這裡只傳純文字 "01-陳大文"，絕對不要傳 JSON
-            const cleanInfo = `${displayNum ? displayNum + '-' : ''}${s.name}`;
-            div.dataset.info = cleanInfo;
+            // 為了保持簡單，這裡只傳「學號-姓名」純文字，不傳 JSON
+            const cleanName = `${displayNum ? displayNum + '-' : ''}${s.name}`;
+            div.dataset.info = cleanName;
             
             div.innerHTML = `<input type="checkbox" checked><span>${escapeHtml(displayNum)}<br>${escapeHtml(s.name)}</span>`;
+            
+            // 點擊效果
             div.onclick = () => {
                 const cb = div.querySelector('input');
                 cb.checked = !cb.checked;
