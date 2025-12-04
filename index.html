@@ -5025,7 +5025,7 @@ function navigateToStudent(direction) {
   select.dispatchEvent(new Event('change'));
 }
 
-// [Pro-v6.0] 雙模儲存邏輯 (支援 local/cloud 分流)
+// [Fix-Data-Loss] 嚴格同步版 (確保 ID 存在才寫入，防止假成功)
 async function saveCurrentStudentData(mode = 'cloud') {
   const studentSelect = document.getElementById('student-select');
   const studentOriginalName = studentSelect.value; 
@@ -5037,7 +5037,7 @@ async function saveCurrentStudentData(mode = 'cloud') {
 
   const studentRecord = allStudentRecords.find(r => r.originalName === studentOriginalName);
   if (!studentRecord) {
-    alert('錯誤：找不到該學生資料 (Memory Error)。');
+    alert('錯誤：找不到該學生資料 (Memory Error)。請刷新頁面。');
     return;
   }
 
@@ -5074,7 +5074,7 @@ async function saveCurrentStudentData(mode = 'cloud') {
   const fullComment = document.getElementById('full-output').value;
   const studentComment = document.getElementById('student-report-output').value;
 
-  // 2. 更新記憶體 (無論 Local 或 Cloud 都要做)
+  // 2. 更新記憶體 (Local Update)
   studentRecord.data = {
     class: document.getElementById('student-class').value,
     topic: document.getElementById('topic').value,
@@ -5091,34 +5091,27 @@ async function saveCurrentStudentData(mode = 'cloud') {
 
   // 3. 分流處理
   if (mode === 'local') {
-      // === 模式 A: 僅本地儲存 ===
-      // 觸發 LocalStorage 備份
       saveToLocalBackup(); 
-      renderStudentOverviewTable(); // 刷新表格狀態
-      isDataDirty = true; // 標記有未同步資料
+      renderStudentOverviewTable(); 
+      isDataDirty = true; 
       updateUIBasedOnAuthState();
-      
       if (typeof showToast === 'function') showToast("💾 草稿已儲存 (本機)", "success");
-      
-      // 滾動回上方選下一位
       setTimeout(() => scrollToSection(new Event('dummy'), 'student-select'), 100);
 
   } else {
       // === 模式 B: 同步上雲 ===
       if (window.currentClassId && currentUser) {
-          const saveBtn = document.querySelector('button[onclick*="cloud"]'); // 抓取雲端按鈕
+          const saveBtn = document.querySelector('button[onclick*="cloud"]');
           const originalBtnText = saveBtn ? saveBtn.textContent : '同步上雲';
-          if(saveBtn) {
-              saveBtn.textContent = "寫入中...";
-              saveBtn.disabled = true;
-          }
+          if(saveBtn) { saveBtn.textContent = "寫入中..."; saveBtn.disabled = true; }
 
           try {
-              // A. 獲取/建立 Assignment
+              // A. 確保 Assignment 存在
               const topicTitle = document.getElementById('topic').value.trim();
               let assignmentId = window.currentAssignmentId;
 
               if (!assignmentId) {
+                  // 如果沒有 ID，嘗試去 DB 找或開新的
                   const { data: assignData } = await supabaseClient
                       .from('assignments')
                       .select('id')
@@ -5140,60 +5133,82 @@ async function saveCurrentStudentData(mode = 'cloud') {
                   window.currentAssignmentId = assignmentId;
               }
 
-              // B. 檢查 Student ID
+              // 🔥 B. 嚴格檢查 Student ID
               if (!studentRecord.dbId) {
-                  throw new Error(`缺少學生 ID (請嘗試刷新頁面)`);
+                  // 嘗試緊急修復 ID
+                  console.warn(`學生 ${studentRecord.name} 缺少 DB ID，正在嘗試修復...`);
+                  const { data: fixedStudent } = await supabaseClient
+                      .from('students')
+                      .select('id')
+                      .eq('class_id', window.currentClassId)
+                      .eq('name', studentRecord.name) // 假設名字唯一，這有點冒險但總比失敗好
+                      .maybeSingle();
+                  
+                  if (fixedStudent) {
+                      studentRecord.dbId = fixedStudent.id;
+                  } else {
+                      throw new Error(`嚴重錯誤：資料庫中找不到學生「${studentRecord.name}」的 ID。請嘗試重新載入專案。`);
+                  }
               }
 
-              // C. 寫入 Results
+              // C. 寫入 Results (使用 Upsert)
+              const payload = {
+                  assignment_id: assignmentId,
+                  student_id: studentRecord.dbId,
+                  content_score: parseFloat(scores.content) || 0,
+                  expression_score: parseFloat(scores.expression) || 0,
+                  structure_score: parseFloat(scores.structure) || 0,
+                  punctuation_score: parseFloat(scores.punctuation) || 0,
+                  typo_score: parseFloat(scores.typos) || 0,
+                  total_score: parseFloat(scores.total) || 0,
+                  comment_full: fullComment,
+                  // 注意：後端欄位名稱可能不同，這裡要確保對應
+                  // 如果你的 DB 是 comment_student，請保持；如果是 pure_comment，請修改
+                  comment_student: studentComment, 
+                  comment_data: { // 儲存完整前端狀態 JSON
+                      uniqueComment: document.getElementById('unique-comment').value,
+                      typos: currentTypos,
+                      checkedCritiques: checkedCritiques,
+                      studentComment: studentComment,
+                      pureStudentComment: studentComment,
+                      pureFullComment: fullComment
+                  },
+                  tags: selectedTags,
+                  updated_at: new Date().toISOString()
+              };
+
               const { error: resultError } = await supabaseClient
                   .from('results')
-                  .upsert({
-                      assignment_id: assignmentId,
-                      student_id: studentRecord.dbId,
-                      content_score: parseFloat(scores.content) || 0,
-                      expression_score: parseFloat(scores.expression) || 0,
-                      structure_score: parseFloat(scores.structure) || 0,
-                      punctuation_score: parseFloat(scores.punctuation) || 0,
-                      typo_score: parseFloat(scores.typos) || 0,
-                      total_score: parseFloat(scores.total) || 0,
-                      comment_full: fullComment,
-                      comment_student: studentComment, 
-                      tags: selectedTags,
-                      typos: currentTypos,
-                      updated_at: new Date().toISOString()
-                  }, { onConflict: 'assignment_id, student_id' });
+                  .upsert(payload, { onConflict: 'assignment_id, student_id' });
 
               if (resultError) throw resultError;
               
               if (typeof showToast === 'function') showToast("☁️ 已同步至雲端！", "success");
               
-              // 同步成功後，順便備份一次本地，確保一致
+              // 成功後備份本地
               saveToLocalBackup();
 
           } catch (e) {
               console.error("儲存錯誤:", e);
               alert(`雲端寫入失敗:\n${e.message}`);
+              // 失敗時，不應清空或跳轉，讓用戶有機會重試
+              if(saveBtn) { saveBtn.textContent = originalBtnText; saveBtn.disabled = false; }
+              return; // 中斷後續操作
           } finally {
-              if(saveBtn) {
-                  saveBtn.textContent = originalBtnText;
-                  saveBtn.disabled = false;
-              }
+              if(saveBtn) { saveBtn.textContent = originalBtnText; saveBtn.disabled = false; }
           }
       } else {
-          // 如果沒登入但按了雲端，就當作本地存
           saveToLocalBackup();
           if (typeof showToast === 'function') showToast("⚠️ 未登入，僅儲存於本機", "warning");
       }
       
       renderStudentOverviewTable();
-      isDataDirty = true; // 雖然同步了，但保持 Dirty 讓 AutoSave 繼續運作
+      isDataDirty = true; 
       updateUIBasedOnAuthState();
       
       setTimeout(() => scrollToSection(new Event('dummy'), 'student-select'), 100);
   }
 }
-
 
 function loadStudentData(studentOriginalName) {
   const studentRecord = allStudentRecords.find(r => r.originalName === studentOriginalName);
@@ -8187,19 +8202,30 @@ async function deleteStudentFromMaster(studentId) {
 // ====== Phase 2.1 (Part 2): 班級頁邏輯 ======
 // ==========================================
 
-// [Pro-v6.12] 讀取班級列表 (加入編輯按鈕)
+// [Fix-Page8-Duplicate] 班級管理列表 (防重複、防撞車版)
+let _isClassesLoading = false; // Page 8 專用鎖
+
 async function loadAllClasses() {
     const container = document.getElementById('class-management-list');
     if (!container) return; 
 
+    // 1. 防撞機制
+    if (_isClassesLoading) return;
+    _isClassesLoading = true;
+
+    // 2. 徹底清空 (防止殘影)
+    container.innerHTML = ''; 
+
     if (!currentUser) {
         container.innerHTML = `<div style="text-align:center; padding:20px; color:#999;">請先登入以管理班級</div>`;
+        _isClassesLoading = false;
         return;
     }
 
     container.innerHTML = '<div class="dashboard-loading"><div class="spinner"></div> 讀取中...</div>';
 
     try {
+        // 讀取班級
         const { data: classes, error } = await supabaseClient
             .from('classes')
             .select('*')
@@ -8209,11 +8235,10 @@ async function loadAllClasses() {
 
         if (error) throw error;
 
-        // 同步刷新 Page 1 下拉選單
-        const page1Select = document.getElementById('setup-class-select');
-        if(page1Select) setTimeout(() => { if(typeof loadPage1ClassDropdown === 'function') loadPage1ClassDropdown(true); }, 500);
+        // 再次清空 (因為剛才顯示了 Loading)
+        container.innerHTML = '';
 
-        if (classes.length === 0) {
+        if (!classes || classes.length === 0) {
             container.innerHTML = `
                 <div style="grid-column: 1 / -1; text-align:center; padding:3rem; background:#fdfbf7; border-radius:12px; border:2px dashed #e0e0e0;">
                     <h3>暫無班級</h3>
@@ -8222,8 +8247,9 @@ async function loadAllClasses() {
             return;
         }
 
-        container.innerHTML = ''; 
+        // 逐一渲染
         for (const cls of classes) {
+            // 讀取該班人數
             const { count } = await supabaseClient
                 .from('students')
                 .select('*', { count: 'exact', head: true })
@@ -8233,7 +8259,6 @@ async function loadAllClasses() {
             card.className = 'task-item';
             card.style.cursor = 'default';
             
-            // 準備 safe string
             const safeName = escapeHtml(cls.class_name);
             const safeYear = escapeHtml(cls.academic_year);
             const safeId = cls.id;
@@ -8248,11 +8273,9 @@ async function loadAllClasses() {
                         👤 ${count || 0} 人
                     </div>
                     <div style="display:flex; gap:5px;">
-                        <!-- 🔥 [新增] 編輯按鈕 -->
-                        <button class="light-btn" style="padding:5px 10px; font-size:0.85rem;" onclick="editClass('${safeId}', '${safeYear}', '${safeName}')" title="編輯班級資料">✏️</button>
-                        
-                        <button class="secondary-btn" style="padding:5px 10px; font-size:0.85rem;" onclick="manageStudents('${safeId}', '${safeName}')" title="管理名單">👥</button>
-                        <button class="danger-btn" style="padding:5px 10px; font-size:0.85rem;" onclick="deleteClass('${safeId}', '${safeName}')" title="刪除班級">🗑️</button>
+                        <button class="light-btn" style="padding:5px 10px; font-size:0.85rem;" onclick="editClass('${safeId}', '${safeYear}', '${safeName}')" title="編輯">✏️</button>
+                        <button class="secondary-btn" style="padding:5px 10px; font-size:0.85rem;" onclick="manageStudents('${safeId}', '${safeName}')" title="名單">👥</button>
+                        <button class="danger-btn" style="padding:5px 10px; font-size:0.85rem;" onclick="deleteClass('${safeId}', '${safeName}')" title="刪除">🗑️</button>
                     </div>
                 </div>
             `;
@@ -8260,8 +8283,11 @@ async function loadAllClasses() {
         }
 
     } catch (error) {
-        console.error(error);
+        console.error("Page 8 Load Error:", error);
         container.innerHTML = `<div style="color:red;">讀取失敗：${error.message}</div>`;
+    } finally {
+        // 解鎖
+        _isClassesLoading = false;
     }
 }
 
