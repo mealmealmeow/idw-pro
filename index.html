@@ -81,18 +81,23 @@
 /* === 以下係 Pop Art 彈窗專用樣式 (必貼) === */
 /* ========================================= */
 
+/* [Pro-v7.2] 彈窗樣式 (強制固定置中) */
 .pop-overlay {
-  position: fixed;
-  top: 0; left: 0; width: 100%; height: 100%;
-  background: rgba(105, 129, 118, 0.6); /* 半透明背景 */
+  position: fixed; /* 必須是 fixed */
+  top: 0; 
+  left: 0; 
+  width: 100vw;    /* 視窗寬度 */
+  height: 100vh;   /* 視窗高度 */
+  background: rgba(105, 129, 118, 0.6);
   backdrop-filter: blur(4px);
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 10000;
+  z-index: 2147483647; /* 最大值，保證在最上層 */
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.2s;
+  overflow: hidden; /* 防止背景滾動 */
 }
 
 .pop-overlay.active {
@@ -3366,14 +3371,17 @@ async function handleLogout() {
   }
 }
 
+// [Pro-v7.2] 雲端資料初始化 (移除自動彈出專案列表)
 async function loadDataFromCloud() {
   if (!currentUser) return;
   const authStatus = document.getElementById('auth-status');
-  authStatus.textContent = '正在從雲端讀取資料...';
+  authStatus.textContent = '同步中...';
+  
   try {
+    // 1. 讀取評語庫
     const { data: critiquesData, error: critiquesError } = await supabaseClient
       .from('critiques').select('*').eq('user_id', currentUser.id);
-    if (critiquesError) throw critiquesError;
+      
     if (critiquesData && critiquesData.length > 0) {
       applyCritiquesToDOM(critiquesData.map(c => ({
         id: c.critique_id, category: c.category, type: c.type, title: c.title,
@@ -3387,23 +3395,24 @@ async function loadDataFromCloud() {
     buildChecklist();
     buildOverviewPage();
 
-    const { data: typosData, error: typosError } = await supabaseClient
+    // 2. 讀取錯別字
+    const { data: typosData } = await supabaseClient
       .from('common_typos').select('*').eq('user_id', currentUser.id);
-    if (typosError) throw typosError;
-    commonTypos = typosData.map(t => ({ id: t.typo_id, wrong: t.wrong, correct: t.correct }));
-    renderCommonTypoList();
-
-    if (!sessionStorage.getItem('projectPromptShownThisSession')) {
-        await promptAndLoadCloudProject();
-        sessionStorage.setItem('projectPromptShownThisSession', 'true');
+    if (typosData) {
+        commonTypos = typosData.map(t => ({ id: t.typo_id, wrong: t.wrong, correct: t.correct }));
+        renderCommonTypoList();
     }
+
+    // 🔥 [修改] 這裡不再自動呼叫 promptAndLoadCloudProject()
+    // 讓新用戶專注於 Dashboard 或 歡迎彈窗
     
     isDataDirty = false;
     updateUIBasedOnAuthState();
     authStatus.textContent = `已登入: ${currentUser.email}`;
+    
   } catch (error) {
-    alert(`從雲端讀取資料時發生錯誤: ${error.message}`);
-    authStatus.textContent = `讀取錯誤`;
+    console.error(error);
+    authStatus.textContent = `連線錯誤`;
   }
 }
 
@@ -8703,7 +8712,7 @@ function sortStudents(studentsArray) {
         return collator.compare(nameA, nameB);
     });
 }
-// [Pro-v6.3] 通用 Modal 呼叫器
+// [Pro-v7.2] 通用 Modal (支援 Enter 確認 / Esc 取消 / Tab 聚焦)
 function showCustomModal({ icon='✨', title, desc, showInput=false, defaultValue='', confirmText='確定', cancelText='取消' }) {
     return new Promise((resolve) => {
         const modal = document.getElementById('pop-generic-modal');
@@ -8715,45 +8724,52 @@ function showCustomModal({ icon='✨', title, desc, showInput=false, defaultValu
         const confirmBtn = document.getElementById('pop-generic-confirm');
         const cancelBtn = document.getElementById('pop-generic-cancel');
 
-        // 設定內容
+        // 內容設定
         iconEl.textContent = icon;
         titleEl.textContent = title;
         descEl.textContent = desc || '';
         confirmBtn.textContent = confirmText;
         cancelBtn.textContent = cancelText;
         
-        // 設定輸入框
+        // 輸入框設定
         if (showInput) {
             inputContainer.style.display = 'block';
             input.value = defaultValue;
-            setTimeout(() => input.focus(), 100);
         } else {
             inputContainer.style.display = 'none';
         }
 
-        // 顯示
         modal.classList.add('active');
 
-        // 綁定事件 (防止重複綁定，每次都覆蓋)
+        // 聚焦邏輯
+        setTimeout(() => {
+            if (showInput) {
+                input.focus();
+                input.select();
+            } else {
+                confirmBtn.focus(); // 讓 Enter 可以直接觸發
+            }
+        }, 100);
+
         const cleanup = () => {
             modal.classList.remove('active');
             input.onkeydown = null;
+            confirmBtn.onclick = null;
+            cancelBtn.onclick = null;
         };
 
-        confirmBtn.onclick = () => {
-            cleanup();
-            resolve(showInput ? input.value : true);
-        };
+        confirmBtn.onclick = () => { cleanup(); resolve(showInput ? input.value : true); };
+        cancelBtn.onclick = () => { cleanup(); resolve(false); };
 
-        cancelBtn.onclick = () => {
-            cleanup();
-            resolve(false); // 取消回傳 false
+        // 鍵盤監聽
+        input.onkeydown = (e) => {
+            if (e.key === 'Enter') confirmBtn.click();
+            if (e.key === 'Escape') cancelBtn.click();
         };
-
-        if (showInput) {
-            input.onkeydown = (e) => {
-                if (e.key === 'Enter') confirmBtn.click();
-            };
+        
+        // 如果沒有輸入框，監聽全域按鍵 (簡單版)
+        if (!showInput) {
+            confirmBtn.onkeydown = (e) => { if(e.key === 'Enter') confirmBtn.click(); }
         }
     });
 }
