@@ -3284,6 +3284,39 @@
   </div>
 </div>
 
+<!-- [Pro-v9.1] 班級數據中控台 (Class Hub Modal) -->
+<div id="pop-class-hub-modal" class="pop-overlay">
+  <div class="pop-modal" style="max-width: 900px; width: 95%; height: 90vh; max-height: 90vh;">
+    <!-- Header -->
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom:1px solid #eee; padding-bottom:10px;">
+        <div style="text-align:left;">
+            <h3 id="hub-class-title" style="margin:0; font-size:1.6rem; color:#5A8F7B;">班級儀表板</h3>
+            <span id="hub-class-subtitle" style="font-size:0.9rem; color:#888;">載入中...</span>
+        </div>
+        <button class="pop-btn-cancel" style="padding:5px 15px; font-size:1.2rem;" onclick="closeClassHub()">✕</button>
+    </div>
+
+    <!-- Scrollable Content -->
+    <div class="pop-scroll-area" style="background:#fcfaf6; padding:20px;">
+        
+        <!-- 1. 趨勢圖區域 -->
+        <div class="section-box" style="background:#fff; border-radius:12px; padding:15px; margin-bottom:20px; box-shadow:0 2px 5px rgba(0,0,0,0.05);">
+            <h4 style="margin:0 0 15px 0; color:#5b5044;">📈 班級平均分走勢 (Trend)</h4>
+            <div style="position: relative; height: 300px; width: 100%;">
+                <canvas id="classTrendChart"></canvas>
+            </div>
+        </div>
+
+        <!-- 2. 功能入口 (暫時) -->
+        <div style="text-align:center; margin-top:10px;">
+            <p style="color:#999; font-size:0.9rem;">(更多分析模組將於 Phase 9.2 加入)</p>
+            <button class="action-btn" id="btn-hub-manage-students">👥 管理名單 & 學生歷程</button>
+        </div>
+
+    </div>
+  </div>
+</div>
+
 <!-- ✅✅✅ 貼上結束 ✅✅✅ -->
 
 <script>
@@ -8287,15 +8320,15 @@ async function deleteStudentFromMaster(studentId) {
 // [Fix-Page8-Duplicate] 班級管理列表 (防重複、防撞車版)
 let _isClassesLoading = false; // Page 8 專用鎖
 
+// [Pro-v9.1] 班級管理列表 (加入數據中控台入口)
+let _isClassesLoading = false; 
+
 async function loadAllClasses() {
     const container = document.getElementById('class-management-list');
     if (!container) return; 
 
-    // 1. 防撞機制
     if (_isClassesLoading) return;
     _isClassesLoading = true;
-
-    // 2. 徹底清空 (防止殘影)
     container.innerHTML = ''; 
 
     if (!currentUser) {
@@ -8307,7 +8340,6 @@ async function loadAllClasses() {
     container.innerHTML = '<div class="dashboard-loading"><div class="spinner"></div> 讀取中...</div>';
 
     try {
-        // 讀取班級
         const { data: classes, error } = await supabaseClient
             .from('classes')
             .select('*')
@@ -8317,7 +8349,6 @@ async function loadAllClasses() {
 
         if (error) throw error;
 
-        // 再次清空 (因為剛才顯示了 Loading)
         container.innerHTML = '';
 
         if (!classes || classes.length === 0) {
@@ -8329,9 +8360,7 @@ async function loadAllClasses() {
             return;
         }
 
-        // 逐一渲染
         for (const cls of classes) {
-            // 讀取該班人數
             const { count } = await supabaseClient
                 .from('students')
                 .select('*', { count: 'exact', head: true })
@@ -8355,8 +8384,10 @@ async function loadAllClasses() {
                         👤 ${count || 0} 人
                     </div>
                     <div style="display:flex; gap:5px;">
+                        <!-- 🔥 新增：數據中控台入口 -->
+                        <button class="action-btn" style="padding:5px 12px; font-size:0.85rem;" onclick="openClassHub('${safeId}', '${safeName}', '${safeYear}')" title="班級數據儀表板">📊 數據</button>
+                        
                         <button class="light-btn" style="padding:5px 10px; font-size:0.85rem;" onclick="editClass('${safeId}', '${safeYear}', '${safeName}')" title="編輯">✏️</button>
-                        <button class="secondary-btn" style="padding:5px 10px; font-size:0.85rem;" onclick="manageStudents('${safeId}', '${safeName}')" title="名單">👥</button>
                         <button class="danger-btn" style="padding:5px 10px; font-size:0.85rem;" onclick="deleteClass('${safeId}', '${safeName}')" title="刪除">🗑️</button>
                     </div>
                 </div>
@@ -8368,7 +8399,6 @@ async function loadAllClasses() {
         console.error("Page 8 Load Error:", error);
         container.innerHTML = `<div style="color:red;">讀取失敗：${error.message}</div>`;
     } finally {
-        // 解鎖
         _isClassesLoading = false;
     }
 }
@@ -9086,6 +9116,123 @@ async function editClass(classId, oldYear, oldName) {
     } catch (e) {
         alert("更新失敗：" + e.message);
     }
+}
+
+// ==========================================
+// ====== Phase 9.1: Class Hub Logic ======
+// ==========================================
+
+let _classTrendChart = null;
+
+async function openClassHub(classId, className, academicYear) {
+    const modal = document.getElementById('pop-class-hub-modal');
+    const title = document.getElementById('hub-class-title');
+    const subtitle = document.getElementById('hub-class-subtitle');
+    const manageBtn = document.getElementById('btn-hub-manage-students');
+    
+    // 1. 初始化 UI
+    modal.classList.add('active');
+    title.textContent = `${className} 數據中控台`;
+    subtitle.textContent = `${academicYear} 學年`;
+    manageBtn.onclick = () => manageStudents(classId, className); // 連結舊有名單功能
+
+    // 2. 顯示 Loading 狀態 (在圖表區)
+    const ctx = document.getElementById('classTrendChart').getContext('2d');
+    if (_classTrendChart) _classTrendChart.destroy();
+    
+    // 3. 讀取數據 (Assignments + Results)
+    try {
+        console.log(`📊 正在讀取班級 [${className}] 的歷史數據...`);
+        
+        // A. 讀取該班級的所有作業 (按時間排序)
+        const { data: assignments, error: assignError } = await supabaseClient
+            .from('assignments')
+            .select('id, title, created_at')
+            .eq('class_id', classId)
+            .order('created_at', { ascending: true }); // 舊 -> 新
+
+        if (assignError) throw assignError;
+
+        if (!assignments || assignments.length === 0) {
+            alert("此班級尚未有任何作業記錄。");
+            return;
+        }
+
+        // B. 讀取這些作業的成績
+        const assignmentIds = assignments.map(a => a.id);
+        const { data: results, error: resError } = await supabaseClient
+            .from('results')
+            .select('assignment_id, total_score')
+            .in('assignment_id', assignmentIds);
+
+        if (resError) throw resError;
+
+        // C. 計算平均分
+        const stats = assignments.map(a => {
+            const classResults = results.filter(r => r.assignment_id === a.id);
+            const totalScoreSum = classResults.reduce((sum, r) => sum + (r.total_score || 0), 0);
+            const avg = classResults.length > 0 ? (totalScoreSum / classResults.length).toFixed(1) : 0;
+            
+            return {
+                title: a.title,
+                date: new Date(a.created_at).toLocaleDateString(),
+                avg: avg,
+                count: classResults.length
+            };
+        });
+
+        // 4. 繪製圖表
+        const labels = stats.map(s => s.title);
+        const dataPoints = stats.map(s => s.avg);
+
+        _classTrendChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: '班級平均分',
+                    data: dataPoints,
+                    borderColor: '#5A8F7B',
+                    backgroundColor: 'rgba(90, 143, 123, 0.1)',
+                    borderWidth: 3,
+                    pointBackgroundColor: '#F2C037',
+                    pointRadius: 6,
+                    pointHoverRadius: 8,
+                    tension: 0.3,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { 
+                        beginAtZero: true, 
+                        suggestedMax: 100,
+                        title: { display: true, text: '分數' }
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            afterLabel: function(context) {
+                                const idx = context.dataIndex;
+                                return `批改份數: ${stats[idx].count}`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+    } catch (err) {
+        console.error("Class Hub Error:", err);
+        alert("讀取數據失敗：" + err.message);
+    }
+}
+
+function closeClassHub() {
+    document.getElementById('pop-class-hub-modal').classList.remove('active');
 }
 </script> <!-- 呢個係原本全個檔案唯一的結尾，保留佢 -->
 
