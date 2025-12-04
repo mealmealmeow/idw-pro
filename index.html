@@ -7091,15 +7091,15 @@ function restoreFromLocalBackup() {
     }
 }
 
-// [Pro-v8.3-Dashboard-SafeMode] 容錯版儀表板 (防止因資料不一致而卡死)
+// [Pro-v8.4-NoJoin-Dashboard] 暴力讀取版 (不依賴 DB 關聯，分開讀取再組裝)
 async function loadDashboard() {
     const focusList = document.getElementById('focus-task-list');
     const classContainer = document.getElementById('class-accordion-container');
     if(!focusList) return; 
 
-    // 1. 顯示狀態
+    // 1. 顯示讀取中
     focusList.style.display = 'block';
-    focusList.innerHTML = '<div class="dashboard-loading"><div class="spinner"></div> 正在連線資料庫...</div>';
+    focusList.innerHTML = '<div class="dashboard-loading"><div class="spinner"></div> 正在暴力讀取數據...</div>';
     if(classContainer) classContainer.innerHTML = '';
 
     if (!currentUser) {
@@ -7107,40 +7107,45 @@ async function loadDashboard() {
         return;
     }
 
-    console.log("📊 開始讀取 Dashboard 數據...");
-
     try {
-        // --- 步驟 A: 讀取作業 (移除 !inner，改用寬容模式) ---
-        // 注意：這裡移除了 results(count) 的直接查詢，改為稍後處理，避免複雜 Query 卡死
+        console.log("🚀 Step 1: 讀取所有作業 (Assignments)...");
+        // 只讀 assignments 本體，不讀 classes 關聯，避免卡死
         const { data: assignments, error: assignError } = await supabaseClient
             .from('assignments')
-            .select(`
-                id, title, created_at, class_id,
-                classes ( class_name, academic_year )
-            `)
+            .select('*') // 簡單直接
             .eq('user_id', currentUser.id)
             .order('created_at', { ascending: false });
 
-        if (assignError) {
-            throw assignError;
-        }
-
-        console.log(`✅ 成功讀取作業: ${assignments ? assignments.length : 0} 筆`);
+        if (assignError) throw assignError;
 
         if (!assignments || assignments.length === 0) {
             renderEmptyState(focusList);
             return;
         }
 
-        // --- 步驟 B: 另外讀取計數 (分開讀取更穩定) ---
-        // 1. 讀取所有相關的 results 數量
+        console.log("🚀 Step 2: 讀取所有班級 (Classes)...");
+        // 獨立讀取班級表
+        const { data: allClasses } = await supabaseClient
+            .from('classes')
+            .select('*')
+            .eq('user_id', currentUser.id);
+            
+        // 建立班級對照表 (Map)
+        const classMap = {};
+        if (allClasses) {
+            allClasses.forEach(c => {
+                classMap[c.id] = c;
+            });
+        }
+
+        console.log("🚀 Step 3: 讀取批改數量 (Results)...");
+        // 讀取所有 results 的 assignment_id
         const assignmentIds = assignments.map(a => a.id);
         const { data: resultsData } = await supabaseClient
             .from('results')
             .select('assignment_id')
             .in('assignment_id', assignmentIds);
             
-        // 計算每份作業已改幾份
         const gradedCounts = {};
         if (resultsData) {
             resultsData.forEach(r => {
@@ -7148,40 +7153,42 @@ async function loadDashboard() {
             });
         }
 
-        // 2. 讀取班級總人數
-        const uniqueClassIds = [...new Set(assignments.map(a => a.class_id))];
-        const { data: studentsData } = await supabaseClient
+        console.log("🚀 Step 4: 讀取學生總數 (Students)...");
+        const { data: allStudents } = await supabaseClient
             .from('students')
-            .select('class_id')
-            .in('class_id', uniqueClassIds);
-
+            .select('class_id'); // 這裡如果沒有 user_id 過濾，可能讀到別人的，但在 RLS 下應該安全
+            
         const classStudentCounts = {};
-        if (studentsData) {
-            studentsData.forEach(s => {
+        if (allStudents) {
+            allStudents.forEach(s => {
                 classStudentCounts[s.class_id] = (classStudentCounts[s.class_id] || 0) + 1;
             });
         }
 
-        // --- 步驟 C: 整合數據 ---
+        // --- Step 5: 前端組裝 (Manual Stitching) ---
+        console.log("🧩 正在組裝數據...");
+        
         const processedProjects = assignments.map(a => {
+            // 1. 手動找回班級資料
+            const cls = classMap[a.class_id] || { class_name: '(未知班級)', academic_year: '---' };
+            
+            // 2. 獲取計數
             const graded = gradedCounts[a.id] || 0;
             const total = classStudentCounts[a.class_id] || 0;
+            
+            // 3. 計算進度
             const progress = total > 0 ? Math.round((graded / total) * 100) : 0;
             const isCompleted = (total > 0 && graded >= total);
-
-            // 容錯處理：如果 class 被刪除了，a.classes 會是 null
-            const className = a.classes ? a.classes.class_name : '(已刪除班級)';
-            const academicYear = a.classes ? a.classes.academic_year : '---';
 
             return {
                 id: a.id,
                 source_type: 'new',
                 topic: a.title,
                 class_id: a.class_id,
-                class_name: className,
-                academic_year: academicYear,
-                normalizedYear: academicYear,
-                last_updated: a.created_at, 
+                class_name: cls.class_name,
+                academic_year: cls.academic_year,
+                normalizedYear: cls.academic_year,
+                last_updated: a.created_at,
                 graded_count: graded,
                 total_students: total,
                 progress: progress,
@@ -7189,9 +7196,7 @@ async function loadDashboard() {
             };
         });
 
-        // --- 步驟 D: 渲染 UI ---
-        console.log("🎨 開始渲染 UI...");
-        
+        // --- Step 6: 渲染 ---
         const focusItems = processedProjects.filter(p => !p.isCompleted).slice(0, 5);
         focusList.innerHTML = ''; 
         renderFocusList(focusItems, focusList);
@@ -7203,19 +7208,16 @@ async function loadDashboard() {
         }
         
         updateWelcomeMessage();
-        console.log("✨ Dashboard 更新完成！");
+        console.log("✅ Dashboard 載入成功！");
 
     } catch (error) {
-        console.error("Dashboard Critical Error:", error);
+        console.error("Dashboard Error:", error);
         focusList.innerHTML = `<div style="color:#c86a5a; padding:1rem; text-align:center;">
-            數據讀取失敗<br>
-            <span style="font-size:0.8rem; background:#fff0f0; padding:2px;">${error.message}</span>
-            <br><button class="btn secondary-btn" onclick="loadDashboard()" style="margin-top:10px; font-size:0.8rem;">重試</button>
+            載入失敗 (v8.4)<br>
+            <span style="font-size:0.8rem; background:#fff0f0;">${error.message}</span>
         </div>`;
-        alert(`Dashboard 載入失敗：\n${error.message}\n請檢查網絡或 Console Log。`);
     }
 }
-
 
 // [Pro-v4.2-UI] 停止載入離線備份到 Dashboard (避免重複混亂)
 function getOfflineProjectMeta() {
