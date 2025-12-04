@@ -8149,7 +8149,7 @@ async function loadPage1ClassDropdown(forceRefresh = false) {
     }
 }
 
-// [Pro-v4.1] Page 1 班級名單 (自然排序 + 補零顯示)
+// [Pro-v4.2-Fix] Page 1 班級名單 (埋入 Database ID)
 async function handleClassSelectChange() {
     const select = document.getElementById('setup-class-select');
     const container = document.getElementById('setup-student-checklist');
@@ -8158,6 +8158,9 @@ async function handleClassSelectChange() {
     container.innerHTML = '';
     area.style.display = 'none';
     if (!select.value) return;
+
+    // 設置全域 Current Class ID
+    window.currentClassId = select.value;
 
     area.style.display = 'block';
     container.innerHTML = '<div>讀取中...</div>';
@@ -8176,13 +8179,12 @@ async function handleClassSelectChange() {
             return; 
         }
 
-        // 🔥 修正排序：使用 Intl.Collator 處理數字順序 (1, 2, 10)
+        // 自然排序
         const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
         students.sort((a, b) => {
             const numA = (a.student_number || '').toString();
             const numB = (b.student_number || '').toString();
             const numResult = collator.compare(numA, numB);
-            // 如果學號一樣(或沒學號)，再比對姓名
             if (numResult !== 0) return numResult;
             return collator.compare(a.name || '', b.name || '');
         });
@@ -8191,19 +8193,15 @@ async function handleClassSelectChange() {
             const div = document.createElement('div');
             div.className = 'student-check-card checked'; 
             
-            // 🔥 修正顯示：個位數自動補零 (1 -> 01)
             let displayNum = s.student_number;
-            if (displayNum && /^\d$/.test(displayNum)) {
-                displayNum = '0' + displayNum;
-            }
+            if (displayNum && /^\d$/.test(displayNum)) displayNum = '0' + displayNum;
 
-            // 為了保持簡單，這裡只傳「學號-姓名」純文字，不傳 JSON
-            const cleanName = `${displayNum ? displayNum + '-' : ''}${s.name}`;
-            div.dataset.info = cleanName;
+            // 🔥 [關鍵修正] 將 UUID 直接存入 dataset
+            div.dataset.dbId = s.id; 
+            // 存名字資訊
+            div.dataset.info = `${displayNum ? displayNum + '-' : ''}${s.name}`;
             
             div.innerHTML = `<input type="checkbox" checked><span>${escapeHtml(displayNum)}<br>${escapeHtml(s.name)}</span>`;
-            
-            // 點擊效果
             div.onclick = () => {
                 const cb = div.querySelector('input');
                 cb.checked = !cb.checked;
@@ -8308,6 +8306,7 @@ function toggleAllSetupStudents(checked) {
 // ==========================================
 // ====== 核心橋接函數 (雙軌兼容版) ======
 // ==========================================
+// [Pro-v4.2-Fix] 啟動批改 (直接攜帶 ID)
 function startGradingWithSetup(actionType) {
     const modeRadio = document.querySelector('input[name="setup-mode"]:checked');
     const mode = modeRadio ? modeRadio.value : 'manual';
@@ -8319,110 +8318,100 @@ function startGradingWithSetup(actionType) {
         return;
     }
 
-    // 準備一個暫存名單陣列
-    let rawStudentList = "";
+    // 初始化
+    allStudentRecords = []; 
+    let rawStudentList = ""; 
     let sourceClass = "";
 
-    // === 分流邏輯 ===
     if (mode === 'registry') {
-        // [Track B: 會員/班級模式]
+        // === [Track B: 班級模式] ===
         const select = document.getElementById('setup-class-select');
         if (!select || !select.value) {
-            alert("請選擇班級！(或切換至手動模式)");
+            alert("請選擇班級！");
             return;
         }
         
-        // 獲取勾選的學生
+        // 獲取勾選的卡片
         const checkedCards = document.querySelectorAll('#setup-student-checklist .student-check-card.checked');
-        const checkedInputs = document.querySelectorAll('#setup-student-checklist input:checked');
-
-        if (checkedCards.length === 0 && checkedInputs.length === 0) {
+        
+        if (checkedCards.length === 0) {
             alert("⚠️ 請至少勾選一位學生！");
             return;
         }
 
-        // 組合名單字串
-        if (checkedCards.length > 0) {
-             checkedCards.forEach(div => { if (div.dataset.info) rawStudentList += div.dataset.info + "\n"; });
-        } else {
-             checkedInputs.forEach(cb => {
-                const div = cb.closest('.student-check-card');
-                if (div && div.dataset.info) rawStudentList += div.dataset.info + "\n";
+        // 🔥 [關鍵] 直接從卡片構建 allStudentRecords，包含 dbId
+        const tempRecords = [];
+        checkedCards.forEach(card => {
+            const info = card.dataset.info; // "01-陳大文"
+            const dbId = card.dataset.dbId; // "uuid..."
+            
+            // 組合文字名單 (給 Page 2 顯示用)
+            rawStudentList += info + "\n";
+            
+            // 解析名字
+            const p = parseStudentName(info);
+            tempRecords.push({
+                number: p.number,
+                name: p.name,
+                originalName: p.originalName,
+                dbId: dbId, // ✅ ID 成功帶入！
+                data: null
             });
-        }
+        });
         
-        // 記錄班級名稱
+        allStudentRecords = tempRecords; // 寫入全域變數
         sourceClass = select.options[select.selectedIndex].dataset.className || '';
-        
-        // 標記這是雲端作業 (未來用)
         window.currentProjectType = 'cloud';
         window.currentClassId = select.value;
 
     } else {
-        // [Track A: 免費/手動模式]
+        // === [Track A: 手動模式] ===
         const manualInput = document.getElementById('student-names-manual');
         rawStudentList = manualInput ? manualInput.value.trim() : '';
         
         if (!rawStudentList) {
-            alert("請輸入學生名單！\n(支援 Excel 複製貼上，一行一位)");
+            alert("請輸入學生名單！");
             return;
         }
         
+        const parsedNames = rawStudentList.split('\n')
+            .map(name => name.trim())
+            .filter(name => name)
+            .map(name => parseStudentName(name));
+
+        allStudentRecords = parsedNames.map(p => ({
+            number: p.number,
+            name: p.name,
+            originalName: p.originalName,
+            dbId: null, // 手動模式沒有 ID
+            data: null
+        }));
+
         const manualClassInput = document.getElementById('student-class-manual');
         sourceClass = manualClassInput ? manualClassInput.value.trim() : '未分類';
-
-        // 標記這是本地作業
         window.currentProjectType = 'local';
         window.currentClassId = null;
     }
 
-    // === 數據注入 (The Injection) ===
-    // 我們不再依賴 Page 2 的 DOM 存在與否，而是直接操作全域變數
-    
-    // 1. 解析名單
-    const parsedNames = rawStudentList.split('\n')
-        .map(name => name.trim())
-        .filter(name => name)
-        .map(name => parseStudentName(name)); // 使用現有的 helper
-
-    // 2. 更新全域變數 (這是最重要的一步！)
-    allStudentRecords = parsedNames.map(p => ({
-        number: p.number,
-        name: p.name,
-        originalName: p.originalName,
-        data: null // 初始化空數據
-    }));
-
-    // 3. 嘗試同步 UI (如果 Page 2 元素存在)
+    // 3. 同步 UI 到 Page 2
+    // 為了避免 Page 2 的 textarea 再次觸發 input 事件導致名單重置，我們這裡只更新 textarea value，不觸發 updateStudentDropdown
     const p2Names = document.getElementById('student-names');
-    const p2Class = document.getElementById('student-class');
+    if(p2Names) p2Names.value = rawStudentList;
     
-    // 如果找不到，動態建立隱藏欄位以防報錯
-    if (!p2Names) {
-        const hiddenArea = document.createElement('div');
-        hiddenArea.style.display = 'none';
-        hiddenArea.innerHTML = `<textarea id="student-names"></textarea><input id="student-class">`;
-        document.body.appendChild(hiddenArea);
-    }
-    
-    document.getElementById('student-names').value = rawStudentList;
     if(document.getElementById('student-class')) document.getElementById('student-class').value = sourceClass;
 
-    // 4. 刷新下拉選單 (Page 2)
-    updateStudentDropdown(); 
+    // 4. 手動觸發一次 Page 2 的選單渲染 (使用剛才做好的 allStudentRecords)
+    renderDropdownFromMemory(); 
     updateHeaderInfo();
 
-    // === 跳轉 ===
+    // 5. 跳轉
     if (actionType === 'default') {
         if (typeof loadCannedCritiquesAndFocus === 'function') loadCannedCritiquesAndFocus();
     } else {
-        // 手動建立評語模式
         const cData = document.getElementById('critique-data');
-        if(cData) cData.innerHTML = ''; // 清空舊評語
-        
+        if(cData) cData.innerHTML = '';
         if (typeof buildChecklist === 'function') buildChecklist();
         if (typeof buildOverviewPage === 'function') buildOverviewPage();
-        
         showPage('page2', 'student-select');
         if(typeof showToast === 'function') showToast(`已建立作業：${allStudentRecords.length} 位學生`, "success");
     }
@@ -8506,6 +8495,32 @@ async function addBatchStudentsToMaster() {
         btn.textContent = orgText;
         btn.disabled = false;
     }
+}
+// [Pro-v4.2-Fix] 從記憶體渲染下拉選單 (保護 ID 不丟失)
+function renderDropdownFromMemory() {
+    const studentSelect = document.getElementById('student-select');
+    studentSelect.innerHTML = allStudentRecords.length === 0 ? '<option value="">請先在上方輸入學生名單</option>' : '';
+    
+    allStudentRecords.forEach(p => {
+        const option = document.createElement('option');
+        option.value = p.originalName;
+        
+        let displayName = p.name;
+        if (p.number !== null) {
+            const paddedNum = p.number.toString().padStart(2, '0');
+            displayName = `${paddedNum} ${p.name}`;
+        }
+        option.textContent = displayName;
+        studentSelect.appendChild(option);
+    });
+
+    if (studentSelect.options.length > 0) {
+        studentSelect.selectedIndex = 0;
+        loadStudentData(studentSelect.value);
+    }
+    
+    updateAllOutputs();
+    renderStudentOverviewTable();
 }
 
 </script> <!-- 呢個係原本全個檔案唯一的結尾，保留佢 -->
