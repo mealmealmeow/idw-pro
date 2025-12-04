@@ -81,15 +81,19 @@
 /* === 以下係 Pop Art 彈窗專用樣式 (必貼) === */
 /* ========================================= */
 
+/* [Pro-v6.9] 彈窗樣式修正 (強制置中 + 最上層) */
 .pop-overlay {
-  position: fixed;
-  top: 0; left: 0; width: 100%; height: 100%;
-  background: rgba(105, 129, 118, 0.6); /* 半透明背景 */
+  position: fixed; /* 關鍵：固定在視窗，不隨卷軸移動 */
+  top: 0; 
+  left: 0; 
+  width: 100%; 
+  height: 100%;
+  background: rgba(105, 129, 118, 0.6);
   backdrop-filter: blur(4px);
   display: flex;
-  justify-content: center;
-  align-items: center;
- z-index: 99999; /* 確保在最上層，蓋過所有野 */
+  justify-content: center; /* 水平置中 */
+  align-items: center;     /* 垂直置中 */
+  z-index: 2147483647;     /* 設為瀏覽器最大值，確保蓋住所有野 */
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.2s;
@@ -100,16 +104,13 @@
   pointer-events: auto;
 }
 
+/* 確保內容太多時，Modal 內部可以捲動，而不是推大整個 Overlay */
 .pop-modal {
   background: #ffffff;
   width: 90%;
   max-width: 500px;
-  /* ✅ 新增：限制最大高度為螢幕的 90%，並允許垂直捲動 */
-  max-height: 90vh;
-  overflow-y: auto; 
-  /* ----------------------------------------------- */
-  
-  /* 原有的樣式保留... */
+  max-height: 90vh; /* 限制最大高度 */
+  overflow-y: auto; /* 內容多時內部捲動 */
   border-radius: 30px;
   box-shadow: -8px 8px 0px 0px #F2C037; 
   border: 2px solid #F2C037;
@@ -120,9 +121,7 @@
   transform: scale(0.95);
   transition: transform 0.2s;
 }
-.pop-overlay.active .pop-modal {
-  transform: scale(1);
-}
+
 
 .pop-icon {
   font-size: 32px;
@@ -7688,136 +7687,151 @@ async function deleteProject() {
     }
 }
 
-// [Pro-v6.8-Final] 全局登入狀態監聽 (包含：邀請、重設密碼修復、自動登入)
 
-// 1. 在 Supabase 清除網址前，立刻捕捉 Hash
+
+// [Pro-v6.5] 全局登入狀態監聽 (修復邀請連結捕捉問題)
+
+// 🔥 1. 在 Supabase 清除網址前，立刻捕捉 Hash！
 const _initialHash = window.location.hash;
 
-supabaseClient.auth.onAuthStateChange(async (event, session) => {
-    console.log("Auth Event:", event);
-    currentUser = session ? session.user : null;
-    updateUIBasedOnAuthState();
+// [Pro-v6.7] 整合式登入檢查與邀請處理 (修復 Race Condition)
 
-    // 檢查捕捉到的 Hash
-    const isInvite = _initialHash && _initialHash.includes('type=invite');
+// 1. 在一切開始前，先捕捉網址上的 Hash (這是救命索)
+const _globalHash = window.location.hash;
 
-    if (event === 'SIGNED_IN') {
-        loadDataFromCloud();
-        if (typeof loadDashboard === 'function') loadDashboard();
 
-        // 處理邀請流程
-        if (isInvite) {
-            console.log("偵測到邀請連結，準備彈出視窗...");
-            setTimeout(() => {
-                showCustomModal({
-                    icon: '👋',
-                    title: '歡迎加入！',
-                    desc: '這是您第一次登入。請設定您的專屬密碼，以便日後使用 Email 登入。',
-                    confirmText: '設定密碼',
-                    cancelText: '稍後再說'
-                }).then(ok => {
-                    if(ok) {
-                        const modal = document.getElementById('pop-reset-password-modal');
-                        if(modal) {
-                            modal.classList.add('active');
-                            const input = document.getElementById('new-password-input');
-                            if(input) input.focus();
-                        }
-                    }
-                });
-                // 清除 Hash
-                history.replaceState(null, null, ' ');
-            }, 500);
-        }
-    } 
+
+// [Pro-v6.9] Auth 監聽器 (修復重設密碼按鈕失效問題)
+
+// 1. 捕捉網址 Hash
+const _initialHash = window.location.hash;
+
+// [Pro-v7.0] 全域 Hash 捕捉 (防止 Supabase 清除後讀不到)
+const _globalHash = window.location.hash;
+
+// [Pro-v7.0] 獨立的重設密碼函數 (由 HTML 按鈕直接呼叫)
+async function confirmResetPassword() {
+    const input = document.getElementById('new-password-input');
+    const btn = document.getElementById('confirm-reset-btn');
+    const modal = document.getElementById('pop-reset-password-modal');
+
+    const newPassword = input.value.trim();
     
-    // 🔥 [修復重點] 處理「重設密碼」流程 (解決按鈕無反應 + Enter 鍵)
-    else if (event === 'PASSWORD_RECOVERY') {
-        const modal = document.getElementById('pop-reset-password-modal');
-        const input = document.getElementById('new-password-input');
-        const btn = document.getElementById('confirm-reset-btn');
+    if (newPassword.length < 6) {
+        alert("❌ 密碼太短！最少 6 個字元。");
+        return;
+    }
+
+    const originalText = btn.innerText;
+    btn.innerText = "更新中...";
+    btn.disabled = true;
+
+    try {
+        const { error } = await supabaseClient.auth.updateUser({ password: newPassword });
+        if (error) throw error;
+
+        alert("🎉 密碼已設定成功！\n請記住您的密碼。");
+        modal.classList.remove('active');
+        history.replaceState(null, null, ' '); // 清除網址 Hash
         
-        if(modal) {
-            modal.classList.add('active');
-            // 延遲聚焦
-            setTimeout(() => input && input.focus(), 200);
-            
-            // 支援 Enter 鍵提交
-            input.onkeydown = (e) => {
-                if (e.key === 'Enter') {
-                    // 這裡要觸發新按鈕的 click，因為下面我們會替換按鈕
-                    const currentBtn = document.getElementById('confirm-reset-btn');
-                    if(currentBtn) currentBtn.click();
-                }
-            };
-        }
-
-        if(btn) {
-            // 🔥 關鍵：複製按鈕以移除舊的 Event Listeners (防止無反應或重複執行)
-            const newBtn = btn.cloneNode(true);
-            btn.parentNode.replaceChild(newBtn, btn);
-            
-            newBtn.onclick = async () => {
-                const newPassword = input.value.trim();
-                if (newPassword.length < 6) {
-                    alert("❌ 密碼太短！最少 6 個字元。");
-                    return;
-                }
-                
-                const originalText = newBtn.innerText;
-                newBtn.innerText = "更新中...";
-                newBtn.disabled = true;
-
-                const { error } = await supabaseClient.auth.updateUser({ password: newPassword });
-
-                if (error) {
-                    alert("❌ 更新失敗：" + error.message);
-                    newBtn.innerText = originalText;
-                    newBtn.disabled = false;
-                } else {
-                    alert("🎉 密碼已設定成功！\n請記住您的密碼，下次請直接登入。");
-                    modal.classList.remove('active');
-                    history.replaceState(null, null, ' '); // 清除網址 hash
-                    
-                    // 成功後確保載入 Dashboard
-                    if (typeof loadDashboard === 'function') loadDashboard();
-                }
-            };
-        }
-    }
-    
-    else if (event === 'SIGNED_OUT') {
-        sessionStorage.removeItem('projectPromptShownThisSession');
-        commonTypos = [];
-        allStudentRecords = [];
+        // 確保 Dashboard 更新
         if (typeof loadDashboard === 'function') loadDashboard();
+
+    } catch (err) {
+        console.error(err);
+        alert("❌ 更新失敗：" + err.message);
+    } finally {
+        btn.innerText = "確認修改";
+        btn.disabled = false;
     }
-});
+}
 
+// [Pro-v7.0] 主動登入檢查 (含邀請流程)
+async function checkUser() {
+  // 1. 主動查詢 Session
+  const { data: { session }, error } = await supabaseClient.auth.getSession();
+  
+  if (error) console.error("Session 讀取錯誤:", error.message);
 
-// 6. 監聽狀態改變 (這是為了捕捉登出或 Session 過期)
+  currentUser = session ? session.user : null;
+  updateUIBasedOnAuthState();
+
+  // 2. 如果已登入
+  if (currentUser) {
+      console.log("✅ 已登入:", currentUser.email);
+      loadDataFromCloud();
+      if (typeof loadDashboard === 'function') loadDashboard();
+      if (typeof loadPage1ClassDropdown === 'function') loadPage1ClassDropdown();
+      
+      // 🔥 3. 處理邀請流程 (只在 checkUser 這裡做一次)
+      if (_globalHash && _globalHash.includes('type=invite')) {
+          console.log("👋 偵測到邀請連結");
+          
+          setTimeout(() => {
+              showCustomModal({
+                  icon: '🎉',
+                  title: '歡迎加入 Pro 版！',
+                  desc: '您的帳戶已成功開通。為了安全起見，請立即設定您的專屬密碼。',
+                  confirmText: '設定密碼',
+                  cancelText: '稍後再說'
+              }).then(ok => {
+                  if(ok) {
+                      const modal = document.getElementById('pop-reset-password-modal');
+                      if(modal) {
+                          modal.classList.add('active');
+                          setTimeout(() => document.getElementById('new-password-input')?.focus(), 200);
+                      }
+                  }
+              });
+              // 清除 Hash 避免刷新後重覆彈出
+              history.replaceState(null, null, ' ');
+          }, 800);
+      }
+  } else {
+      // 未登入處理
+      renderCommonTypoList();
+      if (typeof loadDashboard === 'function') loadDashboard();
+      
+      // 提示無痕模式問題
+      if (_globalHash && _globalHash.includes('access_token')) {
+          alert("⚠️ 偵測到登入 Token 但無法寫入狀態。\n請嘗試關閉「無痕模式」後重試。");
+      }
+  }
+}
+
+// [Pro-v7.0] 狀態改變監聽 (負責忘記密碼流程 & 登出清理)
 supabaseClient.auth.onAuthStateChange((event, session) => {
-    console.log("🔄 Auth 狀態改變:", event);
+    console.log("Auth Event:", event);
+    
     if (event === 'SIGNED_OUT') {
         currentUser = null;
         updateUIBasedOnAuthState();
         allStudentRecords = [];
         commonTypos = [];
         if (typeof loadDashboard === 'function') loadDashboard();
-    } else if (event === 'SIGNED_IN' && session) {
-        // 如果是這種情況登入，checkUser 可能已經跑過了，這裡做雙重保險
-        if (!currentUser) {
-            currentUser = session.user;
-            updateUIBasedOnAuthState();
-            loadDataFromCloud();
-            if (typeof loadDashboard === 'function') loadDashboard();
-        }
-    } else if (event === 'PASSWORD_RECOVERY') {
-        // 處理重設密碼 (現有邏輯)
+    } 
+    else if (event === 'SIGNED_IN' && session && !currentUser) {
+        // 只有當 checkUser 沒抓到時，這裡才補抓
+        currentUser = session.user;
+        updateUIBasedOnAuthState();
+        loadDataFromCloud();
+        if (typeof loadDashboard === 'function') loadDashboard();
+    } 
+    // 🔥 處理「忘記密碼」郵件連結
+    else if (event === 'PASSWORD_RECOVERY') {
         const modal = document.getElementById('pop-reset-password-modal');
-        if(modal) modal.classList.add('active');
+        if(modal) {
+            modal.classList.add('active');
+            setTimeout(() => document.getElementById('new-password-input')?.focus(), 200);
+            // 支援 Enter 鍵
+            const input = document.getElementById('new-password-input');
+            input.onkeydown = (e) => {
+                if (e.key === 'Enter') confirmResetPassword();
+            };
+        }
     }
 });
+
 // ==========================================
 // ====== Kebab Menu (三點選單) 控制邏輯 ======
 // ==========================================
@@ -8710,7 +8724,7 @@ function sortStudents(studentsArray) {
         return collator.compare(nameA, nameB);
     });
 }
-// [Pro-v6.8] 通用 Modal (支援 Enter/Tab/Focus)
+// [Pro-v6.9] 通用 Modal (支援 Enter/Focus)
 function showCustomModal({ icon='✨', title, desc, showInput=false, defaultValue='', confirmText='確定', cancelText='取消' }) {
     return new Promise((resolve) => {
         const modal = document.getElementById('pop-generic-modal');
@@ -8722,14 +8736,14 @@ function showCustomModal({ icon='✨', title, desc, showInput=false, defaultValu
         const confirmBtn = document.getElementById('pop-generic-confirm');
         const cancelBtn = document.getElementById('pop-generic-cancel');
 
-        // 1. 設定內容
+        // 設定內容
         iconEl.textContent = icon;
         titleEl.textContent = title;
         descEl.textContent = desc || '';
         confirmBtn.textContent = confirmText;
         cancelBtn.textContent = cancelText;
         
-        // 2. 設定輸入框
+        // 設定輸入框
         if (showInput) {
             inputContainer.style.display = 'block';
             input.value = defaultValue;
@@ -8737,43 +8751,35 @@ function showCustomModal({ icon='✨', title, desc, showInput=false, defaultValu
             inputContainer.style.display = 'none';
         }
 
-        // 3. 顯示 Modal
+        // 顯示
         modal.classList.add('active');
 
-        // 4. 聚焦邏輯 (UX 優化)
+        // 自動 Focus (延遲一點點以確保動畫完成)
         setTimeout(() => {
             if (showInput) {
                 input.focus();
                 input.select();
             } else {
-                confirmBtn.focus(); // 如果沒輸入框，直接聚焦確認鈕
+                confirmBtn.focus();
             }
         }, 100);
 
-        // 5. 清理函數 (避免重複綁定)
+        // 清理與關閉
         const cleanup = () => {
             modal.classList.remove('active');
-            // 移除鍵盤監聽 (重要！)
-            document.removeEventListener('keydown', handleKeydown);
+            document.removeEventListener('keydown', handleKeydown); // 移除鍵盤監聽
             confirmBtn.onclick = null;
             cancelBtn.onclick = null;
         };
 
-        // 6. 按鈕事件
-        confirmBtn.onclick = () => {
-            cleanup();
-            resolve(showInput ? input.value : true);
-        };
+        // 按鈕事件
+        confirmBtn.onclick = () => { cleanup(); resolve(showInput ? input.value : true); };
+        cancelBtn.onclick = () => { cleanup(); resolve(false); };
 
-        cancelBtn.onclick = () => {
-            cleanup();
-            resolve(false);
-        };
-
-        // 7. 鍵盤事件 (Enter & Escape)
+        // 鍵盤事件 (Enter 確認, Esc 取消)
         const handleKeydown = (e) => {
             if (e.key === 'Enter') {
-                e.preventDefault(); // 防止誤觸發其他表單
+                e.preventDefault(); // 防止重複提交
                 confirmBtn.click();
             } else if (e.key === 'Escape') {
                 cancelBtn.click();
