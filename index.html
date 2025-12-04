@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
@@ -7094,116 +7095,98 @@ function restoreFromLocalBackup() {
    ========================================== */
 let isDashboardRendering = false; // 加入鎖定旗標
 
-// [Pro-v8.1-RealDashboard] 真實數據儀表板 (直接查詢 assignments/results/students)
 async function loadDashboard() {
     const focusList = document.getElementById('focus-task-list');
     const classContainer = document.getElementById('class-accordion-container');
     if(!focusList) return; 
 
-    // 1. 顯示讀取中
-    focusList.style.display = 'block';
-    focusList.innerHTML = '<div class="dashboard-loading"><div class="spinner"></div> 正在同步雲端數據...</div>';
-    if(classContainer) classContainer.innerHTML = '';
+    // 1. 顯示讀取中 (僅在第一次載入時)
+    if (!focusList.innerHTML.includes('task-item')) {
+        focusList.innerHTML = '<div class="dashboard-loading"><div class="spinner"></div> 正在整理作業...</div>';
+    }
 
-    if (!currentUser) {
-        renderEmptyState(focusList);
+    let allProjects = [];
+
+    // 2. 讀取雲端資料
+    try {
+        if (currentUser) {
+            const [newRes, legacyRes] = await Promise.all([
+                supabaseClient.from('view_new_assignments_meta').select('*').eq('user_id', currentUser.id).order('last_updated', { ascending: false }),
+                supabaseClient.from('view_legacy_projects_meta').select('*').eq('user_id', currentUser.id).order('last_updated', { ascending: false })
+            ]);
+
+            if (newRes.data) allProjects = allProjects.concat(newRes.data);
+            if (legacyRes.data) allProjects = allProjects.concat(legacyRes.data);
+        }
+    } catch (e) {
+        console.error("Dashboard load failed", e);
+        focusList.innerHTML = `<div style="color:red; padding:1rem;">讀取失敗，請檢查網絡連線。</div>`;
         return;
     }
 
-    try {
-        // --- 步驟 A: 讀取作業 (Assignments) ---
-        // 關聯 classes 獲取班級資訊
-        // 關聯 results 獲取「已批改數量」 (使用 count)
-        const { data: assignments, error: assignError } = await supabaseClient
-            .from('assignments')
-            .select(`
-                id, title, created_at, class_id,
-                classes!inner ( class_name, academic_year ),
-                results ( count )
-            `)
-            .eq('user_id', currentUser.id)
-            .order('created_at', { ascending: false });
-
-        if (assignError) throw assignError;
-
-        if (!assignments || assignments.length === 0) {
-            renderEmptyState(focusList);
-            return;
+    // 3. 加入離線資料 (並進行去重檢查)
+    const offlineData = getOfflineProjectMeta();
+    if (offlineData) {
+        // 檢查雲端是否已經有這份資料 (避免剛同步完未刷新時出現重複)
+        const isDuplicate = allProjects.some(p => 
+            p.topic === offlineData.topic && p.class_name === offlineData.class_name
+        );
+        if (!isDuplicate) {
+            allProjects.unshift(offlineData);
         }
-
-        // --- 步驟 B: 獲取班級總人數 (Student Counts) ---
-        // 為了計算進度 (已改/總數)，我們需要知道每個班有多少學生
-        // 提取所有涉及的 class_id
-        const uniqueClassIds = [...new Set(assignments.map(a => a.class_id))];
-        
-        // 查詢 students 表，只取 class_id 欄位來計數 (減輕 Payload)
-        const { data: studentsData, error: stuError } = await supabaseClient
-            .from('students')
-            .select('class_id')
-            .in('class_id', uniqueClassIds);
-
-        if (stuError) throw stuError;
-
-        // 在 JS 端計算每班人數 Map: { 'class_id_1': 30, 'class_id_2': 25 }
-        const classStudentCounts = {};
-        studentsData.forEach(s => {
-            classStudentCounts[s.class_id] = (classStudentCounts[s.class_id] || 0) + 1;
-        });
-
-        // --- 步驟 C: 數據整合 (Merge) ---
-        const processedProjects = assignments.map(a => {
-            // 已批改數 (Supabase 回傳的是 [{count: 5}])
-            const graded = a.results && a.results[0] ? a.results[0].count : 0;
-            // 總人數
-            const total = classStudentCounts[a.class_id] || 0;
-            // 進度百分比
-            const progress = total > 0 ? Math.round((graded / total) * 100) : 0;
-            // 判斷完成狀態 (批改數 >= 總人數 且 總人數 > 0)
-            const isCompleted = (total > 0 && graded >= total);
-
-            return {
-                id: a.id,
-                source_type: 'new', // 標記為新版結構
-                topic: a.title,
-                class_id: a.class_id,
-                class_name: a.classes.class_name || '未命名班級',
-                academic_year: a.classes.academic_year || '未知學年',
-                normalizedYear: a.classes.academic_year || '未知年份',
-                last_updated: a.created_at, // 使用建立時間排序
-                graded_count: graded,
-                total_students: total,
-                progress: progress,
-                isCompleted: isCompleted
-            };
-        });
-
-        // --- 步驟 D: 渲染 UI ---
-        
-        // 1. Focus Mode (未完成的作業)
-        const focusItems = processedProjects
-            .filter(p => !p.isCompleted)
-            .slice(0, 5); // 只顯示最新的 5 個
-
-        focusList.innerHTML = ''; 
-        renderFocusList(focusItems, focusList);
-
-        // 2. Class Archives (按學年歸檔所有作業)
-        const grouped = groupByYearAndClass(processedProjects);
-        
-        if(classContainer) {
-            classContainer.innerHTML = ''; 
-            renderClassAccordion(grouped, classContainer);
-        }
-        
-        updateWelcomeMessage();
-
-    } catch (error) {
-        console.error("Dashboard Load Error:", error);
-        focusList.innerHTML = `<div style="color:#c86a5a; padding:1rem; text-align:center;">
-            數據讀取失敗<br><span style="font-size:0.8rem">${error.message}</span>
-        </div>`;
     }
+
+    // 4. 資料處理
+    if (allProjects.length === 0) {
+        renderEmptyState(focusList);
+        if(classContainer) classContainer.innerHTML = ''; // 確保清空
+        return;
+    }
+
+    const processedProjects = allProjects.map(p => {
+        const total = p.total_students || 0;
+        const graded = p.graded_count || 0;
+        const progress = (total > 0 && graded > 0) ? Math.round((graded/total)*100) : 0;
+        
+        let year = p.academic_year;
+        if (!year && p.last_updated) {
+            const d = new Date(p.last_updated);
+            const m = d.getMonth() + 1; 
+            const y = d.getFullYear();
+            year = (m >= 9) ? `${y}-${y+1}` : `${y-1}-${y}`;
+        }
+        
+        return {
+            ...p,
+            normalizedYear: year || '未知年份',
+            progress: progress,
+            isCompleted: (total > 0 && graded >= total),
+            isRecent: (new Date() - new Date(p.last_updated)) < (7 * 24 * 60 * 60 * 1000)
+        };
+    });
+
+    // 5. 渲染 Focus Mode
+    const focusItems = processedProjects
+        .filter(p => !p.isCompleted)
+        .sort((a, b) => new Date(b.last_updated) - new Date(a.last_updated))
+        .slice(0, 5);
+
+    // 🔥 關鍵修正：渲染前一刻才清空，並立即寫入 🔥
+    focusList.innerHTML = ''; 
+    renderFocusList(focusItems, focusList);
+
+    // 6. 渲染 班級歸檔
+    const grouped = groupByYearAndClass(processedProjects);
+    
+    // 🔥 關鍵修正：渲染前一刻才清空，並立即寫入 🔥
+    if(classContainer) {
+        classContainer.innerHTML = ''; 
+        renderClassAccordion(grouped, classContainer);
+    }
+    
+    updateWelcomeMessage();
 }
+
 
 
 // [Pro-v4.2-UI] 停止載入離線備份到 Dashboard (避免重複混亂)
@@ -8168,13 +8151,10 @@ async function deleteStudentFromMaster(studentId) {
 // ====== Phase 2.1 (Part 2): 班級頁邏輯 ======
 // ==========================================
 
-// [Pro-v8.2] 讀取班級列表 (防殘影版)
+// [Pro-v6.12] 讀取班級列表 (加入編輯按鈕)
 async function loadAllClasses() {
     const container = document.getElementById('class-management-list');
     if (!container) return; 
-
-    // 🔥 關鍵修正：一開始就清空，防止重複附加
-    container.innerHTML = ''; 
 
     if (!currentUser) {
         container.innerHTML = `<div style="text-align:center; padding:20px; color:#999;">請先登入以管理班級</div>`;
@@ -8193,8 +8173,9 @@ async function loadAllClasses() {
 
         if (error) throw error;
 
-        // 清空 Loading
-        container.innerHTML = '';
+        // 同步刷新 Page 1 下拉選單
+        const page1Select = document.getElementById('setup-class-select');
+        if(page1Select) setTimeout(() => { if(typeof loadPage1ClassDropdown === 'function') loadPage1ClassDropdown(true); }, 500);
 
         if (classes.length === 0) {
             container.innerHTML = `
@@ -8205,8 +8186,8 @@ async function loadAllClasses() {
             return;
         }
 
+        container.innerHTML = ''; 
         for (const cls of classes) {
-            // 獲取學生人數
             const { count } = await supabaseClient
                 .from('students')
                 .select('*', { count: 'exact', head: true })
@@ -8216,6 +8197,7 @@ async function loadAllClasses() {
             card.className = 'task-item';
             card.style.cursor = 'default';
             
+            // 準備 safe string
             const safeName = escapeHtml(cls.class_name);
             const safeYear = escapeHtml(cls.academic_year);
             const safeId = cls.id;
@@ -8230,9 +8212,11 @@ async function loadAllClasses() {
                         👤 ${count || 0} 人
                     </div>
                     <div style="display:flex; gap:5px;">
-                        <button class="light-btn" style="padding:5px 10px; font-size:0.85rem;" onclick="editClass('${safeId}', '${safeYear}', '${safeName}')" title="編輯">✏️</button>
-                        <button class="secondary-btn" style="padding:5px 10px; font-size:0.85rem;" onclick="manageStudents('${safeId}', '${safeName}')" title="名單">👥</button>
-                        <button class="danger-btn" style="padding:5px 10px; font-size:0.85rem;" onclick="deleteClass('${safeId}', '${safeName}')" title="刪除">🗑️</button>
+                        <!-- 🔥 [新增] 編輯按鈕 -->
+                        <button class="light-btn" style="padding:5px 10px; font-size:0.85rem;" onclick="editClass('${safeId}', '${safeYear}', '${safeName}')" title="編輯班級資料">✏️</button>
+                        
+                        <button class="secondary-btn" style="padding:5px 10px; font-size:0.85rem;" onclick="manageStudents('${safeId}', '${safeName}')" title="管理名單">👥</button>
+                        <button class="danger-btn" style="padding:5px 10px; font-size:0.85rem;" onclick="deleteClass('${safeId}', '${safeName}')" title="刪除班級">🗑️</button>
                     </div>
                 </div>
             `;
@@ -8245,7 +8229,7 @@ async function loadAllClasses() {
     }
 }
 
-/// [Pro-v8.2] 新增班級 (修復同步問題)
+// [Pro-v6.11] 新增班級 (自動跳轉管理名單)
 async function createNewClass() {
     if (!currentUser) {
         showCustomModal({ icon:'🔒', title:'請先登入', desc:'班級管理需要雲端同步功能。', confirmText:'去登入' })
@@ -8253,22 +8237,34 @@ async function createNewClass() {
         return;
     }
 
+    // 1. 計算智能學年
     const today = new Date();
     const year = today.getFullYear();
     const month = today.getMonth() + 1; 
     const defaultYear = month >= 9 ? `${year}-${year+1}` : `${year-1}-${year}`;
 
+    // 2. 輸入學年
     const inputYear = await showCustomModal({
-        icon: '📅', title: '新增班級 - 步驟 1/2', desc: '請確認學年', showInput: true, defaultValue: defaultYear
+        icon: '📅',
+        title: '新增班級 - 步驟 1/2',
+        desc: '請確認學年',
+        showInput: true,
+        defaultValue: defaultYear
     });
     if (!inputYear) return;
 
+    // 3. 輸入班名
     const className = await showCustomModal({
-        icon: '🏫', title: '新增班級 - 步驟 2/2', desc: '請輸入班別名稱 (例如：6A)', showInput: true, defaultValue: ''
+        icon: '🏫',
+        title: '新增班級 - 步驟 2/2',
+        desc: '請輸入班別名稱 (例如：6A)',
+        showInput: true,
+        defaultValue: ''
     });
     if (!className) return;
 
     try {
+        // 4. 寫入 Database 並獲取回傳資料 (select)
         const { data, error } = await supabaseClient
             .from('classes')
             .insert([{ 
@@ -8276,33 +8272,30 @@ async function createNewClass() {
                 academic_year: inputYear.trim(),
                 class_name: className.trim()
             }])
-            .select()
+            .select() // 🔥 關鍵：要拿回 ID
             .single();
 
         if (error) throw error;
 
-        // 🔥 關鍵修正 1：強制刷新 Page 1 的下拉選單 (傳入 true)
-        await loadPage1ClassDropdown(true);
-
-        // 🔥 關鍵修正 2：重新讀取 Page 8 列表 (確保沒有殘影)
+        // 5. 成功後，先刷新列表，然後直接打開管理名單
         await loadAllClasses(); 
         
-        // 自動打開管理名單
+        // 🔥 自動打開管理名單，不用老師再點
         manageStudents(data.id, data.class_name);
         
-        if (typeof showToast === 'function') showToast("班級已建立", "success");
+        if (typeof showToast === 'function') showToast("班級已建立，請輸入學生名單", "success");
 
     } catch (error) {
         console.error(error);
         showCustomModal({ icon:'❌', title:'建立失敗', desc: error.message });
     }
 }
-// [Pro-v8.2] 刪除班級 (修復同步問題)
+// [Pro-v6.3] 刪除班級 (自訂 UI)
 async function deleteClass(classId, className) {
     const confirmDelete = await showCustomModal({
         icon: '⚠️',
         title: '刪除確認',
-        desc: `確定要刪除「${className}」嗎？\n這將會同時刪除該班級的所有學生名單。`,
+        desc: `確定要刪除「${className}」嗎？\n這將會同時刪除該班級的所有學生名單。\n(已批改的作業記錄不會受影響)`,
         confirmText: '確認刪除',
         cancelText: '再諗諗'
     });
@@ -8318,10 +8311,7 @@ async function deleteClass(classId, className) {
         if (error) throw error;
         
         if (typeof showToast === 'function') showToast(`已刪除班級：${className}`, "success");
-
-        // 🔥 關鍵修正：刪除後，必須強制 Page 1 和 Page 8 都刷新
-        await loadPage1ClassDropdown(true); 
-        await loadAllClasses(); 
+        loadAllClasses(); 
 
     } catch (error) {
         console.error(error);
