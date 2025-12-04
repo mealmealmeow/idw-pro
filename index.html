@@ -2457,7 +2457,7 @@
       <!-- 右邊：取消與儲存 -->
       <div style="display:flex; gap:10px;">
           <button class="pop-btn pop-btn-cancel" onclick="document.getElementById('pop-edit-modal').classList.remove('active')">取消</button>
-          <button class="pop-btn pop-btn-confirm" onclick="saveProjectMeta()">儲存變更</button>
+          <button class="pop-btn pop-btn-confirm" onclick="saveProjectMeta()">儲存</button>
       </div>
     </div>
   </div>
@@ -7319,7 +7319,7 @@ function renderClassAccordion(groups, container) {
 }
 
 // --- [新] 通用卡片 HTML 產生器 ---
-// 將重複的 HTML 代碼提取出來，方便管理
+// [Pro-v7.6] 通用卡片 HTML 產生器 (移除冗餘刪除按鈕，修復雙重彈窗)
 function buildCardHtml(item, uniqueId) {
     const dateStr = new Date(item.last_updated).toLocaleDateString();
     
@@ -7336,15 +7336,14 @@ function buildCardHtml(item, uniqueId) {
     <div class="task-item" onclick="${clickAction}">
         <!-- 1. 三點選單按鈕 -->
         <div class="kebab-menu-container">
-            <button class="kebab-btn" onclick="toggleKebabMenu(event, '${uniqueId}')">⋮</button>
-            <div id="kebab-dropdown-${uniqueId}" class="kebab-dropdown">
-                <button class="kebab-item" onclick="event.stopPropagation(); openEditModal(${itemSafe}); closeAllKebabMenus();">
-                    ✏️ 編輯資訊
-                </button>
-                <button class="kebab-item delete" onclick="event.stopPropagation(); openEditModal(${itemSafe}); setTimeout(deleteProject, 200); closeAllKebabMenus();">
-                    🗑️ 刪除
-                </button>
-            </div>
+            <button class="kebab-item" style="font-size:1.2rem; padding:4px 8px; color:#ccc; background:transparent; border:none; cursor:pointer;" onclick="event.stopPropagation(); openEditModal(${itemSafe});">
+                ⚙️
+            </button>
+            <!-- 
+               舊版 Kebab Menu (已移除) 
+               原因：直接點擊齒輪/三點就打開編輯 Modal 最直接，
+               不用再多點一層 dropdown，亦解決了刪除按鈕的雙重彈窗 bug。
+            -->
         </div>
 
         <!-- 2. 卡片內容 -->
@@ -7368,7 +7367,6 @@ function buildCardHtml(item, uniqueId) {
         </div>
     </div>`;
 }
-
 // 2. 修改 openAssignment (支援 Local Backup & Memory)
 async function openAssignment(assignmentId) {
     // A. 離線記憶體
