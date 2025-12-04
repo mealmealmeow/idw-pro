@@ -7886,10 +7886,11 @@ async function confirmResetPassword() {
     }
 }
 
-// 3. 簡化版監聽器 (只負責登出和忘記密碼郵件)
-supabaseClient.auth.onAuthStateChange((event, session) => {
+// [Pro-v8.1] Auth 監聽器 (修復登入後自動刷新)
+supabaseClient.auth.onAuthStateChange(async (event, session) => {
     console.log("Auth Event:", event);
     
+    // 1. 登出事件
     if (event === 'SIGNED_OUT') {
         currentUser = null;
         updateUIBasedOnAuthState();
@@ -7897,7 +7898,28 @@ supabaseClient.auth.onAuthStateChange((event, session) => {
         commonTypos = [];
         if (typeof loadDashboard === 'function') loadDashboard();
     } 
-    // 處理「忘記密碼」郵件連結 (type=recovery)
+    // 2. 登入事件 (🔥 關鍵新增：登入後立即載入數據)
+    else if (event === 'SIGNED_IN' && session) {
+        currentUser = session.user;
+        updateUIBasedOnAuthState(); // 更新 Header 狀態
+        
+        // 確保 Dashboard 立即刷新
+        if (typeof loadDashboard === 'function') {
+            console.log("偵測到登入，正在刷新 Dashboard...");
+            await loadDashboard(); 
+        }
+        
+        // 順便載入設定 (評語庫等)
+        if (typeof loadDataFromCloud === 'function') {
+            loadDataFromCloud();
+        }
+        
+        // 如果是在 Page 1，順便刷新班級選單
+        if (typeof loadPage1ClassDropdown === 'function') {
+            loadPage1ClassDropdown(true);
+        }
+    }
+    // 3. 忘記密碼
     else if (event === 'PASSWORD_RECOVERY') {
         const modal = document.getElementById('pop-reset-password-modal');
         if(modal) {
