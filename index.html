@@ -3399,7 +3399,7 @@ async function loadDataFromCloud() {
   }
 }
 
-// [Pro-v2.5] 雲端讀取視窗 (整合還原備份按鈕)
+// [Pro-v2.6] 雲端讀取視窗 (備份按鈕獨立化)
 async function promptAndLoadCloudProject() {
     if (!currentUser) {
         alert("請先登入以使用雲端專案功能。");
@@ -3410,10 +3410,10 @@ async function promptAndLoadCloudProject() {
     authStatus.textContent = '正在搜尋雲端專案...';
 
     const { data: projectsData, error: projectsError } = await supabaseClient
-        .from('assignments') // 注意：這裡是讀 assignments 表
+        .from('assignments')
         .select('id, title, created_at, classes(class_name)')
         .eq('user_id', currentUser.id)
-        .order('updated_at', { ascending: false }); // 假設有 updated_at，否則用 created_at
+        .order('created_at', { ascending: false }); // 改為 created_at 確保最新在最上
     
     authStatus.textContent = originalText;
 
@@ -3422,49 +3422,39 @@ async function promptAndLoadCloudProject() {
         return;
     }
 
-    // --- Pop Art Modal 邏輯 ---
     return new Promise((resolve) => {
         const modal = document.getElementById('pop-project-modal');
         const listContainer = document.getElementById('pop-project-list');
         const input = document.getElementById('pop-project-input');
         const confirmBtn = document.getElementById('pop-project-confirm');
         const cancelBtn = document.getElementById('pop-project-cancel');
-        
+        const footer = modal.querySelector('.pop-footer');
+
         // 1. 檢查是否有本地備份
         const backupStr = localStorage.getItem('idw_grading_backup_v1');
         let hasBackup = false;
         let backupTime = '';
+        
+        // 檢查是否有舊的備份按鈕殘留，先移除
+        const oldBackupBtn = document.getElementById('pop-backup-btn-container');
+        if (oldBackupBtn) oldBackupBtn.remove();
+
         if (backupStr) {
             try {
                 const b = JSON.parse(backupStr);
-                if (b.timestamp) {
+                // 只有當有實際編輯內容時才顯示 (例如有名單或有評分)
+                if (b.timestamp && (b.students && b.students.length > 0)) {
                     hasBackup = true;
                     const d = new Date(b.timestamp);
-                    backupTime = `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${d.getMinutes()}`;
+                    backupTime = `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${d.getMinutes() < 10 ? '0'+d.getMinutes() : d.getMinutes()}`;
                 }
             } catch(e){}
         }
 
-        // 2. 渲染列表
+        // 2. 渲染雲端列表
         listContainer.innerHTML = '';
-        
-        // 🔥 [新增] 如果有備份，顯示在最頂端 (作為選項 0 或特殊按鈕)
-        if (hasBackup) {
-            const backupDiv = document.createElement('div');
-            backupDiv.className = 'pop-list-item';
-            backupDiv.style.background = '#e8f5e9'; // 綠色底
-            backupDiv.style.border = '1px dashed #4caf50';
-            backupDiv.innerHTML = `<strong>♻️</strong> [本機備份] 自動存檔 (${backupTime}) <br><span style="font-size:0.8em; color:#666;">點擊此處立即還原</span>`;
-            backupDiv.onclick = () => {
-                closeModal();
-                restoreFromLocalBackup(); // 呼叫還原函數
-                resolve(true);
-            };
-            listContainer.appendChild(backupDiv);
-        }
-
-        if (projectsData.length === 0 && !hasBackup) {
-             listContainer.innerHTML = '<div style="padding:10px; color:#999;">雲端上沒有專案。</div>';
+        if (projectsData.length === 0) {
+             listContainer.innerHTML = '<div style="padding:20px; color:#999;">雲端上沒有專案。</div>';
         } else {
             projectsData.forEach((p, index) => {
                 const dateStr = new Date(p.created_at).toLocaleDateString();
@@ -3481,18 +3471,43 @@ async function promptAndLoadCloudProject() {
             });
         }
 
-        // 3. 顯示 Modal
+        // 3. 插入備份按鈕 (如果有的話)
+        if (hasBackup) {
+            const backupContainer = document.createElement('div');
+            backupContainer.id = 'pop-backup-btn-container';
+            backupContainer.style.cssText = 'margin-top: 15px; border-top: 1px solid #eee; padding-top: 15px; text-align: center;';
+            
+            backupContainer.innerHTML = `
+                <div style="font-size: 0.9rem; color: #666; margin-bottom: 8px;">
+                    ♻️ 發現未儲存的本機備份 (${backupTime})
+                </div>
+                <button class="pop-btn" style="background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; width: 100%; padding: 8px;">
+                    還原此備份
+                </button>
+            `;
+            
+            // 插入到 footer 之前
+            footer.parentNode.insertBefore(backupContainer, footer);
+            
+            backupContainer.querySelector('button').onclick = () => {
+                closeModal();
+                restoreFromLocalBackup();
+                resolve(true);
+            };
+        }
+
+        // 4. 顯示 Modal
         modal.classList.add('active');
         input.value = '';
         setTimeout(() => input.focus(), 100); 
 
-        // 4. 定義確認邏輯
+        // 5. 定義確認邏輯
         const triggerConfirm = async () => {
             const val = parseInt(input.value, 10);
             if (!isNaN(val) && val >= 1 && val <= projectsData.length) {
                 const projectId = projectsData[val - 1].id;
                 closeModal();
-                await openAssignment(projectId); // 呼叫新版的開啟函數
+                await openAssignment(projectId);
                 resolve(true);
             } else {
                 input.style.borderColor = '#c86a5a';
@@ -3505,19 +3520,19 @@ async function promptAndLoadCloudProject() {
             confirmBtn.onclick = null;
             cancelBtn.onclick = null;
             input.onkeydown = null;
+            // 清理動態生成的備份按鈕，避免下次打開重複
+            const btn = document.getElementById('pop-backup-btn-container');
+            if(btn) btn.remove();
         };
 
-        // 5. 綁定按鈕
+        // 6. 綁定按鈕
         confirmBtn.onclick = triggerConfirm;
-        
-        // 修改「開新專案」按鈕邏輯：不載入任何野，直接去 Page 1
         cancelBtn.textContent = "開新專案";
         cancelBtn.onclick = () => {
             closeModal();
             showPage('page1');
             resolve(false);
         };
-        
         input.onkeydown = (e) => {
             if (e.key === 'Enter') triggerConfirm();
         };
@@ -4425,7 +4440,7 @@ function parseStudentName(rawName) {
     };
 }
 
-// [Pro-v2.4] 更新下拉選單 (含強制排序)
+// [Pro-v2.6] Page 2 下拉選單排序修正 (使用自然排序)
 function updateStudentDropdown() {
   const namesText = document.getElementById('student-names').value;
   const studentSelect = document.getElementById('student-select');
@@ -4435,15 +4450,20 @@ function updateStudentDropdown() {
       .map(name => parseStudentName(name))
       .filter(p => p.name);
 
-  // 🔥 [關鍵修改] 在生成選單前，強制按學號數值排序
+  // 🔥 [關鍵修正] 使用 Intl.Collator 統一排序邏輯
+  const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
+  
   parsedNames.sort((a, b) => {
-      const numA = a.number || 999999; // parseStudentName 已經幫我們轉成 int 了
-      const numB = b.number || 999999;
-      if (numA !== numB) return numA - numB;
-      return a.name.localeCompare(b.name);
+      // 確保轉為字串比較
+      const numA = (a.number !== null ? a.number : '').toString();
+      const numB = (b.number !== null ? b.number : '').toString();
+      
+      const numCompare = collator.compare(numA, numB);
+      if (numCompare !== 0) return numCompare;
+      return collator.compare(a.name, b.name);
   });
 
-  // 2. 更新全域變數 allStudentRecords (保持資料同步)
+  // 2. 更新全域變數 allStudentRecords
   const oldRecords = [...allStudentRecords];
   allStudentRecords = parsedNames.map(p => {
     const existingRecord = oldRecords.find(r => r.originalName === p.originalName);
@@ -4458,7 +4478,6 @@ function updateStudentDropdown() {
   parsedNames.forEach(p => {
     const option = document.createElement('option');
     option.value = p.originalName;
-    // 顯示格式： "01 陳大文"
     option.textContent = p.originalName;
     studentSelect.appendChild(option);
     if (p.originalName === currentSelected) {
@@ -4466,17 +4485,15 @@ function updateStudentDropdown() {
     }
   });
 
-  // 嘗試保持原本的選擇，如果沒選或被刪了，就選第一個
   if (newSelectionExists) {
       studentSelect.value = currentSelected;
   } else if (studentSelect.options.length > 0) {
       studentSelect.selectedIndex = 0;
-      // 如果換了人，要觸發載入資料
       loadStudentData(studentSelect.value);
   }
   
   updateAllOutputs();
-  renderStudentOverviewTable(); // 這裡面的表格也會跟著變順序
+  renderStudentOverviewTable();
 }
 
 function toggleOtherBlock(selectId, value) {
