@@ -4961,7 +4961,7 @@ function navigateToStudent(direction) {
   select.dispatchEvent(new Event('change'));
 }
 
-// [Pro-v5.2] 儲存邏輯 (除錯增強版 - 升級為 async)
+// [Pro-v5.3] 儲存邏輯 (暴力獲取 ID 修復版)
 async function saveCurrentStudentData() {
   const studentSelect = document.getElementById('student-select');
   const studentOriginalName = studentSelect.value; 
@@ -5025,7 +5025,7 @@ async function saveCurrentStudentData() {
     pureStudentComment: studentComment,
   };
 
-  // 3. 雲端寫入 (這裡開始是新功能)
+  // 3. 雲端寫入
   if (window.currentClassId && currentUser) {
       console.log("🚀 開始雲端儲存流程...");
       const saveBtn = document.querySelector('#grading-section-save .action-btn');
@@ -5039,7 +5039,7 @@ async function saveCurrentStudentData() {
           let assignmentId = window.currentAssignmentId;
 
           if (!assignmentId) {
-              console.log("🔍 正在查找作業 ID...");
+              // 嘗試查找或建立作業
               const { data: assignData } = await supabaseClient
                   .from('assignments')
                   .select('id')
@@ -5048,10 +5048,8 @@ async function saveCurrentStudentData() {
                   .maybeSingle();
 
               if (assignData) {
-                  console.log("✅ 找到現有作業:", assignData.id);
                   assignmentId = assignData.id;
               } else {
-                  console.log("➕ 建立新作業:", topicTitle);
                   const { data: newAssign, error: createError } = await supabaseClient
                       .from('assignments')
                       .insert([{ user_id: currentUser.id, class_id: window.currentClassId, title: topicTitle }])
@@ -5059,25 +5057,46 @@ async function saveCurrentStudentData() {
                       .single();
                   
                   if (createError) throw createError;
-                  console.log("✅ 新作業建立成功:", newAssign.id);
                   assignmentId = newAssign.id;
               }
               window.currentAssignmentId = assignmentId;
           }
 
-          // B. 檢查 Student ID
-          if (!studentRecord.dbId) {
-              throw new Error(`記憶體中沒有學生 ID (Student: ${studentRecord.name})。請嘗試重新整理網頁。`);
+          // B. 獲取 Student ID (暴力補救邏輯)
+          let studentId = studentRecord.dbId;
+          
+          if (!studentId) {
+              console.warn("⚠️ 記憶體中無 ID，嘗試暴力查詢...");
+              // 去除學號，只用名字查 (假設名字是唯一的，或者容錯)
+              // studentRecord.name 應該已經被 parseStudentName 處理過，是純名字
+              const cleanName = studentRecord.name.trim();
+              
+              const { data: stData, error: stError } = await supabaseClient
+                  .from('students')
+                  .select('id')
+                  .eq('class_id', window.currentClassId)
+                  .eq('name', cleanName)
+                  .maybeSingle();
+
+              if (stData) {
+                  studentId = stData.id;
+                  studentRecord.dbId = stData.id; // 補回記憶體
+                  console.log("✅ 暴力查詢成功，ID:", studentId);
+              } else {
+                  console.error("❌ 暴力查詢失敗，找不到學生:", cleanName);
+              }
           }
-          console.log("👤 學生 ID:", studentRecord.dbId);
+
+          if (!studentId) {
+              throw new Error(`無法在資料庫找到學生: ${studentRecord.name} (請檢查 Page 8 名單是否與此一致)`);
+          }
 
           // C. 寫入 Results
-          console.log("💾 正在寫入成績...");
           const { error: resultError } = await supabaseClient
               .from('results')
               .upsert({
                   assignment_id: assignmentId,
-                  student_id: studentRecord.dbId,
+                  student_id: studentId,
                   content_score: parseFloat(scores.content) || 0,
                   expression_score: parseFloat(scores.expression) || 0,
                   structure_score: parseFloat(scores.structure) || 0,
@@ -5093,18 +5112,16 @@ async function saveCurrentStudentData() {
 
           if (resultError) throw resultError;
           
-          console.log("🎉 寫入完成！");
           if (typeof showToast === 'function') showToast("✅ 已同步至雲端！", "success");
 
       } catch (e) {
           console.error("🛑 儲存錯誤:", e);
-          alert(`雲端寫入失敗:\n${e.message}\n(請截圖 Console 給開發者)`);
+          alert(`雲端寫入失敗:\n${e.message}`);
       } finally {
           saveBtn.textContent = originalBtnText;
           saveBtn.disabled = false;
       }
   } else {
-      // 離線模式或手動模式
       if (typeof showToast === 'function') showToast("已儲存 (離線模式)", "info");
   }
 
@@ -5112,7 +5129,6 @@ async function saveCurrentStudentData() {
   isDataDirty = true;
   updateUIBasedOnAuthState();
   
-  // 自動滾動
   setTimeout(() => scrollToSection(new Event('dummy'), 'student-select'), 100);
 }
 
