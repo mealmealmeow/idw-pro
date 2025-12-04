@@ -8472,7 +8472,7 @@ function toggleAllSetupStudents(checked) {
 // ==========================================
 // ====== 核心橋接函數 (雙軌兼容版) ======
 // ==========================================
-// [Pro-v6.13] 啟動批改 (加入強制 ID 同步，解決新班級儲存失敗問題)
+// [Pro-v7.3.1-InstantCreate] 啟動批改 (修正版：立即建立雲端存檔)
 async function startGradingWithSetup(actionType) {
     const modeRadio = document.querySelector('input[name="setup-mode"]:checked');
     const mode = modeRadio ? modeRadio.value : 'manual';
@@ -8488,9 +8488,12 @@ async function startGradingWithSetup(actionType) {
     allStudentRecords = []; 
     let rawStudentList = ""; 
     let sourceClass = "";
+    
+    // 重置 Assignment ID，因為這是新專案
+    window.currentAssignmentId = null;
 
     if (mode === 'registry') {
-        // === [Track B: 班級模式] ===
+        // === [Track B: 班級模式 (Cloud)] ===
         const select = document.getElementById('setup-class-select');
         if (!select || !select.value) {
             alert("請選擇班級！");
@@ -8508,9 +8511,9 @@ async function startGradingWithSetup(actionType) {
         window.currentProjectType = 'cloud';
         window.currentClassId = select.value;
 
-        // 🔥 [關鍵修復] 雖然卡片有 dataset，但為了保險，我們直接去 DB 抓一次 ID 對照表
-        // 這能解決「剛新增完班級，DOM 可能未完全更新」的邊緣情況
-        let dbStudentsMap = {}; // { "陳大文": "uuid", "01-陳大文": "uuid" }
+        // 1. 構建學生名單
+        // 為了保險，我們先去 DB 抓一次 ID 對照表
+        let dbStudentsMap = {}; 
         
         try {
             const { data: dbStudents } = await supabaseClient
@@ -8520,9 +8523,7 @@ async function startGradingWithSetup(actionType) {
             
             if (dbStudents) {
                 dbStudents.forEach(s => {
-                    // 建立多種 key 以便匹配
                     dbStudentsMap[s.name.trim()] = s.id;
-                    
                     let displayNum = s.student_number;
                     if (displayNum && /^\d$/.test(displayNum)) displayNum = '0' + displayNum;
                     const fullName = `${displayNum ? displayNum + '-' : ''}${s.name.trim()}`;
@@ -8531,17 +8532,12 @@ async function startGradingWithSetup(actionType) {
             }
         } catch(e) { console.error("ID Pre-fetch error", e); }
 
-        // 構建名單
         const tempRecords = [];
         checkedCards.forEach(card => {
-            const info = card.dataset.info; // "01-陳大文"
-            
-            // 優先用卡片上的 ID，如果沒有(例如剛新增)，就查表
+            const info = card.dataset.info;
             let dbId = card.dataset.dbId;
-            
             const p = parseStudentName(info);
             
-            // 如果卡片沒 ID，嘗試從剛才抓的 Map 找回 ID
             if (!dbId || dbId === 'undefined') {
                 if (dbStudentsMap[info]) dbId = dbStudentsMap[info];
                 else if (dbStudentsMap[p.name]) dbId = dbStudentsMap[p.name];
@@ -8553,7 +8549,7 @@ async function startGradingWithSetup(actionType) {
                 number: p.number,
                 name: p.name,
                 originalName: p.originalName,
-                dbId: dbId, // 這裡應該要有值了
+                dbId: dbId,
                 data: null
             });
         });
@@ -8561,8 +8557,43 @@ async function startGradingWithSetup(actionType) {
         allStudentRecords = tempRecords;
         sortStudents(allStudentRecords);
 
+        // 🔥 [核心修正] 立即在 assignments 表建立檔案，確保 Dashboard 可見
+        if (currentUser) {
+            const saveBtn = document.querySelector('button[onclick*="startGradingWithSetup"]');
+            if(saveBtn) saveBtn.textContent = "正在建立...";
+            
+            try {
+                // 使用 upsert，防止手滑按兩次導致重複
+                const { data: newAssign, error: assignError } = await supabaseClient
+                    .from('assignments')
+                    .upsert({
+                        user_id: currentUser.id,
+                        class_id: window.currentClassId,
+                        title: topicInput.value.trim(),
+                        created_at: new Date().toISOString()
+                    }, { onConflict: 'class_id, title' })
+                    .select()
+                    .single();
+
+                if (assignError) throw assignError;
+
+                // 成功建立，鎖定 ID
+                window.currentAssignmentId = newAssign.id;
+                console.log("✅ 專案已建立，ID:", newAssign.id);
+
+                // 立即刷新 Dashboard，確保背景資料同步
+                loadDashboard();
+
+            } catch (err) {
+                console.error("建立專案失敗 (但不影響批改):", err);
+                // 即使失敗也繼續，讓老師先改再說
+            } finally {
+                if(saveBtn) saveBtn.textContent = "確定並開始";
+            }
+        }
+
     } else {
-        // === [Track A: 手動模式] ===
+        // === [Track A: 手動模式 (Local)] ===
         const manualInput = document.getElementById('student-names-manual');
         rawStudentList = manualInput ? manualInput.value.trim() : '';
         
@@ -8590,6 +8621,7 @@ async function startGradingWithSetup(actionType) {
         sourceClass = manualClassInput ? manualClassInput.value.trim() : '未分類';
         window.currentProjectType = 'local';
         window.currentClassId = null;
+        window.currentAssignmentId = null;
     }
 
     // 同步 UI 到 Page 2
@@ -8619,7 +8651,6 @@ async function startGradingWithSetup(actionType) {
         if(typeof showToast === 'function') showToast(`已建立作業：${allStudentRecords.length} 位學生`, "success");
     }
 }
-
 
 // 下載「手動模式」專用的簡單範本
 function downloadManualTemplate() {
