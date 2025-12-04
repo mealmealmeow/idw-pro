@@ -4441,7 +4441,7 @@ function parseStudentName(rawName) {
     };
 }
 
-// [Pro-v4.1] Page 2 下拉選單 (同步自然排序邏輯)
+// [Pro-v4.2] 更新下拉選單 (整合排序 + 靜默 ID 同步)
 function updateStudentDropdown() {
   const namesText = document.getElementById('student-names').value;
   const studentSelect = document.getElementById('student-select');
@@ -4451,11 +4451,9 @@ function updateStudentDropdown() {
       .map(name => parseStudentName(name))
       .filter(p => p.name);
 
-  // 🔥 修正排序：使用同樣的 Collator 邏輯
+  // 2. 強制數值排序 (1, 2... 10)
   const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
-  
   parsedNames.sort((a, b) => {
-      // 確保比對的是字串
       const numA = (a.number !== null ? a.number : '').toString();
       const numB = (b.number !== null ? b.number : '').toString();
       
@@ -4464,14 +4462,15 @@ function updateStudentDropdown() {
       return collator.compare(a.name, b.name);
   });
 
-  // 2. 更新全域變數
+  // 3. 更新全域變數
   const oldRecords = [...allStudentRecords];
   allStudentRecords = parsedNames.map(p => {
     const existingRecord = oldRecords.find(r => r.originalName === p.originalName);
-    return existingRecord || { ...p, data: null };
+    // 這裡先預設 dbId 為 null，等下面的代碼去填充
+    return existingRecord || { ...p, data: null, dbId: null };
   });
 
-  // 3. 渲染選單
+  // 4. 渲染選單
   const currentSelected = studentSelect.value;
   studentSelect.innerHTML = parsedNames.length === 0 ? '<option value="">請先在上方輸入學生名單</option>' : '';
   
@@ -4480,7 +4479,7 @@ function updateStudentDropdown() {
     const option = document.createElement('option');
     option.value = p.originalName;
     
-    // 🔥 修正顯示：選單內也補零 (01 陳大文)
+    // 補零顯示
     let displayName = p.name;
     if (p.number !== null) {
         const paddedNum = p.number.toString().padStart(2, '0');
@@ -4503,6 +4502,29 @@ function updateStudentDropdown() {
   
   updateAllOutputs();
   renderStudentOverviewTable();
+
+  // 🔥 [Pro-v4.2 新增] 靜默同步：去資料庫抓學生 ID
+  if (window.currentClassId) {
+      // console.log("正在為班級 ID:", window.currentClassId, "獲取學生名單...");
+      supabaseClient
+          .from('students')
+          .select('id, name')
+          .eq('class_id', window.currentClassId)
+          .then(({ data, error }) => {
+              if (data) {
+                  let matchCount = 0;
+                  data.forEach(dbStudent => {
+                      // 用名字來匹配 (去除前後空白)
+                      const record = allStudentRecords.find(r => r.name.trim() === dbStudent.name.trim());
+                      if (record) {
+                          record.dbId = dbStudent.id; // 注入 ID！
+                          matchCount++;
+                      }
+                  });
+                  console.log(`✅ [ID Sync] 成功匹配 ${matchCount} 位學生的 Database ID`);
+              }
+          });
+  }
 }
 
 function toggleOtherBlock(selectId, value) {
