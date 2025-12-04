@@ -2416,6 +2416,26 @@
     </div>
   </div>
 </div>
+
+<!-- [Pro-v6.3] 通用輸入/確認 Modal (取代原生 prompt/confirm) -->
+<div id="pop-generic-modal" class="pop-overlay">
+  <div class="pop-modal">
+    <div class="pop-icon" id="pop-generic-icon">✨</div>
+    <h3 id="pop-generic-title">標題</h3>
+    <p class="pop-desc" id="pop-generic-desc">描述文字</p>
+    
+    <!-- 輸入框容器 (預設隱藏) -->
+    <div id="pop-generic-input-container" style="display:none; margin-bottom:20px;">
+        <input type="text" id="pop-generic-input" class="pop-input">
+    </div>
+
+    <div class="pop-footer">
+      <button class="pop-btn pop-btn-cancel" id="pop-generic-cancel">取消</button>
+      <button class="pop-btn pop-btn-confirm" id="pop-generic-confirm">確定</button>
+    </div>
+  </div>
+</div>
+
 <div id="page1" class="page-content active">
   <div class="section-box">
     <h2>步驟一：設定作業資訊</h2>
@@ -3106,7 +3126,9 @@
     <a href="#grading-section-typo-score" class="floating-nav-btn" onclick="scrollToSection(event, 'grading-section-typo-score')" data-tooltip="錯別字/評分">📝</a>
     <a href="#grading-section-feedback" class="floating-nav-btn" onclick="scrollToSection(event, 'grading-section-feedback')" data-tooltip="學生評語">📄</a>
     
-    
+    <!-- 分隔線 (視覺上分開導航與操作) -->
+    <div style="width: 60%; height: 1px; background: rgba(0,0,0,0.1); margin: 4px auto;"></div>
+
     <!-- 操作按鈕 -->
     <a href="javascript:void(0)" class="floating-nav-btn" onclick="saveCurrentStudentData('local')" data-tooltip="💾 暫存草稿 (Local)">💾</a>
     <a href="javascript:void(0)" class="floating-nav-btn" onclick="saveCurrentStudentData('cloud')" data-tooltip="☁️ 同步上雲 (Cloud)">☁️</a>
@@ -8083,48 +8105,77 @@ async function loadAllClasses() {
     }
 }
 
-// 2. 新增班級
+// [Pro-v6.3] 新增班級 (智能學年 + 自訂 UI)
 async function createNewClass() {
     if (!currentUser) {
-        alert("請先登入！");
-        handleLogin();
+        showCustomModal({ icon:'🔒', title:'請先登入', desc:'班級管理需要雲端同步功能。', confirmText:'去登入' })
+            .then(ok => { if(ok) handleLogin(); });
         return;
     }
 
-    const year = prompt("請輸入學年 (例如 2024-2025):", "2024-2025");
-    if (!year) return;
-    
-    const className = prompt("請輸入班別名稱 (例如 6A):");
+    // 1. 計算智能學年
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = today.getMonth() + 1; // 1-12
+    // 如果是 9月或之後，就是 "2025-2026"；否則就是 "2024-2025"
+    const defaultYear = month >= 9 ? `${year}-${year+1}` : `${year-1}-${year}`;
+
+    // 2. 彈出輸入學年
+    const inputYear = await showCustomModal({
+        icon: '📅',
+        title: '新增班級 - 步驟 1/2',
+        desc: '請確認學年 (Academic Year)',
+        showInput: true,
+        defaultValue: defaultYear
+    });
+
+    if (!inputYear) return; // 用戶取消
+
+    // 3. 彈出輸入班名
+    const className = await showCustomModal({
+        icon: '🏫',
+        title: '新增班級 - 步驟 2/2',
+        desc: '請輸入班別名稱 (例如：6A)',
+        showInput: true,
+        defaultValue: ''
+    });
+
     if (!className) return;
 
-    // 檢查是否已存在 (簡單前端檢查)
-    // 略，直接交給 Backend 或 Insert error handle
-
+    // 4. 寫入 Database
     try {
         const { error } = await supabaseClient
             .from('classes')
             .insert([{ 
                 user_id: currentUser.id,
-                academic_year: year,
-                class_name: className
+                academic_year: inputYear.trim(),
+                class_name: className.trim()
             }]);
 
         if (error) throw error;
 
-        alert("班級建立成功！\n現在請點擊「管理名單」來加入學生。");
-        loadAllClasses(); // 刷新
+        showCustomModal({ icon:'✅', title:'成功', desc:'班級已建立，請點擊「管理名單」加入學生。', cancelText:'關閉', confirmText:'好' });
+        loadAllClasses(); 
 
     } catch (error) {
-        alert("建立失敗：" + error.message);
+        console.error(error);
+        showCustomModal({ icon:'❌', title:'建立失敗', desc: error.message });
     }
 }
 
-// [Pro-v2.2] 刪除班級 (連帶刪除學生)
+// [Pro-v6.3] 刪除班級 (自訂 UI)
 async function deleteClass(classId, className) {
-    if (!confirm(`⚠️ 嚴重警告 ⚠️\n\n確定要刪除「${className}」嗎？\n\n這將會同時刪除：\n1. 該班級的所有資料\n2. 該班級的所有學生名單\n\n(確定要繼續？)`)) return;
+    const confirmDelete = await showCustomModal({
+        icon: '⚠️',
+        title: '刪除確認',
+        desc: `確定要刪除「${className}」嗎？\n這將會同時刪除該班級的所有學生名單。\n(已批改的作業記錄不會受影響)`,
+        confirmText: '確認刪除',
+        cancelText: '再諗諗'
+    });
+
+    if (!confirmDelete) return;
 
     try {
-        // 因為我們在建立 Table 時設定了 "on delete cascade"，所以刪除 Class 會自動刪除 Students
         const { error } = await supabaseClient
             .from('classes')
             .delete()
@@ -8133,12 +8184,11 @@ async function deleteClass(classId, className) {
         if (error) throw error;
         
         if (typeof showToast === 'function') showToast(`已刪除班級：${className}`, "success");
-        else alert("刪除成功");
-        
-        loadAllClasses(); // 刷新列表
+        loadAllClasses(); 
 
     } catch (error) {
-        alert("刪除失敗：" + error.message);
+        console.error(error);
+        showCustomModal({ icon:'❌', title:'刪除失敗', desc: error.message });
     }
 }
 
@@ -8612,7 +8662,60 @@ function sortStudents(studentsArray) {
         return collator.compare(nameA, nameB);
     });
 }
+// [Pro-v6.3] 通用 Modal 呼叫器
+function showCustomModal({ icon='✨', title, desc, showInput=false, defaultValue='', confirmText='確定', cancelText='取消' }) {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('pop-generic-modal');
+        const titleEl = document.getElementById('pop-generic-title');
+        const descEl = document.getElementById('pop-generic-desc');
+        const iconEl = document.getElementById('pop-generic-icon');
+        const inputContainer = document.getElementById('pop-generic-input-container');
+        const input = document.getElementById('pop-generic-input');
+        const confirmBtn = document.getElementById('pop-generic-confirm');
+        const cancelBtn = document.getElementById('pop-generic-cancel');
 
+        // 設定內容
+        iconEl.textContent = icon;
+        titleEl.textContent = title;
+        descEl.textContent = desc || '';
+        confirmBtn.textContent = confirmText;
+        cancelBtn.textContent = cancelText;
+        
+        // 設定輸入框
+        if (showInput) {
+            inputContainer.style.display = 'block';
+            input.value = defaultValue;
+            setTimeout(() => input.focus(), 100);
+        } else {
+            inputContainer.style.display = 'none';
+        }
+
+        // 顯示
+        modal.classList.add('active');
+
+        // 綁定事件 (防止重複綁定，每次都覆蓋)
+        const cleanup = () => {
+            modal.classList.remove('active');
+            input.onkeydown = null;
+        };
+
+        confirmBtn.onclick = () => {
+            cleanup();
+            resolve(showInput ? input.value : true);
+        };
+
+        cancelBtn.onclick = () => {
+            cleanup();
+            resolve(false); // 取消回傳 false
+        };
+
+        if (showInput) {
+            input.onkeydown = (e) => {
+                if (e.key === 'Enter') confirmBtn.click();
+            };
+        }
+    });
+}
 </script> <!-- 呢個係原本全個檔案唯一的結尾，保留佢 -->
 
 
