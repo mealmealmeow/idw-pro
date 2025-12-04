@@ -4421,26 +4421,37 @@ function concretizeExample(id, rawExample) {
   return lines.slice(0, 2);
 }
 
-// [Pro-v3.2] 名單解析器 (增強容錯)
+// [Pro-v3.3] 名單解析器 (強力過濾 JSON 垃圾)
 function parseStudentName(rawName) {
     if (!rawName) return { number: null, name: '', originalName: '' };
+    
+    let clean = rawName.trim();
 
-    // 1. 如果不幸還是收到 JSON，嘗試解析它
-    if (rawName.trim().startsWith('{')) {
+    // 🔥 [新增] 如果偵測到這是 JSON 格式的垃圾，嘗試搶救裡面的 name
+    if (clean.startsWith('{') || clean.startsWith('[')) {
         try {
-            const obj = JSON.parse(rawName);
-            return {
-                number: obj.num || null,
-                name: obj.name || '',
-                originalName: `${obj.num ? obj.num + '-' : ''}${obj.name}` // 強制轉回文字
-            };
+            // 嘗試把它轉回物件，提取有用的資訊
+            // 這裡只是一個簡單的 heuristic，針對截圖中的情況
+            if (clean.includes('"name":')) {
+                const nameMatch = clean.match(/"name":"([^"]+)"/);
+                const numMatch = clean.match(/"num":"([^"]+)"/);
+                if (nameMatch) {
+                    const n = nameMatch[1];
+                    const no = numMatch ? numMatch[1] : null;
+                    return {
+                        number: no ? parseInt(no, 10) : null,
+                        name: n,
+                        originalName: `${no ? no + '-' : ''}${n}` // 重建成正常格式
+                    };
+                }
+            }
         } catch (e) {}
+        // 如果搶救失敗，就當作空行忽略
+        return { number: null, name: '', originalName: '' };
     }
 
-    // 2. 正常文字解析邏輯 (支援 "01-陳大文", "1. 陳大文", "1 陳大文")
-    // 移除開頭的引號 (如果有)
-    let clean = rawName.replace(/^"|"$/g, '').trim();
-    
+    // 正常解析邏輯
+    clean = clean.replace(/^"|"$/g, ''); // 去除首尾引號
     const match = clean.match(/^(\d+)[-\s._]*(.*)$/);
     if (match) {
         return {
@@ -8210,7 +8221,7 @@ async function loadPage1ClassDropdown(forceRefresh = false) {
     }
 }
 
-// [Pro-v3.2] Page 1 班級名單 (修復 JSON 亂碼問題)
+// [Pro-v3.3] Page 1 班級名單 (強制純文字格式)
 async function handleClassSelectChange() {
     const select = document.getElementById('setup-class-select');
     const container = document.getElementById('setup-student-checklist');
@@ -8255,10 +8266,9 @@ async function handleClassSelectChange() {
             let displayNum = s.student_number;
             if (displayNum && /^\d$/.test(displayNum)) displayNum = '0' + displayNum;
 
-            // 🔥 [關鍵修正] 改回純文字格式，不傳 JSON
-            // 格式： "01-陳大文" (如果有學號) 或 "陳大文"
-            const cleanName = `${displayNum ? displayNum + '-' : ''}${s.name}`;
-            div.dataset.info = cleanName;
+            // 🔥 [修正重點] 這裡只傳最簡單的 "學號-姓名" 字串
+            const cleanInfo = `${displayNum ? displayNum + '-' : ''}${s.name}`;
+            div.dataset.info = cleanInfo;
             
             div.innerHTML = `<input type="checkbox" checked><span>${escapeHtml(displayNum)}<br>${escapeHtml(s.name)}</span>`;
             div.onclick = () => {
