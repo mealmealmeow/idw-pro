@@ -3399,6 +3399,7 @@ async function loadDataFromCloud() {
   }
 }
 
+// [Pro-v2.5] 雲端讀取視窗 (整合還原備份按鈕)
 async function promptAndLoadCloudProject() {
     if (!currentUser) {
         alert("請先登入以使用雲端專案功能。");
@@ -3409,7 +3410,10 @@ async function promptAndLoadCloudProject() {
     authStatus.textContent = '正在搜尋雲端專案...';
 
     const { data: projectsData, error: projectsError } = await supabaseClient
-        .from('student_projects').select('id, class_name, topic, updated_at').eq('user_id', currentUser.id);
+        .from('assignments') // 注意：這裡是讀 assignments 表
+        .select('id, title, created_at, classes(class_name)')
+        .eq('user_id', currentUser.id)
+        .order('updated_at', { ascending: false }); // 假設有 updated_at，否則用 created_at
     
     authStatus.textContent = originalText;
 
@@ -3417,17 +3421,8 @@ async function promptAndLoadCloudProject() {
         alert(`讀取雲端專案列表時出錯：${projectsError.message}`);
         return;
     }
-    if (!projectsData || projectsData.length === 0) {
-        if (sessionStorage.getItem('projectPromptShownThisSession')) {
-            if (typeof showToast === 'function') showToast("雲端上沒有找到任何專案。", "info");
-            else alert("雲端上沒有找到任何專案。");
-        }
-        return;
-    }
 
     // --- Pop Art Modal 邏輯 ---
-    const sortedProjects = projectsData.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
-    
     return new Promise((resolve) => {
         const modal = document.getElementById('pop-project-modal');
         const listContainer = document.getElementById('pop-project-list');
@@ -3435,105 +3430,94 @@ async function promptAndLoadCloudProject() {
         const confirmBtn = document.getElementById('pop-project-confirm');
         const cancelBtn = document.getElementById('pop-project-cancel');
         
-        // 1. 渲染列表
-        listContainer.innerHTML = '';
-        sortedProjects.forEach((p, index) => {
-            const dateStr = new Date(p.updated_at).toLocaleDateString();
-            const div = document.createElement('div');
-            div.className = 'pop-list-item';
-            div.innerHTML = `<strong>${index + 1}.</strong> ${escapeHtmlAttr(p.class_name || '未命名')} - ${escapeHtmlAttr(p.topic || '未命名')} <span style="font-size:0.8em;color:#999">(${dateStr})</span>`;
-            
-            // 點擊列表項目直接選中
-            div.onclick = () => {
-                input.value = index + 1;
-                triggerConfirm();
-            };
-            listContainer.appendChild(div);
-        });
+        // 1. 檢查是否有本地備份
+        const backupStr = localStorage.getItem('idw_grading_backup_v1');
+        let hasBackup = false;
+        let backupTime = '';
+        if (backupStr) {
+            try {
+                const b = JSON.parse(backupStr);
+                if (b.timestamp) {
+                    hasBackup = true;
+                    const d = new Date(b.timestamp);
+                    backupTime = `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${d.getMinutes()}`;
+                }
+            } catch(e){}
+        }
 
-        // 2. 顯示 Modal
+        // 2. 渲染列表
+        listContainer.innerHTML = '';
+        
+        // 🔥 [新增] 如果有備份，顯示在最頂端 (作為選項 0 或特殊按鈕)
+        if (hasBackup) {
+            const backupDiv = document.createElement('div');
+            backupDiv.className = 'pop-list-item';
+            backupDiv.style.background = '#e8f5e9'; // 綠色底
+            backupDiv.style.border = '1px dashed #4caf50';
+            backupDiv.innerHTML = `<strong>♻️</strong> [本機備份] 自動存檔 (${backupTime}) <br><span style="font-size:0.8em; color:#666;">點擊此處立即還原</span>`;
+            backupDiv.onclick = () => {
+                closeModal();
+                restoreFromLocalBackup(); // 呼叫還原函數
+                resolve(true);
+            };
+            listContainer.appendChild(backupDiv);
+        }
+
+        if (projectsData.length === 0 && !hasBackup) {
+             listContainer.innerHTML = '<div style="padding:10px; color:#999;">雲端上沒有專案。</div>';
+        } else {
+            projectsData.forEach((p, index) => {
+                const dateStr = new Date(p.created_at).toLocaleDateString();
+                const className = p.classes ? p.classes.class_name : '未分類';
+                const div = document.createElement('div');
+                div.className = 'pop-list-item';
+                div.innerHTML = `<strong>${index + 1}.</strong> ${escapeHtmlAttr(className)} - ${escapeHtmlAttr(p.title)} <span style="font-size:0.8em;color:#999">(${dateStr})</span>`;
+                
+                div.onclick = () => {
+                    input.value = index + 1;
+                    triggerConfirm();
+                };
+                listContainer.appendChild(div);
+            });
+        }
+
+        // 3. 顯示 Modal
         modal.classList.add('active');
         input.value = '';
         setTimeout(() => input.focus(), 100); 
 
-        // 3. 定義確認邏輯
+        // 4. 定義確認邏輯
         const triggerConfirm = async () => {
             const val = parseInt(input.value, 10);
-            if (!isNaN(val) && val >= 1 && val <= sortedProjects.length) {
-                const projectId = sortedProjects[val - 1].id;
+            if (!isNaN(val) && val >= 1 && val <= projectsData.length) {
+                const projectId = projectsData[val - 1].id;
                 closeModal();
-                await loadProjectById(projectId); // 呼叫載入函數
+                await openAssignment(projectId); // 呼叫新版的開啟函數
                 resolve(true);
             } else {
-                input.style.borderColor = '#c86a5a'; // 錯誤時變紅
+                input.style.borderColor = '#c86a5a';
                 setTimeout(() => input.style.borderColor = '#e0e0e0', 500);
             }
         };
 
-       
-        
-      // === 這裡是用來取代原本的 closeModal ===
-        const closeModal = async () => {
+        const closeModal = () => {
             modal.classList.remove('active');
-            // 防止重複綁定
             confirmBtn.onclick = null;
             cancelBtn.onclick = null;
             input.onkeydown = null;
+        };
 
-            // 1. 清空學生與基本資料
-            clearAllCore(false);
-            allStudentRecords = [];
-            document.getElementById('student-names').value = '';
-            document.getElementById('student-class').value = '';
-            document.getElementById('topic').value = '';
-
-            // 2. 【關鍵修正】清空評語庫 DOM，防止上一份專案殘留
-            document.getElementById('critique-data').innerHTML = '';
-
-            // 3. 嘗試載入使用者的「全域評語設定」或者「還原系統預設」
-            if (currentUser) {
-                try {
-                    const { data: globalData } = await supabaseClient
-                        .from('critiques')
-                        .select('*')
-                        .eq('user_id', currentUser.id);
-                        
-                    if (globalData && globalData.length > 0) {
-                        applyCritiquesToDOM(globalData.map(c => ({
-                            id: c.critique_id, category: c.category, type: c.type, title: c.title,
-                            strengthSummary: c.strength_summary, problemCore: c.problem_core,
-                            suggestion: c.suggestion, example: c.example, options: c.options, optionsLabel: c.options_label
-                        })));
-                    } else {
-                        resetToDefaultCritiques(false);
-                    }
-                } catch(e) {
-                    console.error("載入預設評語失敗", e);
-                    resetToDefaultCritiques(false);
-                }
-            } else {
-                resetToDefaultCritiques(false);
-            }
-
-            // 4. 刷新介面
-            updateStudentDropdown();
-            renderStudentOverviewTable();
-           updateHeaderInfo();      
-            buildChecklist(); 
-            buildOverviewPage();
-            showPage('page1'); // 回到基本設定頁
-            
-            if (typeof showToast === 'function') showToast("已建立新專案 (評語庫已重置)", "info");
-
+        // 5. 綁定按鈕
+        confirmBtn.onclick = triggerConfirm;
+        
+        // 修改「開新專案」按鈕邏輯：不載入任何野，直接去 Page 1
+        cancelBtn.textContent = "開新專案";
+        cancelBtn.onclick = () => {
+            closeModal();
+            showPage('page1');
             resolve(false);
         };
-
-        // 4. 綁定按鈕事件
-        confirmBtn.onclick = triggerConfirm;
-        cancelBtn.onclick = closeModal; // <--- 確保這行有指向新的 closeModal
-        input.onkeydown = (e) => {
-            if (e.key === 'Enter') triggerConfirm();
-        };
+        
         input.onkeydown = (e) => {
             if (e.key === 'Enter') triggerConfirm();
         };
@@ -6993,42 +6977,10 @@ async function loadDashboard() {
 
 
 
-// --- Helper: 獲取離線資料 ---
+// [Pro-v2.5-Fix] 停止載入離線備份到 Dashboard (避免重複混亂)
 function getOfflineProjectMeta() {
-    // 優先檢查當前記憶體
-    if (typeof allStudentRecords !== 'undefined' && allStudentRecords.length > 0) {
-        const cName = document.getElementById('student-class').value || '未命名班別';
-        const topic = document.getElementById('topic').value || '未命名題目';
-        const graded = allStudentRecords.filter(r => r.data).length;
-        return {
-            id: 'local_memory',
-            class_name: cName,
-            topic: topic,
-            total_students: allStudentRecords.length,
-            graded_count: graded,
-            last_updated: new Date().toISOString(),
-            source_type: 'local_memory'
-        };
-    }
-    // 其次檢查 LocalStorage 備份
-    try {
-        const backupStr = localStorage.getItem('idw_grading_backup_v1');
-        if (backupStr) {
-            const backup = JSON.parse(backupStr);
-            if (backup.students && backup.students.length > 0) {
-                const graded = backup.students.filter(r => r.data).length;
-                return {
-                    id: 'local_backup',
-                    class_name: (backup.className || '未命名') + ' (備份)',
-                    topic: backup.topic || '未命名',
-                    total_students: backup.students.length,
-                    graded_count: graded,
-                    last_updated: new Date(backup.timestamp).toISOString(),
-                    source_type: 'local_backup'
-                };
-            }
-        }
-    } catch(e) {}
+    // 強制回傳 null，讓 Dashboard 只顯示雲端資料
+    // 因為備份還原功能已經移到 Header 的資料夾按鈕 (📂) 內了
     return null;
 }
 
@@ -8117,7 +8069,7 @@ async function loadPage1ClassDropdown(forceRefresh = false) {
     }
 }
 
-// [Pro-v2.4] 載入班級學生並進行「數值排序」
+// [Pro-v2.5] 載入班級學生 (使用自然排序法修復 1, 10, 2 問題)
 async function handleClassSelectChange() {
     const select = document.getElementById('setup-class-select');
     const container = document.getElementById('setup-student-checklist');
@@ -8135,7 +8087,6 @@ async function handleClassSelectChange() {
             .from('students')
             .select('*')
             .eq('class_id', select.value);
-            // 這裡我們不在 SQL 排序，改在下面用 JS 排
 
         if (error) throw error;
 
@@ -8145,14 +8096,18 @@ async function handleClassSelectChange() {
             return; 
         }
 
-        // 🔥 [關鍵修改] 加入數值排序邏輯
+        // 🔥 [終極修正] 使用 Intl.Collator 進行自然排序 (1, 2, 10...)
+        const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
+        
         students.sort((a, b) => {
-            // 把學號轉成整數 (Integer) 來比較
-            const numA = parseInt(a.student_number, 10) || 999999; // 無學號排最後
-            const numB = parseInt(b.student_number, 10) || 999999;
-            if (numA !== numB) return numA - numB;
-            // 如果學號一樣 (或都是空)，就按姓名排
-            return (a.name || '').localeCompare(b.name || '');
+            // 先排學號
+            const numA = (a.student_number || '').toString();
+            const numB = (b.student_number || '').toString();
+            const numCompare = collator.compare(numA, numB);
+            
+            // 學號一樣 (或都冇學號) 就排姓名
+            if (numCompare !== 0) return numCompare;
+            return collator.compare(a.name, b.name);
         });
 
         students.forEach(s => {
