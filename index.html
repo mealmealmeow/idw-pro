@@ -5395,15 +5395,19 @@ function renderStudentOverviewTable() {
 // [Pro-v8.9] 顯示學生歷史圖表 (讀取該學生所有作業成績)
 let _historyChart = null;
 
+// [Pro-v9.0] 顯示學生歷史圖表 (強制按時間排序)
+let _historyChart = null;
+
 async function showStudentHistory(studentId, studentName) {
     if (!studentId) return;
     
-    // 1. 打開 Modal 並顯示 Loading
+    // 1. 打開 Modal
     const modal = document.getElementById('pop-student-history-modal');
     document.getElementById('history-student-name').textContent = `${studentName} 的成長歷程`;
     modal.classList.add('active');
     
-    // 2. 讀取數據 (從 results 表 join assignments 表)
+    // 2. 讀取數據 (關鍵：依 assignments 的 created_at 排序)
+    // 這是最複雜的一步：我們需要 results -> assignments，並按 assignment 的日期排
     try {
         const { data, error } = await supabaseClient
             .from('results')
@@ -5412,17 +5416,28 @@ async function showStudentHistory(studentId, studentName) {
                 assignments!inner ( title, created_at )
             `)
             .eq('student_id', studentId)
-            .order('created_at', { foreignTable: 'assignments', ascending: true }); // 按時間排序
+            // 這裡嘗試直接排序關聯表
+            .order('created_at', { foreignTable: 'assignments', ascending: true });
 
         if (error) throw error;
 
+        // 手動二次排序 (Double Safe)：防止 SQL 關聯排序失效
+        // 有時 Supabase 的 foreignTable 排序會因為版本問題而怪怪的，前端排一次最穩
+        data.sort((a, b) => new Date(a.assignments.created_at) - new Date(b.assignments.created_at));
+
         // 3. 準備圖表數據
-        const labels = data.map(d => d.assignments.title);
-        const scores = data.map(d => d.total_score);
+        const labels = data.map(d => d.assignments.title); // X軸：題目
+        const scores = data.map(d => d.total_score);       // Y軸：分數
+
+        // 如果數據太少，給個提示
+        if (data.length === 0) {
+            labels.push('暫無數據');
+            scores.push(0);
+        }
 
         // 4. 繪製圖表
         const ctx = document.getElementById('studentHistoryChart');
-        if (_historyChart) _historyChart.destroy(); // 銷毀舊圖表
+        if (_historyChart) _historyChart.destroy();
 
         _historyChart = new Chart(ctx, {
             type: 'line',
@@ -5434,9 +5449,10 @@ async function showStudentHistory(studentId, studentName) {
                     borderColor: '#5A8F7B',
                     backgroundColor: 'rgba(90, 143, 123, 0.1)',
                     borderWidth: 3,
-                    pointBackgroundColor: '#F2C037',
-                    pointRadius: 5,
-                    tension: 0.3, // 平滑曲線
+                    pointBackgroundColor: '#F2C037', // Pop Art 黃色點點
+                    pointRadius: 6,
+                    pointHoverRadius: 8,
+                    tension: 0.1, // 線條直一點，更有數據感
                     fill: true
                 }]
             },
@@ -5444,21 +5460,40 @@ async function showStudentHistory(studentId, studentName) {
                 responsive: true,
                 maintainAspectRatio: false,
                 scales: {
-                    y: { beginAtZero: true, suggestedMax: 100 }
+                    y: { 
+                        beginAtZero: true, 
+                        suggestedMax: 100,
+                        title: { display: true, text: '分數' }
+                    },
+                    x: {
+                        title: { display: true, text: '作業題目 (按時間)' }
+                    }
                 },
                 plugins: {
-                    legend: { display: false }
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            afterLabel: function(context) {
+                                // 顯示該次作業的日期
+                                const idx = context.dataIndex;
+                                if (data[idx]) {
+                                    const date = new Date(data[idx].assignments.created_at).toLocaleDateString();
+                                    return `日期: ${date}`;
+                                }
+                                return '';
+                            }
+                        }
+                    }
                 }
             }
         });
 
     } catch (err) {
         console.error("History Error:", err);
-        alert("無法讀取歷史數據：" + err.message);
+        alert("讀取失敗：" + err.message);
         modal.classList.remove('active');
     }
 }
-
 function jumpToStudentFromOverview(originalName) {
   showPage('page2');
   const sel = document.getElementById('student-select');
