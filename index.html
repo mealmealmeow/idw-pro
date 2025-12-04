@@ -3399,6 +3399,7 @@ async function loadDataFromCloud() {
   }
 }
 
+// [Pro-v4.2-UI] 雲端讀取視窗 (整合還原備份按鈕)
 async function promptAndLoadCloudProject() {
     if (!currentUser) {
         alert("請先登入以使用雲端專案功能。");
@@ -3408,131 +3409,130 @@ async function promptAndLoadCloudProject() {
     const originalText = authStatus.textContent;
     authStatus.textContent = '正在搜尋雲端專案...';
 
+    // 讀取 assignments 表
     const { data: projectsData, error: projectsError } = await supabaseClient
-        .from('student_projects').select('id, class_name, topic, updated_at').eq('user_id', currentUser.id);
+        .from('assignments')
+        .select('id, title, created_at, classes(class_name)')
+        .eq('user_id', currentUser.id)
+        .order('created_at', { ascending: false });
     
     authStatus.textContent = originalText;
 
     if (projectsError) {
-        alert(`讀取雲端專案列表時出錯：${projectsError.message}`);
-        return;
-    }
-    if (!projectsData || projectsData.length === 0) {
-        if (sessionStorage.getItem('projectPromptShownThisSession')) {
-            if (typeof showToast === 'function') showToast("雲端上沒有找到任何專案。", "info");
-            else alert("雲端上沒有找到任何專案。");
-        }
-        return;
+        console.error("讀取專案錯誤:", projectsError);
     }
 
-    // --- Pop Art Modal 邏輯 ---
-    const sortedProjects = projectsData.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
-    
     return new Promise((resolve) => {
         const modal = document.getElementById('pop-project-modal');
         const listContainer = document.getElementById('pop-project-list');
         const input = document.getElementById('pop-project-input');
         const confirmBtn = document.getElementById('pop-project-confirm');
         const cancelBtn = document.getElementById('pop-project-cancel');
-        
-        // 1. 渲染列表
-        listContainer.innerHTML = '';
-        sortedProjects.forEach((p, index) => {
-            const dateStr = new Date(p.updated_at).toLocaleDateString();
-            const div = document.createElement('div');
-            div.className = 'pop-list-item';
-            div.innerHTML = `<strong>${index + 1}.</strong> ${escapeHtmlAttr(p.class_name || '未命名')} - ${escapeHtmlAttr(p.topic || '未命名')} <span style="font-size:0.8em;color:#999">(${dateStr})</span>`;
-            
-            // 點擊列表項目直接選中
-            div.onclick = () => {
-                input.value = index + 1;
-                triggerConfirm();
-            };
-            listContainer.appendChild(div);
-        });
+        const footer = modal.querySelector('.pop-footer');
 
-        // 2. 顯示 Modal
+        // 1. 檢查是否有本地備份
+        const backupStr = localStorage.getItem('idw_grading_backup_v1');
+        let hasBackup = false;
+        let backupTime = '';
+        
+        // 清理舊的動態按鈕
+        const oldBackupBtn = document.getElementById('pop-backup-btn-container');
+        if (oldBackupBtn) oldBackupBtn.remove();
+
+        if (backupStr) {
+            try {
+                const b = JSON.parse(backupStr);
+                // 只有當有實際內容時才視為有效備份
+                if (b.timestamp && (b.students && b.students.length > 0)) {
+                    hasBackup = true;
+                    const d = new Date(b.timestamp);
+                    backupTime = `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${d.getMinutes() < 10 ? '0'+d.getMinutes() : d.getMinutes()}`;
+                }
+            } catch(e){}
+        }
+
+        // 2. 渲染雲端列表
+        listContainer.innerHTML = '';
+        const safeProjects = projectsData || []; 
+
+        if (safeProjects.length === 0) {
+             listContainer.innerHTML = '<div style="padding:20px; color:#999;">雲端上沒有專案。</div>';
+        } else {
+            safeProjects.forEach((p, index) => {
+                const dateStr = new Date(p.created_at).toLocaleDateString();
+                const className = p.classes ? p.classes.class_name : '未分類';
+                const div = document.createElement('div');
+                div.className = 'pop-list-item';
+                div.innerHTML = `<strong>${index + 1}.</strong> ${escapeHtmlAttr(className)} - ${escapeHtmlAttr(p.title)} <span style="font-size:0.8em;color:#999">(${dateStr})</span>`;
+                
+                div.onclick = () => {
+                    input.value = index + 1;
+                    triggerConfirm();
+                };
+                listContainer.appendChild(div);
+            });
+        }
+
+        // 3. 插入備份按鈕 (如果有的話)
+        if (hasBackup) {
+            const backupContainer = document.createElement('div');
+            backupContainer.id = 'pop-backup-btn-container';
+            backupContainer.style.cssText = 'margin-top: 15px; border-top: 1px solid #eee; padding-top: 15px; text-align: center;';
+            
+            backupContainer.innerHTML = `
+                <div style="font-size: 0.9rem; color: #666; margin-bottom: 8px;">
+                    ♻️ 發現未儲存的本機備份 (${backupTime})
+                </div>
+                <button class="pop-btn" style="background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; width: 100%; padding: 8px;">
+                    還原此備份
+                </button>
+            `;
+            
+            // 插入到 footer 之前
+            footer.parentNode.insertBefore(backupContainer, footer);
+            
+            backupContainer.querySelector('button').onclick = () => {
+                closeModal();
+                restoreFromLocalBackup(); // 呼叫還原函數
+                resolve(true);
+            };
+        }
+
+        // 4. 顯示 Modal
         modal.classList.add('active');
         input.value = '';
         setTimeout(() => input.focus(), 100); 
 
-        // 3. 定義確認邏輯
+        // 5. 確認邏輯
         const triggerConfirm = async () => {
             const val = parseInt(input.value, 10);
-            if (!isNaN(val) && val >= 1 && val <= sortedProjects.length) {
-                const projectId = sortedProjects[val - 1].id;
+            if (!isNaN(val) && val >= 1 && val <= safeProjects.length) {
+                const projectId = safeProjects[val - 1].id;
                 closeModal();
-                await loadProjectById(projectId); // 呼叫載入函數
+                await openAssignment(projectId);
                 resolve(true);
             } else {
-                input.style.borderColor = '#c86a5a'; // 錯誤時變紅
+                input.style.borderColor = '#c86a5a';
                 setTimeout(() => input.style.borderColor = '#e0e0e0', 500);
             }
         };
 
-       
-        
-      // === 這裡是用來取代原本的 closeModal ===
-        const closeModal = async () => {
+        const closeModal = () => {
             modal.classList.remove('active');
-            // 防止重複綁定
             confirmBtn.onclick = null;
             cancelBtn.onclick = null;
             input.onkeydown = null;
-
-            // 1. 清空學生與基本資料
-            clearAllCore(false);
-            allStudentRecords = [];
-            document.getElementById('student-names').value = '';
-            document.getElementById('student-class').value = '';
-            document.getElementById('topic').value = '';
-
-            // 2. 【關鍵修正】清空評語庫 DOM，防止上一份專案殘留
-            document.getElementById('critique-data').innerHTML = '';
-
-            // 3. 嘗試載入使用者的「全域評語設定」或者「還原系統預設」
-            if (currentUser) {
-                try {
-                    const { data: globalData } = await supabaseClient
-                        .from('critiques')
-                        .select('*')
-                        .eq('user_id', currentUser.id);
-                        
-                    if (globalData && globalData.length > 0) {
-                        applyCritiquesToDOM(globalData.map(c => ({
-                            id: c.critique_id, category: c.category, type: c.type, title: c.title,
-                            strengthSummary: c.strength_summary, problemCore: c.problem_core,
-                            suggestion: c.suggestion, example: c.example, options: c.options, optionsLabel: c.options_label
-                        })));
-                    } else {
-                        resetToDefaultCritiques(false);
-                    }
-                } catch(e) {
-                    console.error("載入預設評語失敗", e);
-                    resetToDefaultCritiques(false);
-                }
-            } else {
-                resetToDefaultCritiques(false);
-            }
-
-            // 4. 刷新介面
-            updateStudentDropdown();
-            renderStudentOverviewTable();
-           updateHeaderInfo();      
-            buildChecklist(); 
-            buildOverviewPage();
-            showPage('page1'); // 回到基本設定頁
-            
-            if (typeof showToast === 'function') showToast("已建立新專案 (評語庫已重置)", "info");
-
-            resolve(false);
+            const btn = document.getElementById('pop-backup-btn-container');
+            if(btn) btn.remove();
         };
 
-        // 4. 綁定按鈕事件
+        // 6. 綁定按鈕
         confirmBtn.onclick = triggerConfirm;
-        cancelBtn.onclick = closeModal; // <--- 確保這行有指向新的 closeModal
-        input.onkeydown = (e) => {
-            if (e.key === 'Enter') triggerConfirm();
+        cancelBtn.textContent = "開新專案";
+        cancelBtn.onclick = () => {
+            closeModal();
+            showPage('page1');
+            resolve(false);
         };
         input.onkeydown = (e) => {
             if (e.key === 'Enter') triggerConfirm();
@@ -6837,10 +6837,8 @@ function checkLocalBackup() {
     }
 }
 
-// 4. 還原備份 (修復版)
+// [Pro-v4.2-UI] 還原備份 (修復報錯)
 function restoreFromLocalBackup() {
-    if (!confirm("確定要還原備份嗎？\n這將會覆蓋當前頁面上的所有資料。")) return;
-
     const backup = localStorage.getItem(BACKUP_KEY);
     if (!backup) {
         alert("找不到備份資料。");
@@ -6850,19 +6848,22 @@ function restoreFromLocalBackup() {
     try {
         const data = JSON.parse(backup);
 
-        // A. 還原評語庫
+        // 還原評語庫
         if (data.critiques && data.critiques.length > 0) {
-            document.getElementById('critique-data').innerHTML = '';
-            applyCritiquesToDOM(data.critiques);
+            const cData = document.getElementById('critique-data');
+            if(cData) {
+                cData.innerHTML = '';
+                applyCritiquesToDOM(data.critiques);
+            }
         }
 
-        // B. 還原基礎資料
-        document.getElementById('student-class').value = data.className || '';
-        document.getElementById('topic').value = data.topic || '';
-        document.getElementById('student-names').value = data.namesText || '';
+        // 還原基礎資料
+        if(document.getElementById('student-class')) document.getElementById('student-class').value = data.className || '';
+        if(document.getElementById('topic')) document.getElementById('topic').value = data.topic || '';
+        if(document.getElementById('student-names')) document.getElementById('student-names').value = data.namesText || '';
         commonTypos = data.typos || [];
 
-        // C. 還原學生資料庫
+        // 還原學生資料
         let restoredRecords = data.students || [];
         if (data.liveEdit && data.liveEdit.name) {
             const idx = restoredRecords.findIndex(r => r.originalName === data.liveEdit.name);
@@ -6875,14 +6876,15 @@ function restoreFromLocalBackup() {
         }
         allStudentRecords = restoredRecords;
 
-        // D. 重建 UI
+        // 重建 UI
         updateStudentDropdown();
         buildChecklist();
         buildOverviewPage();
         renderCommonTypoList();
         renderStudentOverviewTable();
+        updateHeaderInfo();
 
-        // E. 跳轉回上次編輯的學生
+        // 跳轉回上次編輯的學生
         if (data.currentStudent) {
             const select = document.getElementById('student-select');
             let optionExists = false;
@@ -6896,29 +6898,17 @@ function restoreFromLocalBackup() {
             if (optionExists) {
                 select.value = data.currentStudent;
                 loadStudentData(data.currentStudent);
-                
-                if (data.liveEdit && data.liveEdit.name === data.currentStudent && data.liveEdit.data) {
-                     const d = data.liveEdit.data;
-                     if(d.uniqueComment) document.getElementById('unique-comment').value = d.uniqueComment;
-                     if(d.fullComment) document.getElementById('full-output').value = d.fullComment;
-                     if(d.studentComment) document.getElementById('student-report-output').value = d.studentComment;
-                     if(d.typos) {
-                         currentTypos = [...d.typos];
-                         renderTypoList();
-                         renderCommonTyposCheckedState();
-                     }
-                }
-                
                 showPage('page2');
-                alert(`備份還原成功！已回到學生：${data.currentStudent}`);
+                if(typeof showToast === 'function') showToast(`還原成功！已回到學生：${data.currentStudent}`, "success");
             } else {
-                alert("備份還原成功！(但上次編輯的學生不在名單中，請手動選擇)");
+                if(typeof showToast === 'function') showToast("還原成功！", "success");
             }
         } else {
-            alert("備份還原成功！");
+            if(typeof showToast === 'function') showToast("還原成功！", "success");
         }
-        document.getElementById('restore-backup-btn').style.display = 'none';
-        loadDashboard(); // 還原後刷新首頁
+
+        // 🔥 移除了會報錯的那行 style.display = 'none'
+        loadDashboard(); 
 
     } catch (e) {
         console.error(e);
@@ -7025,44 +7015,14 @@ async function loadDashboard() {
 
 
 
-// --- Helper: 獲取離線資料 ---
+// [Pro-v4.2-UI] 停止載入離線備份到 Dashboard (避免重複混亂)
 function getOfflineProjectMeta() {
-    // 優先檢查當前記憶體
-    if (typeof allStudentRecords !== 'undefined' && allStudentRecords.length > 0) {
-        const cName = document.getElementById('student-class').value || '未命名班別';
-        const topic = document.getElementById('topic').value || '未命名題目';
-        const graded = allStudentRecords.filter(r => r.data).length;
-        return {
-            id: 'local_memory',
-            class_name: cName,
-            topic: topic,
-            total_students: allStudentRecords.length,
-            graded_count: graded,
-            last_updated: new Date().toISOString(),
-            source_type: 'local_memory'
-        };
-    }
-    // 其次檢查 LocalStorage 備份
-    try {
-        const backupStr = localStorage.getItem('idw_grading_backup_v1');
-        if (backupStr) {
-            const backup = JSON.parse(backupStr);
-            if (backup.students && backup.students.length > 0) {
-                const graded = backup.students.filter(r => r.data).length;
-                return {
-                    id: 'local_backup',
-                    class_name: (backup.className || '未命名') + ' (備份)',
-                    topic: backup.topic || '未命名',
-                    total_students: backup.students.length,
-                    graded_count: graded,
-                    last_updated: new Date(backup.timestamp).toISOString(),
-                    source_type: 'local_backup'
-                };
-            }
-        }
-    } catch(e) {}
+    // 強制回傳 null，讓 Dashboard 只顯示雲端資料
+    // 因為備份還原功能將移到 Header 的資料夾按鈕 (📂) 內
     return null;
 }
+// 為了防止舊代碼殘留，如果還有 loadOfflineData 函數，請手動刪除它，或將其內容清空
+function loadOfflineData() { return []; }
 
 // --- Helper: 渲染 Focus List (卡片網格版) ---
 function renderFocusList(items, container) {
