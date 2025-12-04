@@ -4484,7 +4484,7 @@ function parseStudentName(rawName) {
     };
 }
 
-// [Pro-v4.2] 更新下拉選單 (整合排序 + 靜默 ID 同步)
+// [Pro-v5.1] 更新下拉選單 (使用共用排序 sortStudents)
 function updateStudentDropdown() {
   const namesText = document.getElementById('student-names').value;
   const studentSelect = document.getElementById('student-select');
@@ -4494,26 +4494,18 @@ function updateStudentDropdown() {
       .map(name => parseStudentName(name))
       .filter(p => p.name);
 
-  // 2. 強制數值排序 (1, 2... 10)
-  const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
-  parsedNames.sort((a, b) => {
-      const numA = (a.number !== null ? a.number : '').toString();
-      const numB = (b.number !== null ? b.number : '').toString();
-      
-      const numCompare = collator.compare(numA, numB);
-      if (numCompare !== 0) return numCompare;
-      return collator.compare(a.name, b.name);
-  });
+  // 🔥 [統一] 使用 v5.0 建立的共用排序工具
+  sortStudents(parsedNames);
 
-  // 3. 更新全域變數
+  // 2. 更新全域變數
   const oldRecords = [...allStudentRecords];
   allStudentRecords = parsedNames.map(p => {
     const existingRecord = oldRecords.find(r => r.originalName === p.originalName);
-    // 這裡先預設 dbId 為 null，等下面的代碼去填充
-    return existingRecord || { ...p, data: null, dbId: null };
+    // 保留現有的 dbId，如果沒有則設為 null
+    return existingRecord || { ...p, data: null, dbId: existingRecord?.dbId || null };
   });
 
-  // 4. 渲染選單
+  // 3. 渲染選單
   const currentSelected = studentSelect.value;
   studentSelect.innerHTML = parsedNames.length === 0 ? '<option value="">請先在上方輸入學生名單</option>' : '';
   
@@ -4522,7 +4514,7 @@ function updateStudentDropdown() {
     const option = document.createElement('option');
     option.value = p.originalName;
     
-    // 補零顯示
+    // 補零顯示 (例如 01)
     let displayName = p.name;
     if (p.number !== null) {
         const paddedNum = p.number.toString().padStart(2, '0');
@@ -4546,25 +4538,18 @@ function updateStudentDropdown() {
   updateAllOutputs();
   renderStudentOverviewTable();
 
-  // 🔥 [Pro-v4.2 新增] 靜默同步：去資料庫抓學生 ID
-  if (window.currentClassId) {
-      // console.log("正在為班級 ID:", window.currentClassId, "獲取學生名單...");
+  // 雙重保險：如果是在 Cloud Mode 且還有學生沒 ID，再次嘗試後台獲取
+  if (window.currentClassId && allStudentRecords.some(r => !r.dbId)) {
       supabaseClient
           .from('students')
           .select('id, name')
           .eq('class_id', window.currentClassId)
-          .then(({ data, error }) => {
+          .then(({ data }) => {
               if (data) {
-                  let matchCount = 0;
-                  data.forEach(dbStudent => {
-                      // 用名字來匹配 (去除前後空白)
-                      const record = allStudentRecords.find(r => r.name.trim() === dbStudent.name.trim());
-                      if (record) {
-                          record.dbId = dbStudent.id; // 注入 ID！
-                          matchCount++;
-                      }
+                  data.forEach(d => {
+                      const rec = allStudentRecords.find(r => r.name.trim() === d.name.trim());
+                      if (rec) rec.dbId = d.id;
                   });
-                  console.log(`✅ [ID Sync] 成功匹配 ${matchCount} 位學生的 Database ID`);
               }
           });
   }
@@ -8319,7 +8304,7 @@ function toggleAllSetupStudents(checked) {
 // ==========================================
 // ====== 核心橋接函數 (雙軌兼容版) ======
 // ==========================================
-// [Pro-v4.2-Fix] 啟動批改 (直接攜帶 ID)
+// [Pro-v5.1] 啟動批改 (確保 dbId 正確傳遞)
 function startGradingWithSetup(actionType) {
     const modeRadio = document.querySelector('input[name="setup-mode"]:checked');
     const mode = modeRadio ? modeRadio.value : 'manual';
@@ -8352,30 +8337,31 @@ function startGradingWithSetup(actionType) {
             return;
         }
 
-        // 🔥 [關鍵] 直接從卡片構建 allStudentRecords，包含 dbId
+        // 🔥 [關鍵] 讀取 dataset.dbId 並存入記憶體
         const tempRecords = [];
         checkedCards.forEach(card => {
             const info = card.dataset.info; // "01-陳大文"
-            const dbId = card.dataset.dbId; // "uuid..."
+            const dbId = card.dataset.dbId; // 從 Page 1 卡片獲取 UUID
             
-            // 組合文字名單 (給 Page 2 顯示用)
             rawStudentList += info + "\n";
             
-            // 解析名字
             const p = parseStudentName(info);
             tempRecords.push({
                 number: p.number,
                 name: p.name,
                 originalName: p.originalName,
-                dbId: dbId, // ✅ ID 成功帶入！
+                dbId: dbId, // ✅ 這裡必須有值！
                 data: null
             });
         });
         
-        allStudentRecords = tempRecords; // 寫入全域變數
+        allStudentRecords = tempRecords;
+        // 使用共用排序再排一次，確保萬無一失
+        sortStudents(allStudentRecords);
+
         sourceClass = select.options[select.selectedIndex].dataset.className || '';
         window.currentProjectType = 'cloud';
-        window.currentClassId = select.value;
+        window.currentClassId = select.value; // 確保 Class ID 存在
 
     } else {
         // === [Track A: 手動模式] ===
@@ -8399,6 +8385,8 @@ function startGradingWithSetup(actionType) {
             dbId: null, // 手動模式沒有 ID
             data: null
         }));
+        
+        sortStudents(allStudentRecords);
 
         const manualClassInput = document.getElementById('student-class-manual');
         sourceClass = manualClassInput ? manualClassInput.value.trim() : '未分類';
@@ -8407,14 +8395,17 @@ function startGradingWithSetup(actionType) {
     }
 
     // 3. 同步 UI 到 Page 2
-    // 為了避免 Page 2 的 textarea 再次觸發 input 事件導致名單重置，我們這裡只更新 textarea value，不觸發 updateStudentDropdown
     const p2Names = document.getElementById('student-names');
     if(p2Names) p2Names.value = rawStudentList;
     
     if(document.getElementById('student-class')) document.getElementById('student-class').value = sourceClass;
 
-    // 4. 手動觸發一次 Page 2 的選單渲染 (使用剛才做好的 allStudentRecords)
-    renderDropdownFromMemory(); 
+    // 4. 觸發渲染 (這會用到我們剛更新的 updateStudentDropdown 或 renderDropdownFromMemory)
+    if (typeof renderDropdownFromMemory === 'function') {
+        renderDropdownFromMemory();
+    } else {
+        updateStudentDropdown();
+    }
     updateHeaderInfo();
 
     // 5. 跳轉
@@ -8426,6 +8417,7 @@ function startGradingWithSetup(actionType) {
         if (typeof buildChecklist === 'function') buildChecklist();
         if (typeof buildOverviewPage === 'function') buildOverviewPage();
         showPage('page2', 'student-select');
+        
         if(typeof showToast === 'function') showToast(`已建立作業：${allStudentRecords.length} 位學生`, "success");
     }
 }
