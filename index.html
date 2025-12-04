@@ -7743,18 +7743,16 @@ function closeManageStudentsModal() {
     loadAllClasses(); // 刷新外面的卡片，更新「學生人數」
 }
 
-// 3. 從 Database 讀取學生
+// [Pro-v3.5] Page 8 學生名單 (加入自然排序 Intl.Collator)
 async function loadMasterStudentList(classId) {
     const listContainer = document.getElementById('master-student-list');
     listContainer.innerHTML = '<div style="text-align:center; color:#999; padding:10px;">讀取中...</div>';
 
     try {
-        // 根據學號排序
         const { data: students, error } = await supabaseClient
             .from('students')
             .select('*')
-            .eq('class_id', classId)
-            .order('student_number', { ascending: true }); // 假設學號是純數字字串，排序可能需要 parseInt，但這裡先簡單做
+            .eq('class_id', classId);
 
         if (error) throw error;
 
@@ -7765,14 +7763,30 @@ async function loadMasterStudentList(classId) {
             return;
         }
 
-        // 渲染列表 (簡單的 Table 結構)
+        // 🔥 [修正] 使用自然排序法 (1, 2, 10, 18)
+        const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
+        students.sort((a, b) => {
+            const numA = (a.student_number || '').toString();
+            const numB = (b.student_number || '').toString();
+            
+            // 先比學號
+            const numResult = collator.compare(numA, numB);
+            if (numResult !== 0) return numResult;
+            
+            // 學號一樣比名字
+            return collator.compare(a.name || '', b.name || '');
+        });
+
+        // 渲染列表
         let html = '<table style="width:100%; border-collapse:collapse; font-size:0.9rem;">';
         students.forEach(s => {
-            // 處理學號排序問題：如果學號是 '1', '2', '10'，字串排序會變成 '1', '10', '2'。
-            // 這裡顯示時不影響，主要是視覺。
+            // 補零顯示 (1 -> 01)
+            let displayNum = s.student_number;
+            if (displayNum && /^\d$/.test(displayNum)) displayNum = '0' + displayNum;
+
             html += `
             <tr style="border-bottom:1px dashed #eee;">
-                <td style="padding:8px; width:50px; font-weight:bold; color:#5A8F7B;">${escapeHtml(s.student_number || '-')}</td>
+                <td style="padding:8px; width:50px; font-weight:bold; color:#5A8F7B;">${escapeHtml(displayNum || '-')}</td>
                 <td style="padding:8px;">${escapeHtml(s.name)}</td>
                 <td style="padding:8px; text-align:right;">
                     <button class="danger-btn" style="padding:2px 8px; font-size:0.75rem;" onclick="deleteStudentFromMaster('${s.id}')">刪除</button>
