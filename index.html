@@ -7874,10 +7874,10 @@ async function deleteStudentFromMaster(studentId) {
 // ====== Phase 2.1 (Part 2): 班級頁邏輯 ======
 // ==========================================
 
-// 1. 讀取並顯示所有班級
+// [Pro-v2.2] 從新資料庫讀取班級列表
 async function loadAllClasses() {
     const container = document.getElementById('class-management-list');
-    if (!container) return; // 如果未切換到該頁，可能找不到元素
+    if (!container) return; 
 
     // 檢查是否登入
     if (!currentUser) {
@@ -7890,13 +7890,10 @@ async function loadAllClasses() {
         return;
     }
 
-    container.innerHTML = '<div class="dashboard-loading"><div class="spinner"></div> 讀取中...</div>';
+    container.innerHTML = '<div class="dashboard-loading"><div class="spinner"></div> 正在讀取班級資料...</div>';
 
     try {
-        // 從 classes 表讀取資料，並順便 count 學生人數
-        // 這裡需要用 Supabase 的 View 或者分別 Query，為了簡單，我們先讀 Class 再讀 count
-        // 或者直接讀 classes，之後 UI 顯示 "點擊查看詳情"
-        
+        // 1. 讀取班級列表 (Classes Table)
         const { data: classes, error } = await supabaseClient
             .from('classes')
             .select('*')
@@ -7915,20 +7912,19 @@ async function loadAllClasses() {
             return;
         }
 
-        // 渲染班級卡片
-        container.innerHTML = ''; // 清空 loading
+        // 2. 渲染班級卡片 (逐一查詢學生人數)
+        container.innerHTML = ''; 
         
-        // 為了顯示學生人數，我們對於每一班都做一個簡單的 count query (或者你可以寫 SQL view，暫時用簡單方法)
         for (const cls of classes) {
-            // 查詢該班學生數
+            // 查詢該班學生數 (Students Table)
             const { count } = await supabaseClient
                 .from('students')
                 .select('*', { count: 'exact', head: true })
                 .eq('class_id', cls.id);
 
             const card = document.createElement('div');
-            card.className = 'task-item'; // 重用 Dashboard 的卡片樣式
-            card.style.cursor = 'default'; // 這裡不設整張卡點擊
+            card.className = 'task-item'; // 重用 Dashboard 卡片樣式
+            card.style.cursor = 'default';
             card.innerHTML = `
                 <div class="task-meta">
                     <span class="task-class-badge" style="background:#e0f2f1; color:#00695c;">${escapeHtml(cls.academic_year)}</span>
@@ -7993,13 +7989,12 @@ async function createNewClass() {
     }
 }
 
-// 3. 刪除班級
+// [Pro-v2.2] 刪除班級 (連帶刪除學生)
 async function deleteClass(classId, className) {
-    if (!confirm(`⚠️ 嚴重警告 ⚠️\n\n確定要刪除「${className}」嗎？\n\n這將會同時刪除：\n1. 該班級的所有資料\n2. 該班級的所有學生名單\n\n(已批改的作業記錄通常會保留，但連結可能會失效)\n\n確定要繼續？`)) return;
+    if (!confirm(`⚠️ 嚴重警告 ⚠️\n\n確定要刪除「${className}」嗎？\n\n這將會同時刪除：\n1. 該班級的所有資料\n2. 該班級的所有學生名單\n\n(確定要繼續？)`)) return;
 
     try {
-        // Supabase 如果有設 Cascade Delete，刪除 Class 會自動刪除 Students
-        // 如果沒有，就要手動刪。假設你有設 Cascade。
+        // 因為我們在建立 Table 時設定了 "on delete cascade"，所以刪除 Class 會自動刪除 Students
         const { error } = await supabaseClient
             .from('classes')
             .delete()
@@ -8007,7 +8002,10 @@ async function deleteClass(classId, className) {
 
         if (error) throw error;
         
-        loadAllClasses(); // 刷新
+        if (typeof showToast === 'function') showToast(`已刪除班級：${className}`, "success");
+        else alert("刪除成功");
+        
+        loadAllClasses(); // 刷新列表
 
     } catch (error) {
         alert("刪除失敗：" + error.message);
