@@ -3200,7 +3200,8 @@
     <input type="password" id="new-password-input" class="pop-input" placeholder="新密碼 (New Password)">
     
     <div class="pop-footer">
-      <button class="pop-btn pop-btn-confirm" id="confirm-reset-btn">確認修改</button>
+    <!-- 確保 onclick 指向我們的新函數 -->
+<button class="pop-btn pop-btn-confirm" id="confirm-reset-btn" onclick="confirmResetPassword()">確認修改</button>
     </div>
   </div>
 </div>
@@ -3326,34 +3327,7 @@ function updateHeaderInfo() {
 // --- Supabase 核心功能 ---
 
 
-async function checkUser() {
-  const { data: { session } } = await supabaseClient.auth.getSession();
-  currentUser = session ? session.user : null;
-  updateUIBasedOnAuthState();
-  
-  if (currentUser) {
-    loadDataFromCloud();
-    if (typeof loadDashboard === 'function') loadDashboard(); 
-    if (typeof loadPage1ClassDropdown === 'function') loadPage1ClassDropdown(); // ✅ 確保載入班級
-  } else {
-    renderCommonTypoList();
-    if (typeof loadDashboard === 'function') loadDashboard();
-  }
 
-  supabaseClient.auth.onAuthStateChange(async (event, session) => {
-    currentUser = session ? session.user : null;
-    updateUIBasedOnAuthState();
-    if (event === 'SIGNED_IN') {
-      loadDataFromCloud();
-      if (typeof loadDashboard === 'function') loadDashboard();
-      if (typeof loadPage1ClassDropdown === 'function') loadPage1ClassDropdown(); // ✅ 登入時載入
-    } else if (event === 'SIGNED_OUT') {
-        // ... (原有登出邏輯) ...
-        const sel = document.getElementById('setup-class-select');
-        if(sel) sel.innerHTML = '<option value="">(請先登入)</option>';
-    }
-  });
-}
 // 修正版登出：無論 Server 發生什麼事，本地都強制登出
 async function handleLogout() {
   if (!confirm("確定要登出嗎？所有未同步的變更將會遺失。")) return;
@@ -7715,59 +7689,127 @@ async function deleteProject() {
     }
 }
 
+// [Pro-v7.1] 全域變數：捕捉網址 Hash (防止 Supabase 清除後遺失)
+const _globalHash = window.location.hash;
 
+// 1. 主動檢查登入狀態與邀請
+async function checkUser() {
+  const { data: { session }, error } = await supabaseClient.auth.getSession();
+  
+  currentUser = session ? session.user : null;
+  updateUIBasedOnAuthState();
 
-/* ==========================================
-   ====== 🔐 官方標準重設密碼監聽器 (UI版) ======
-   ========================================== */
-supabaseClient.auth.onAuthStateChange(async (event, session) => {
-    if (event === 'PASSWORD_RECOVERY') {
-        console.log("偵測到重設密碼事件！啟動 UI...");
-        
+  if (currentUser) {
+      console.log("✅ 已登入:", currentUser.email);
+      loadDataFromCloud();
+      if (typeof loadDashboard === 'function') loadDashboard();
+      if (typeof loadPage1ClassDropdown === 'function') loadPage1ClassDropdown();
+      
+      // 🔥 檢查是否為邀請連結 (這是最關鍵的判斷)
+      if (_globalHash && _globalHash.includes('type=invite')) {
+          console.log("👋 偵測到邀請連結，準備彈出歡迎視窗...");
+          
+          // 延遲 0.8 秒，確保頁面渲染完成
+          setTimeout(() => {
+              showCustomModal({
+                  icon: '🎉',
+                  title: '歡迎加入 Pro 版！',
+                  desc: '您的帳戶已成功開通。為了安全起見，請立即設定您的專屬密碼。',
+                  confirmText: '設定密碼',
+                  cancelText: '稍後再說'
+              }).then(ok => {
+                  if(ok) {
+                      // 打開密碼重設視窗
+                      const modal = document.getElementById('pop-reset-password-modal');
+                      if(modal) {
+                          modal.classList.add('active');
+                          // 強制聚焦輸入框
+                          setTimeout(() => document.getElementById('new-password-input')?.focus(), 200);
+                      }
+                  }
+              });
+              
+              // 清除 Hash，避免刷新後重複彈出
+              history.replaceState(null, null, ' ');
+          }, 800);
+      }
+  } else {
+      renderCommonTypoList();
+      if (typeof loadDashboard === 'function') loadDashboard();
+      
+      // 提示無痕模式問題
+      if (_globalHash && _globalHash.includes('access_token')) {
+          alert("⚠️ 偵測到登入 Token 但無法寫入狀態。\n請嘗試關閉「無痕模式」後重試。");
+      }
+  }
+}
+
+// 2. 獨立的密碼重設函數 (由 HTML 按鈕直接呼叫，確保 100% 有反應)
+async function confirmResetPassword() {
+    const input = document.getElementById('new-password-input');
+    const btn = document.getElementById('confirm-reset-btn');
+    const modal = document.getElementById('pop-reset-password-modal');
+
+    const newPassword = input.value.trim();
+    
+    if (newPassword.length < 6) {
+        alert("❌ 密碼太短！最少 6 個字元。");
+        return;
+    }
+
+    const originalText = btn.innerText;
+    btn.innerText = "更新中...";
+    btn.disabled = true;
+
+    try {
+        const { error } = await supabaseClient.auth.updateUser({ password: newPassword });
+
+        if (error) throw error;
+
+        alert("🎉 密碼已設定成功！\n請記住您的密碼。");
+        modal.classList.remove('active');
+        history.replaceState(null, null, ' ');
+
+    } catch (err) {
+        console.error(err);
+        alert("❌ 更新失敗：" + err.message);
+    } finally {
+        btn.innerText = "確認修改";
+        btn.disabled = false;
+    }
+}
+
+// 3. 簡化版監聽器 (只負責登出和忘記密碼郵件)
+supabaseClient.auth.onAuthStateChange((event, session) => {
+    console.log("Auth Event:", event);
+    
+    if (event === 'SIGNED_OUT') {
+        currentUser = null;
+        updateUIBasedOnAuthState();
+        allStudentRecords = [];
+        commonTypos = [];
+        if (typeof loadDashboard === 'function') loadDashboard();
+    } 
+    // 處理「忘記密碼」郵件連結 (type=recovery)
+    else if (event === 'PASSWORD_RECOVERY') {
         const modal = document.getElementById('pop-reset-password-modal');
-        const input = document.getElementById('new-password-input');
-        const btn = document.getElementById('confirm-reset-btn');
-        
-        // 顯示 Modal
-        modal.classList.add('active');
-        input.value = '';
-        input.focus();
-
-        // 定義點擊事件
-        btn.onclick = async () => {
-            const newPassword = input.value.trim();
-
-            // 1. 檢查長度
-            if (newPassword.length < 6) {
-                alert("❌ 密碼太短！\nSupabase 要求密碼最少 6 個字元。");
-                return;
-            }
-
-            // 2. 鎖定按鈕
-            const originalText = btn.innerText;
-            btn.innerText = "更新中...";
-            btn.disabled = true;
-
-            // 3. 執行更新
-            const { data, error } = await supabaseClient.auth.updateUser({ 
-                password: newPassword 
-            });
-
-            if (error) {
-                alert("❌ 更新失敗：" + error.message);
-                btn.innerText = originalText;
-                btn.disabled = false;
-            } else {
-                alert("🎉 密碼已成功更新！\n\n請使用新密碼重新登入。");
-                
-                // 關閉 Modal，清除網址 Hash，重新載入
-                modal.classList.remove('active');
-                window.location.hash = ''; 
-                window.location.reload(); 
-            }
-        };
+        if(modal) {
+            modal.classList.add('active');
+            setTimeout(() => document.getElementById('new-password-input')?.focus(), 200);
+        }
     }
 });
+
+// 4. 綁定 Enter 鍵 (通用綁定，放在最後)
+document.addEventListener('DOMContentLoaded', () => {
+    const pwdInput = document.getElementById('new-password-input');
+    if (pwdInput) {
+        pwdInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') confirmResetPassword();
+        });
+    }
+});
+
 
 // ==========================================
 // ====== Kebab Menu (三點選單) 控制邏輯 ======
