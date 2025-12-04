@@ -3273,7 +3273,6 @@ const CATEGORY_ORDER = ['扣題與立意', '取材與刻畫', '結構與鋪排',
 
 // --- 程式入口 ---
 document.addEventListener('DOMContentLoaded', () => {
-   console.log("🚀 JS 啟動成功！正在初始化..."); // <--- 加入這行
   loadDefaultCritiques();
   buildChecklist();
   buildOverviewPage();
@@ -7091,157 +7090,141 @@ function restoreFromLocalBackup() {
     }
 }
 
-// [Pro-v8.5-Stabilized] 防撞鎖定版 (防止重複請求 + 超時保護)
-let _isDashboardLoading = false; // 全域鎖定變數
+/* ==========================================
+   ====== Dashboard 2.0 (防重複終極版) ======
+   ========================================== */
+let isDashboardRendering = false; // 加入鎖定旗標
 
+// [Pro-v8.6-Safe-Dashboard] 安全讀取版 (分開查詢，在前端組裝，避免 SQL 卡死)
 async function loadDashboard() {
     const focusList = document.getElementById('focus-task-list');
     const classContainer = document.getElementById('class-accordion-container');
     if(!focusList) return; 
 
-    // 1. 防撞機制：如果正在讀取，直接離開，不做任何事
-    if (_isDashboardLoading) {
-        console.log("⚠️ Dashboard 正在讀取中，跳過本次重複請求...");
-        return;
-    }
-
-    // 上鎖
-    _isDashboardLoading = true;
-
-    // 2. 顯示狀態
+    // 1. 顯示讀取中
     focusList.style.display = 'block';
-    focusList.innerHTML = '<div class="dashboard-loading"><div class="spinner"></div> 正在連線資料庫...</div>';
+    focusList.innerHTML = '<div class="dashboard-loading"><div class="spinner"></div> 正在同步雲端數據...</div>';
     if(classContainer) classContainer.innerHTML = '';
 
     if (!currentUser) {
-        _isDashboardLoading = false; // 解鎖
         renderEmptyState(focusList);
         return;
     }
 
-    console.log("🚀 開始讀取 Dashboard (單一線程)...");
-
-    // 設定超時保護：5秒後如果還沒讀完，就報錯 (防止無限轉圈)
-    const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error("連線逾時 (Timeout)")), 8000)
-    );
-
     try {
-        // --- 核心邏輯包在 Promise.race 中 ---
-        // 意思是：數據庫回來得快，還是 8秒超時到得快？
-        await Promise.race([
-            (async () => {
-                // Step A: 讀取作業 (只讀最基本的欄位，減輕負擔)
-                console.log("📡 Step 1: 請求 Assignments...");
-                const { data: assignments, error: assignError } = await supabaseClient
-                    .from('assignments')
-                    .select('id, title, created_at, class_id') // 最小化查詢
-                    .eq('user_id', currentUser.id)
-                    .order('created_at', { ascending: false });
+        console.log("📊 開始讀取 Dashboard (v8.6 Safe Mode)...");
 
-                if (assignError) throw assignError;
+        // --- Step A: 讀取所有作業 (不關聯任何表) ---
+        const { data: assignments, error: assignError } = await supabaseClient
+            .from('assignments')
+            .select('id, title, created_at, class_id') // 只讀最基本的
+            .eq('user_id', currentUser.id)
+            .order('created_at', { ascending: false });
 
-                if (!assignments || assignments.length === 0) {
-                    renderEmptyState(focusList);
-                    return;
-                }
+        if (assignError) throw assignError;
 
-                console.log(`✅ 獲取 ${assignments.length} 份作業，準備讀取詳細資訊...`);
+        if (!assignments || assignments.length === 0) {
+            renderEmptyState(focusList);
+            return;
+        }
 
-                // Step B: 讀取班級 (Classes)
-                const { data: allClasses } = await supabaseClient
-                    .from('classes')
-                    .select('id, class_name, academic_year')
-                    .eq('user_id', currentUser.id);
-                
-                const classMap = {};
-                if (allClasses) allClasses.forEach(c => classMap[c.id] = c);
+        // --- Step B: 讀取所有班級 (建立 ID 對照表) ---
+        const { data: classesData } = await supabaseClient
+            .from('classes')
+            .select('id, class_name, academic_year')
+            .eq('user_id', currentUser.id);
 
-                // Step C: 讀取批改數 (Results)
-                const assignmentIds = assignments.map(a => a.id);
-                const { data: resultsData } = await supabaseClient
-                    .from('results')
-                    .select('assignment_id')
-                    .in('assignment_id', assignmentIds);
-                    
-                const gradedCounts = {};
-                if (resultsData) resultsData.forEach(r => gradedCounts[r.assignment_id] = (gradedCounts[r.assignment_id] || 0) + 1);
+        const classMap = {};
+        if (classesData) {
+            classesData.forEach(c => { classMap[c.id] = c; });
+        }
 
-                // Step D: 讀取總人數 (Students)
-                // 這裡我們不篩選 class_id，直接讀取該老師所有的學生數量，然後在 JS 過濾
-                // 這樣可以減少 SQL 語句的長度，防止 URL 過長錯誤
-                const { data: allStudents } = await supabaseClient
-                    .from('students')
-                    .select('class_id')
-                    // 假設你有 RLS 保護，這裡只會讀到該老師的學生
-                    // 如果沒有 RLS，可以加 .in('class_id', uniqueClassIds)
-                    ; 
-                    
-                const classStudentCounts = {};
-                if (allStudents) {
-                    allStudents.forEach(s => {
-                        classStudentCounts[s.class_id] = (classStudentCounts[s.class_id] || 0) + 1;
-                    });
-                }
+        // --- Step C: 統計已批改數量 (Results) ---
+        // 找出相關的 assignment IDs
+        const assignmentIds = assignments.map(a => a.id);
+        
+        // 查詢 results 表，只拿 assignment_id 來計數
+        const { data: resultsData } = await supabaseClient
+            .from('results')
+            .select('assignment_id')
+            .in('assignment_id', assignmentIds);
 
-                // Step E: 組裝與渲染
-                console.log("🧩 正在組裝...");
-                const processedProjects = assignments.map(a => {
-                    const cls = classMap[a.class_id] || { class_name: '(未知班級)', academic_year: '---' };
-                    const graded = gradedCounts[a.id] || 0;
-                    const total = classStudentCounts[a.class_id] || 0;
-                    const progress = total > 0 ? Math.round((graded / total) * 100) : 0;
-                    const isCompleted = (total > 0 && graded >= total);
+        const gradedCounts = {};
+        if (resultsData) {
+            resultsData.forEach(r => {
+                gradedCounts[r.assignment_id] = (gradedCounts[r.assignment_id] || 0) + 1;
+            });
+        }
 
-                    return {
-                        id: a.id,
-                        source_type: 'new',
-                        topic: a.title,
-                        class_id: a.class_id,
-                        class_name: cls.class_name,
-                        academic_year: cls.academic_year,
-                        normalizedYear: cls.academic_year,
-                        last_updated: a.created_at,
-                        graded_count: graded,
-                        total_students: total,
-                        progress: progress,
-                        isCompleted: isCompleted
-                    };
-                });
+        // --- Step D: 統計班級總人數 (Students) ---
+        // 找出相關的 class IDs
+        const uniqueClassIds = [...new Set(assignments.map(a => a.class_id))];
+        
+        const { data: studentsData } = await supabaseClient
+            .from('students')
+            .select('class_id')
+            .in('class_id', uniqueClassIds);
 
-                const focusItems = processedProjects.filter(p => !p.isCompleted).slice(0, 5);
-                focusList.innerHTML = ''; 
-                renderFocusList(focusItems, focusList);
+        const classStudentCounts = {};
+        if (studentsData) {
+            studentsData.forEach(s => {
+                classStudentCounts[s.class_id] = (classStudentCounts[s.class_id] || 0) + 1;
+            });
+        }
 
-                const grouped = groupByYearAndClass(processedProjects);
-                if(classContainer) {
-                    classContainer.innerHTML = ''; 
-                    renderClassAccordion(grouped, classContainer);
-                }
-                
-                updateWelcomeMessage();
-                console.log("✨ Dashboard 載入完成！");
-            })(),
-            timeoutPromise
-        ]);
+        // --- Step E: 數據組裝 (前端 Merge) ---
+        const processedProjects = assignments.map(a => {
+            // 1. 找班級資料 (找不到就顯示未知，唔會 error)
+            const cls = classMap[a.class_id] || { class_name: '(未知/已刪)', academic_year: '' };
+            
+            // 2. 找計數
+            const graded = gradedCounts[a.id] || 0;
+            const total = classStudentCounts[a.class_id] || 0;
+            
+            // 3. 計算進度
+            const progress = total > 0 ? Math.round((graded / total) * 100) : 0;
+            const isCompleted = (total > 0 && graded >= total);
+
+            return {
+                id: a.id,
+                source_type: 'new',
+                topic: a.title,
+                class_id: a.class_id,
+                class_name: cls.class_name,
+                academic_year: cls.academic_year,
+                normalizedYear: cls.academic_year,
+                last_updated: a.created_at,
+                graded_count: graded,
+                total_students: total,
+                progress: progress,
+                isCompleted: isCompleted
+            };
+        });
+
+        // --- Step F: 渲染 ---
+        const focusItems = processedProjects.filter(p => !p.isCompleted).slice(0, 5);
+        focusList.innerHTML = ''; 
+        renderFocusList(focusItems, focusList);
+
+        const grouped = groupByYearAndClass(processedProjects);
+        if(classContainer) {
+            classContainer.innerHTML = ''; 
+            renderClassAccordion(grouped, classContainer);
+        }
+        
+        updateWelcomeMessage();
+        console.log("✅ Dashboard 載入完成！");
 
     } catch (error) {
-        console.error("Dashboard Error:", error);
-        focusList.innerHTML = `
-            <div style="color:#c86a5a; padding:1.5rem; text-align:center; border:2px dashed #ffcdd2; border-radius:12px; background:#fffafa;">
-                <div style="font-size:2rem; margin-bottom:10px;">⚠️</div>
-                <strong>數據讀取受阻</strong><br>
-                <span style="font-size:0.85rem; color:#666;">原因：${error.message}</span>
-                <br>
-                <button class="action-btn" onclick="_isDashboardLoading=false; loadDashboard()" style="margin-top:15px; padding:8px 20px; font-size:0.9rem;">
-                    🔄 重新載入
-                </button>
-            </div>`;
-    } finally {
-        // 無論成功失敗，最後一定要解鎖，否則按鈕會死掉
-        _isDashboardLoading = false;
+        console.error("Dashboard Load Error:", error);
+        focusList.innerHTML = `<div style="color:#c86a5a; padding:1rem; text-align:center;">
+            數據讀取失敗<br><span style="font-size:0.8rem">${error.message}</span>
+            <br><button class="secondary-btn" onclick="loadDashboard()" style="margin-top:10px; font-size:0.8rem">重試</button>
+        </div>`;
     }
 }
+
+
 // [Pro-v4.2-UI] 停止載入離線備份到 Dashboard (避免重複混亂)
 function getOfflineProjectMeta() {
     // 強制回傳 null，讓 Dashboard 只顯示雲端資料
@@ -7579,53 +7562,71 @@ function closeLoginModal() {
   if(modal) modal.classList.remove('active');
 }
 
-// [Pro-v8.2] 登入/註冊處理 (修復：登入後立即刷新數據)
+// [Pro-v2.1] 白名單邏輯實裝
 async function handlePasswordAuth(action) {
   const email = document.getElementById('login-email').value.trim();
   const password = document.getElementById('login-password').value.trim();
   const authStatus = document.getElementById('auth-status');
-  const btn = document.querySelector('#pop-login-modal .pop-btn-confirm');
-  const originalText = btn ? btn.innerText : '登入';
 
-  if (!email || !password) { alert("請輸入 Email 及 密碼"); return; }
+  // 找出按鈕 (兼用於顯示 loading)
+  const btn = document.querySelector('#pop-login-modal .pop-btn-confirm'); // 這是登入按鈕
+  // 為了精準控制，我們重新獲取觸發事件的按鈕 (註冊或登入)
+  const targetBtn = event.target; 
+  const originalText = targetBtn.innerText;
 
-  if(btn) { btn.innerText = "檢查中..."; btn.disabled = true; }
+  if (!email || !password) {
+    alert("請輸入 Email 及 密碼");
+    return;
+  }
+
+  // 鎖定 UI
+  targetBtn.innerText = "檢查中...";
+  targetBtn.disabled = true;
   if(authStatus) authStatus.textContent = "處理中...";
 
   try {
-    // 1. 白名單檢查
+    // === 步驟 1: 如果是「註冊」，先檢查白名單 ===
     if (action === 'signup') {
         const { data: whiteData, error: whiteError } = await supabaseClient
-            .from('whitelist').select('email').eq('email', email).maybeSingle();
-        if (whiteError) throw new Error("系統連線錯誤");
+            .from('whitelist')
+            .select('email')
+            .eq('email', email)
+            .maybeSingle(); // 查詢是否有一筆資料
+
+        if (whiteError) {
+            console.error("白名單檢查錯誤:", whiteError);
+            throw new Error("系統連線錯誤，無法驗證權限。");
+        }
+
         if (!whiteData) {
-            alert("⛔ 抱歉，此 Email 不在邀請名單內。");
-            if(btn) { btn.innerText = originalText; btn.disabled = false; }
+            alert("⛔ 抱歉，此 Email 不在邀請名單內，無法註冊。\n\n目前僅開放受邀的測試人員使用。");
+            // 解鎖並離開
+            targetBtn.innerText = originalText;
+            targetBtn.disabled = false;
             if(authStatus) authStatus.textContent = "未連接";
             return; 
         }
     }
 
-    // 2. Supabase 驗證
-    let resultError = null;
+    // === 步驟 2: 通過檢查，執行原本的 Supabase 驗證 ===
     if (action === 'signup') {
-      const { error } = await supabaseClient.auth.signUp({ email, password });
-      resultError = error;
+      const { data, error } = await supabaseClient.auth.signUp({ email, password });
+      if (error) throw error;
+      
+      if (data.user) {
+         if (typeof showToast === 'function') showToast("註冊成功！", "success");
+         else alert("註冊成功！");
+         closeLoginModal();
+         // 註冊成功後通常會自動登入，updateUI 會由監聽器處理
+      }
     } else {
-      const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-      resultError = error;
-    }
+      // --- 登入 ---
+      const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+      if (error) throw error;
 
-    if (resultError) throw resultError;
-
-    // 3. 成功後處理 (🔥 暴力刷新)
-    if (typeof showToast === 'function') showToast("登入成功！", "success");
-    closeLoginModal();
-
-    // 這句是關鍵：登入成功後，手動觸發一次「全站檢查與載入」
-    if (typeof checkUser === 'function') {
-        console.log("登入成功，正在強制刷新數據...");
-        await checkUser();
+      if (typeof showToast === 'function') showToast("登入成功！", "success");
+      else alert("登入成功！");
+      closeLoginModal();
     }
 
   } catch (err) {
@@ -7633,9 +7634,14 @@ async function handlePasswordAuth(action) {
     alert("操作失敗：" + err.message);
     if(authStatus) authStatus.textContent = "操作失敗";
   } finally {
-    if(btn) { btn.innerText = action === 'signup' ? '註冊' : '登入'; btn.disabled = false; }
+    // 無論成功失敗，最後解鎖按鈕
+    if(targetBtn) {
+        targetBtn.innerText = originalText;
+        targetBtn.disabled = false;
+    }
   }
 }
+
 // 4. 處理忘記密碼
 async function handleForgotPassword() {
   const email = document.getElementById('login-email').value.trim();
@@ -7900,11 +7906,10 @@ async function confirmResetPassword() {
     }
 }
 
-// [Pro-v8.1] Auth 監聽器 (修復登入後自動刷新)
-supabaseClient.auth.onAuthStateChange(async (event, session) => {
+// 3. 簡化版監聽器 (只負責登出和忘記密碼郵件)
+supabaseClient.auth.onAuthStateChange((event, session) => {
     console.log("Auth Event:", event);
     
-    // 1. 登出事件
     if (event === 'SIGNED_OUT') {
         currentUser = null;
         updateUIBasedOnAuthState();
@@ -7912,28 +7917,7 @@ supabaseClient.auth.onAuthStateChange(async (event, session) => {
         commonTypos = [];
         if (typeof loadDashboard === 'function') loadDashboard();
     } 
-    // 2. 登入事件 (🔥 關鍵新增：登入後立即載入數據)
-    else if (event === 'SIGNED_IN' && session) {
-        currentUser = session.user;
-        updateUIBasedOnAuthState(); // 更新 Header 狀態
-        
-        // 確保 Dashboard 立即刷新
-        if (typeof loadDashboard === 'function') {
-            console.log("偵測到登入，正在刷新 Dashboard...");
-            await loadDashboard(); 
-        }
-        
-        // 順便載入設定 (評語庫等)
-        if (typeof loadDataFromCloud === 'function') {
-            loadDataFromCloud();
-        }
-        
-        // 如果是在 Page 1，順便刷新班級選單
-        if (typeof loadPage1ClassDropdown === 'function') {
-            loadPage1ClassDropdown(true);
-        }
-    }
-    // 3. 忘記密碼
+    // 處理「忘記密碼」郵件連結 (type=recovery)
     else if (event === 'PASSWORD_RECOVERY') {
         const modal = document.getElementById('pop-reset-password-modal');
         if(modal) {
