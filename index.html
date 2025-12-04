@@ -7785,55 +7785,99 @@ async function deleteProject() {
 
 
 
-/* ==========================================
-   ====== 🔐 官方標準重設密碼監聽器 (UI版) ======
-   ========================================== */
+// [Pro-v6.5] 全局登入狀態監聽 (修復邀請連結捕捉問題)
+
+// 🔥 1. 在 Supabase 清除網址前，立刻捕捉 Hash！
+const _initialHash = window.location.hash;
+
 supabaseClient.auth.onAuthStateChange(async (event, session) => {
-    if (event === 'PASSWORD_RECOVERY') {
-        console.log("偵測到重設密碼事件！啟動 UI...");
-        
+    console.log("Auth Event:", event);
+    currentUser = session ? session.user : null;
+    updateUIBasedOnAuthState();
+
+    // 2. 檢查捕捉到的 Hash (而不是現在的 window.location.hash)
+    const isInvite = _initialHash && _initialHash.includes('type=invite');
+    const isRecovery = _initialHash && _initialHash.includes('type=recovery');
+
+    if (event === 'SIGNED_IN') {
+        loadDataFromCloud();
+        if (typeof loadDashboard === 'function') loadDashboard();
+
+        // 🔥 3. 觸發邀請流程
+        if (isInvite) {
+            console.log("偵測到邀請連結，準備彈出視窗...");
+            // [Pro-v6.6] 改為 0.5 秒，爽快很多
+            setTimeout(() => {
+                showCustomModal({
+                    icon: '👋',
+                    title: '歡迎加入！',
+                    desc: '這是您第一次登入。請設定您的專屬密碼，以便日後使用 Email 登入。',
+                    confirmText: '設定密碼',
+                    cancelText: '稍後再說'
+                }).then(ok => {
+                    if(ok) {
+                        // 打開重設密碼視窗
+                        const modal = document.getElementById('pop-reset-password-modal');
+                        if(modal) {
+                            modal.classList.add('active');
+                            const input = document.getElementById('new-password-input');
+                            if(input) input.focus();
+                        }
+                    }
+                });
+                
+                // 這是為了防止刷新頁面後再次彈出，我們可以手動清除 _initialHash (雖然這裡只是變數)
+                // 真正的 URL 此時應該已經被 Supabase 清乾淨了
+            }, 500);
+        }
+    } 
+    
+    // 處理「忘記密碼」流程
+    else if (event === 'PASSWORD_RECOVERY') {
         const modal = document.getElementById('pop-reset-password-modal');
         const input = document.getElementById('new-password-input');
         const btn = document.getElementById('confirm-reset-btn');
         
-        // 顯示 Modal
-        modal.classList.add('active');
-        input.value = '';
-        input.focus();
-
-        // 定義點擊事件
-        btn.onclick = async () => {
-            const newPassword = input.value.trim();
-
-            // 1. 檢查長度
-            if (newPassword.length < 6) {
-                alert("❌ 密碼太短！\nSupabase 要求密碼最少 6 個字元。");
-                return;
+        if(modal) {
+            modal.classList.add('active');
+            if(input) {
+                input.value = '';
+                input.focus();
             }
+        }
 
-            // 2. 鎖定按鈕
-            const originalText = btn.innerText;
-            btn.innerText = "更新中...";
-            btn.disabled = true;
+        if(btn) {
+            btn.onclick = async () => {
+                const newPassword = input.value.trim();
+                if (newPassword.length < 6) {
+                    alert("❌ 密碼太短！最少 6 個字元。");
+                    return;
+                }
+                btn.innerText = "更新中...";
+                btn.disabled = true;
 
-            // 3. 執行更新
-            const { data, error } = await supabaseClient.auth.updateUser({ 
-                password: newPassword 
-            });
+                const { error } = await supabaseClient.auth.updateUser({ password: newPassword });
 
-            if (error) {
-                alert("❌ 更新失敗：" + error.message);
-                btn.innerText = originalText;
-                btn.disabled = false;
-            } else {
-                alert("🎉 密碼已成功更新！\n\n請使用新密碼重新登入。");
-                
-                // 關閉 Modal，清除網址 Hash，重新載入
-                modal.classList.remove('active');
-                window.location.hash = ''; 
-                window.location.reload(); 
-            }
-        };
+                if (error) {
+                    alert("❌ 更新失敗：" + error.message);
+                    btn.innerText = "確認修改";
+                    btn.disabled = false;
+                } else {
+                    alert("🎉 密碼已設定成功！\n請記住您的密碼，下次請直接登入。");
+                    modal.classList.remove('active');
+                    // 清除網址 hash
+                    history.replaceState(null, null, ' ');
+                }
+            };
+        }
+    }
+    
+    else if (event === 'SIGNED_OUT') {
+        sessionStorage.removeItem('projectPromptShownThisSession');
+        commonTypos = [];
+        allStudentRecords = [];
+        if (typeof loadDashboard === 'function') loadDashboard();
+        // alert("已登出"); 
     }
 });
 
