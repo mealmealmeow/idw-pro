@@ -3744,99 +3744,60 @@ async function loadProjectById(projectId) {
         updateUIBasedOnAuthState();
     }
 }
-// --- 重要的修改：雲端同步函式 ---
-// [Pro-v7.4] 全域同步按鈕 (強制寫入新資料庫 assignments + 修復閃爍)
+// [Pro-v9.3] 儲存 (加入評語庫 Snapshot)
 async function syncDataToCloud() {
-  // 1. 檢查登入
-  if (!currentUser) {
-    showToast("尚未登入，請先登入帳戶。", "warning");
-    return;
-  }
-
-  // 2. 獲取資料
+  if (!currentUser) { showToast("尚未登入", "warning"); return; }
   const className = document.getElementById('student-class').value.trim();
   const topic = document.getElementById('topic').value.trim();
   
-  if (!window.currentClassId) {
-      showToast("請先在「基本設定」選擇班級，才能使用雲端同步。", "warning");
-      return;
-  }
+  if (!window.currentClassId) { showToast("請先選擇班級", "warning"); return; }
 
   const syncBtn = document.getElementById('sync-btn');
-  const originalText = syncBtn.textContent;
-  
-  // 鎖定按鈕
-  syncBtn.textContent = '同步中...';
-  syncBtn.disabled = true;
-  syncBtn.classList.remove('dirty'); // 立即停止閃爍
+  syncBtn.textContent = '同步中...'; syncBtn.disabled = true; syncBtn.classList.remove('dirty');
   
   try {
-    console.log("☁️ 正在同步專案資訊到 assignments 表...");
+    console.log("☁️ 正在同步專案與評語庫...");
 
-    // 3. 準備寫入 assignments 表 (Upsert)
+    // 1. 準備評語庫 Snapshot (這就是當日的 Menu)
+    const currentCritiques = collectExportData(); 
+
     let assignmentId = window.currentAssignmentId;
-    
     if (!assignmentId) {
-        const { data: existing } = await supabaseClient
-            .from('assignments')
-            .select('id')
-            .eq('class_id', window.currentClassId)
-            .eq('title', topic)
-            .maybeSingle();
+        const { data: existing } = await supabaseClient.from('assignments').select('id').eq('class_id', window.currentClassId).eq('title', topic).maybeSingle();
         if (existing) assignmentId = existing.id;
     }
 
+    // 2. 寫入 assignments (包含 settings)
     const payload = {
         user_id: currentUser.id,
         class_id: window.currentClassId,
         title: topic,
+        settings: { critiques: currentCritiques }, // 🔥 核心：將評語庫存入 Project
         ...(assignmentId && { id: assignmentId }),
         created_at: new Date().toISOString()
     };
 
-    const { data, error } = await supabaseClient
-        .from('assignments')
-        .upsert(payload)
-        .select()
-        .single();
-
+    const { data, error } = await supabaseClient.from('assignments').upsert(payload).select().single();
     if (error) throw error;
 
     window.currentAssignmentId = data.id;
     
-    // 4. 如果在 Page 2，順便儲存當前學生
+    // 3. 順便儲存當前學生 (如果在 Page 2)
     if (document.getElementById('page2').classList.contains('active')) {
-        await saveCurrentStudentData(); 
-    } else {
-        showToast("✅ 專案資訊已同步 (新版)！", "success");
+        await saveCurrentStudentData('cloud_silent'); // Silent mode 避免重複 Toast
     }
 
-    // 🔥 關鍵修復：確保狀態重置
-    isDataDirty = false;
-    updateUIBasedOnAuthState(); 
-    
-    // 再次強制確保按鈕狀態正確 (雙重保險)
-    setTimeout(() => {
-        const btn = document.getElementById('sync-btn');
-        if(btn) {
-            btn.classList.remove('dirty');
-            btn.textContent = '資料已同步';
-        }
-    }, 100);
+    showToast("✅ 專案與評語庫已同步！", "success");
+    isDataDirty = false; updateUIBasedOnAuthState(); 
+    setTimeout(() => { if(syncBtn) { syncBtn.classList.remove('dirty'); syncBtn.textContent = '資料已同步'; } }, 100);
 
   } catch (error) {
     console.error("同步失敗:", error);
     showToast(`同步失敗: ${error.message}`, "error");
-    // 失敗的話，回復 Dirty 狀態提示用戶重試
-    isDataDirty = true;
-    updateUIBasedOnAuthState();
+    isDataDirty = true; updateUIBasedOnAuthState();
   } finally {
-    if (isDataDirty) {
-        syncBtn.disabled = false;
-        syncBtn.textContent = '儲存變更到雲端';
-    } else {
-        syncBtn.disabled = false; // 雖然已同步，但保持可點擊狀態 (沒壞處)
-    }
+    if (isDataDirty) { syncBtn.disabled = false; syncBtn.textContent = '儲存變更到雲端'; } 
+    else { syncBtn.disabled = false; }
   }
 }
 // ====== 登入/介面狀態 強制修復版 ======
@@ -7496,52 +7457,49 @@ function buildCardHtml(item, uniqueId) {
         </div>
     </div>`;
 }
-// 2. 修改 openAssignment (支援 Local Backup & Memory)
-// [Pro-v9.2] 開啟作業 (加入文體自動偵測，修復評語消失)
+// [Pro-v9.3] 開啟作業 (優先讀取專案專屬評語庫)
 async function openAssignment(assignmentId) {
-    if (assignmentId === 'local_memory') { showPage('page2'); showToast("已返回編輯中的草稿", "success"); return; }
+    if (assignmentId === 'local_memory') { showPage('page2'); showToast("已返回草稿", "success"); return; }
     if (assignmentId === 'local_backup') { restoreFromLocalBackup(); return; }
-    if (!currentUser) { showToast("請先登入以開啟此雲端專案", "warning"); return; }
+    if (!currentUser) { showToast("請先登入", "warning"); return; }
     
-    showToast("正在載入雲端作業...", "info");
+    showToast("正在載入...", "info");
     
     try {
-        // 1. 讀取 Assignment 資訊
+        // 1. 讀取 Assignment (包含 settings)
         const { data: assignment, error: assignError } = await supabaseClient
-            .from('assignments').select(`*, classes(class_name)`).eq('id', assignmentId).single();
+            .from('assignments')
+            .select(`*, classes(class_name)`)
+            .eq('id', assignmentId)
+            .single();
         if (assignError) throw assignError;
 
-        // 2. 讀取學生名單
-        const { data: students, error: studentError } = await supabaseClient
-            .from('students').select('*').eq('class_id', assignment.class_id).order('student_number', { ascending: true }); 
+        // 2. 讀取名單 & 成績
+        const { data: students, error: studentError } = await supabaseClient.from('students').select('*').eq('class_id', assignment.class_id).order('student_number', { ascending: true }); 
         if (studentError) throw studentError;
-
-        // 3. 讀取成績與評語
-        const { data: results, error: resultError } = await supabaseClient
-            .from('results').select('*').eq('assignment_id', assignmentId);
+        const { data: results, error: resultError } = await supabaseClient.from('results').select('*').eq('assignment_id', assignmentId);
         if (resultError) throw resultError;
 
-        // 🔥 [核心修復] 智能偵測文體 (Auto-Detect Genre)
-        let detectedGenre = 'common'; 
-        // 收集所有成績中用過的 Tag ID
-        const allTags = results.flatMap(r => r.tags || []); 
-        const tagString = allTags.join(',');
+        // 🔥 3. 處理評語庫 (Stick to Project)
+        const documentContainer = document.getElementById('critique-data');
+        documentContainer.innerHTML = ''; // 先清空
 
-        if (tagString.includes('nar_')) detectedGenre = 'narrative';      // 記敘
-        else if (tagString.includes('des_')) detectedGenre = 'descriptive'; // 描寫
-        else if (tagString.includes('arg_')) detectedGenre = 'argumentative'; // 議論
-        else if (tagString.includes('lyr_')) detectedGenre = 'lyrical';     // 抒情
+        if (assignment.settings && assignment.settings.critiques && assignment.settings.critiques.length > 0) {
+            console.log("📂 發現專案專屬評語庫，正在還原...");
+            applyCritiquesToDOM(assignment.settings.critiques);
+        } else {
+            console.log("⚠️ 此專案無專屬評語 (舊版)，載入預設...");
+            loadDefaultCritiques(); // 或者保留當前畫面，視乎你喜好，這裡建議重置為預設比較安全
+        }
         
-        console.log(`🕵️‍♂️ 偵測到文體類型: ${detectedGenre}`);
+        // 重建 UI
+        buildChecklist();
+        buildOverviewPage();
 
-        // 立即切換評語庫！
-        await reloadCritiqueLibrary(detectedGenre);
-
-        // 4. 重建記憶體數據
+        // 4. 還原數據
         clearAllCore(false); 
         if(document.getElementById('student-class')) document.getElementById('student-class').value = assignment.classes.class_name;
         if(document.getElementById('topic')) document.getElementById('topic').value = assignment.title;
-        
         window.currentAssignmentId = assignment.id;
         window.currentClassId = assignment.class_id;
 
@@ -7573,14 +7531,13 @@ async function openAssignment(assignmentId) {
         updateStudentDropdown(); renderStudentOverviewTable(); updateHeaderInfo();
         
         showPage('page2');
-        showToast(`已載入：${assignment.title} (${detectedGenre === 'common' ? '通用' : detectedGenre})`, "success");
+        showToast(`已載入：${assignment.title}`, "success");
 
     } catch (error) {
         console.error(error);
         alert(`載入失敗：${error.message}`);
     }
 }
-
 // 5. 歡迎訊息更新
 function updateWelcomeMessage() {
     const h = new Date().getHours();
