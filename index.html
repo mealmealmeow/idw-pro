@@ -105,28 +105,33 @@
   pointer-events: auto;
 }
 
+/* [Pro-v7.3] 彈窗內容框 (強制絕對置中) */
 .pop-modal {
   background: #ffffff;
   width: 90%;
   max-width: 500px;
-  /* ✅ 新增：限制最大高度為螢幕的 90%，並允許垂直捲動 */
-  max-height: 90vh;
-  overflow-y: auto; 
-  /* ----------------------------------------------- */
+  max-height: 85vh; /* 留一點邊距 */
+  overflow-y: auto;
   
-  /* 原有的樣式保留... */
+  /* 核心定位代碼 */
+  position: fixed; /* 不再是 relative */
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.95); /* 結合置中與縮放動畫初始值 */
+  
   border-radius: 30px;
   box-shadow: -8px 8px 0px 0px #F2C037; 
   border: 2px solid #F2C037;
   padding: 30px;
-  position: relative;
   text-align: center;
   color: #4a4a4a;
-  transform: scale(0.95);
-  transition: transform 0.2s;
+  transition: transform 0.2s, opacity 0.2s;
+  z-index: 2147483648; /* 比 Overlay 更高一層 */
 }
+
+/* 當 Overlay active 時的動畫 */
 .pop-overlay.active .pop-modal {
-  transform: scale(1);
+  transform: translate(-50%, -50%) scale(1); /* 保持置中並放大 */
 }
 
 .pop-icon {
