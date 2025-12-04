@@ -7874,7 +7874,7 @@ async function deleteStudentFromMaster(studentId) {
 // ====== Phase 2.1 (Part 2): 班級頁邏輯 ======
 // ==========================================
 
-// [Pro-v2.2] 從新資料庫讀取班級列表
+// [Pro-v2.3] 加入 loadPage1ClassDropdown() 聯動刷新
 async function loadAllClasses() {
     const container = document.getElementById('class-management-list');
     if (!container) return; 
@@ -7890,10 +7890,10 @@ async function loadAllClasses() {
         return;
     }
 
-    container.innerHTML = '<div class="dashboard-loading"><div class="spinner"></div> 正在讀取班級資料...</div>';
+    container.innerHTML = '<div class="dashboard-loading"><div class="spinner"></div> 讀取中...</div>';
 
     try {
-        // 1. 讀取班級列表 (Classes Table)
+        // 1. 讀取班級列表
         const { data: classes, error } = await supabaseClient
             .from('classes')
             .select('*')
@@ -7902,6 +7902,15 @@ async function loadAllClasses() {
             .order('class_name', { ascending: true });
 
         if (error) throw error;
+
+        // 🔥 [新增] 同步刷新 Page 1 的下拉選單
+        // 這裡我們強制清空 Page 1 的 select，讓它下次點開時重新讀取，或者直接在這裡重讀
+        const page1Select = document.getElementById('setup-class-select');
+        if(page1Select) {
+             page1Select.innerHTML = '<option value="">(資料更新中...)</option>'; // 視覺提示
+             // 稍微延遲一下再讀取，確保 UX 順暢
+             setTimeout(() => { if(typeof loadPage1ClassDropdown === 'function') loadPage1ClassDropdown(true); }, 500);
+        }
 
         if (classes.length === 0) {
             container.innerHTML = `
@@ -7912,18 +7921,16 @@ async function loadAllClasses() {
             return;
         }
 
-        // 2. 渲染班級卡片 (逐一查詢學生人數)
+        // 2. 渲染班級卡片
         container.innerHTML = ''; 
-        
         for (const cls of classes) {
-            // 查詢該班學生數 (Students Table)
             const { count } = await supabaseClient
                 .from('students')
                 .select('*', { count: 'exact', head: true })
                 .eq('class_id', cls.id);
 
             const card = document.createElement('div');
-            card.className = 'task-item'; // 重用 Dashboard 卡片樣式
+            card.className = 'task-item';
             card.style.cursor = 'default';
             card.innerHTML = `
                 <div class="task-meta">
@@ -8044,10 +8051,9 @@ function toggleSetupMode() {
     }
 }
 
-// 2. 載入班級到 Dropdown
-async function loadPage1ClassDropdown() {
+// [Pro-v2.3] 下拉選單 (支援強制刷新)
+async function loadPage1ClassDropdown(forceRefresh = false) {
     const select = document.getElementById('setup-class-select');
-    // 如果元素不存在 (例如在其他頁面)，直接返回
     if (!select) return;
 
     if (!currentUser) {
@@ -8055,8 +8061,8 @@ async function loadPage1ClassDropdown() {
         return;
     }
     
-    // 避免重複讀取，如果有資料就保留
-    if (select.options.length > 1) return; 
+    // 如果不是強制刷新，且已經有資料，就跳過 (節省資源)
+    if (!forceRefresh && select.options.length > 1) return; 
 
     select.innerHTML = '<option>讀取中...</option>';
 
@@ -8078,9 +8084,9 @@ async function loadPage1ClassDropdown() {
         select.innerHTML = '<option value="">-- 請選擇班級 --</option>';
         classes.forEach(c => {
             const opt = document.createElement('option');
-            opt.value = c.id; // 這是 Database 的 uuid
+            opt.value = c.id;
             opt.textContent = `${c.class_name} (${c.academic_year})`;
-            opt.dataset.className = c.class_name; // 存個名方便用
+            opt.dataset.className = c.class_name; 
             select.appendChild(opt);
         });
 
