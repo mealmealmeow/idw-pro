@@ -7531,7 +7531,7 @@ function buildCardHtml(item, uniqueId) {
         </div>
     </div>`;
 }
-// 2. 修改 openAssignment (支援 Local Backup & Memory)
+// [Pro-v9.2] 開啟作業 (加入文體自動偵測，修復評語消失)
 async function openAssignment(assignmentId) {
     // A. 離線記憶體
     if (assignmentId === 'local_memory') {
@@ -7542,11 +7542,11 @@ async function openAssignment(assignmentId) {
 
     // B. 本機備份
     if (assignmentId === 'local_backup') {
-        restoreFromLocalBackup(); // 呼叫原本寫好的還原函數
+        restoreFromLocalBackup(); 
         return;
     }
 
-    // C. 雲端讀取 (新舊通用邏輯)
+    // C. 雲端讀取
     if (!currentUser) {
         showToast("請先登入以開啟此雲端專案", "warning");
         return;
@@ -7554,13 +7554,8 @@ async function openAssignment(assignmentId) {
     
     showToast("正在載入雲端作業...", "info");
     
-    // 這裡我們需要判斷是 New Assignment 還是 Legacy Project
-    // 但因為 ID 格式通常不同 (UUID vs INT/UUID)，或者我們可以先嘗試一種
-    // 簡單起見，我們先假設 loadProjectById (舊) 和 openAssignment (新) 的邏輯是分開的
-    // 上面的 render 函數已經根據 source_type 分派了不同的 onclick 函數
-    
-    // 如果這是一個 New Assignment (Assignment Table)
     try {
+        // 1. 讀取 Assignment 資訊
         const { data: assignment, error: assignError } = await supabaseClient
             .from('assignments')
             .select(`*, classes(class_name)`)
@@ -7569,7 +7564,7 @@ async function openAssignment(assignmentId) {
             
         if (assignError) throw assignError;
 
-        // ... (以下是原本 openAssignment 的載入邏輯) ...
+        // 2. 讀取學生名單
         const { data: students, error: studentError } = await supabaseClient
             .from('students')
             .select('*')
@@ -7577,14 +7572,31 @@ async function openAssignment(assignmentId) {
             .order('student_number', { ascending: true }); 
         if (studentError) throw studentError;
 
+        // 3. 讀取成績與評語
         const { data: results, error: resultError } = await supabaseClient
             .from('results')
             .select('*')
             .eq('assignment_id', assignmentId);
         if (resultError) throw resultError;
 
-        clearAllCore(false); 
+        // 🔥 [核心修復] 智能偵測文體 (Auto-Detect Genre)
+        // 掃描所有成績，看看是用什麼類型的評語 ID
+        let detectedGenre = 'common'; // 預設
+        const allTags = results.flatMap(r => r.tags || []); // 收集所有用過的 ID
+        const tagString = allTags.join(',');
+
+        if (tagString.includes('nar_')) detectedGenre = 'narrative';      // 記敘
+        else if (tagString.includes('des_')) detectedGenre = 'descriptive'; // 描寫
+        else if (tagString.includes('arg_')) detectedGenre = 'argumentative'; // 議論
+        else if (tagString.includes('lyr_')) detectedGenre = 'lyrical';     // 抒情
         
+        console.log(`🕵️‍♂️ 偵測到文體類型: ${detectedGenre}`);
+
+        // 立即切換評語庫，確保 Checkbox 能對應上
+        await reloadCritiqueLibrary(detectedGenre);
+
+        // 4. 重建記憶體數據
+        clearAllCore(false); 
         document.getElementById('student-class').value = assignment.classes.class_name;
         document.getElementById('topic').value = assignment.title;
         window.currentAssignmentId = assignment.id;
@@ -7605,7 +7617,7 @@ async function openAssignment(assignmentId) {
                         structure: res.structure_score,
                         punctuation: res.punctuation_score,
                         total: res.total_score,
-                        typos: extraData.typosCount || 0
+                        typos: extraData.typosCount || 0 // 修正 typos 取值
                     },
                     typos: extraData.typos || [],
                     checkedCritiques: extraData.checkedCritiques || [],
@@ -7630,13 +7642,14 @@ async function openAssignment(assignmentId) {
         updateHeaderInfo();
         
         showPage('page2');
-        showToast(`已載入：${assignment.title}`, "success");
+        showToast(`已載入：${assignment.title} (${detectedGenre === 'common' ? '通用' : detectedGenre})`, "success");
 
     } catch (error) {
         console.error(error);
         alert(`載入失敗：${error.message}`);
     }
 }
+
 // 5. 歡迎訊息更新
 function updateWelcomeMessage() {
     const h = new Date().getHours();
@@ -9118,6 +9131,59 @@ async function editClass(classId, oldYear, oldName) {
         alert("更新失敗：" + e.message);
     }
 }
+// [Pro-v9.2] 智能重載評語庫 (根據文體 + 用戶自定義)
+async function reloadCritiqueLibrary(genre) {
+    const dataContainer = document.getElementById('critique-data');
+    dataContainer.innerHTML = ''; // 清空現有
+
+    // 1. 載入罐頭評語 (Canned)
+    // 如果沒有指定，預設載入 common
+    const genresToLoad = genre ? [genre, 'common'] : ['common'];
+    const critiquesToLoad = new Map();
+
+    const addCritique = (critique) => {
+        if (!critiquesToLoad.has(critique.id)) {
+            critiquesToLoad.set(critique.id, critique);
+        }
+    };
+
+    genresToLoad.forEach(g => {
+        if (cannedCritiques[g]) {
+            cannedCritiques[g].forEach(addCritique);
+        }
+    });
+
+    // 2. 載入用戶自定義評語 (Custom from Cloud)
+    if (currentUser) {
+        try {
+            const { data: customData } = await supabaseClient
+                .from('critiques')
+                .select('*')
+                .eq('user_id', currentUser.id);
+            
+            if (customData) {
+                customData.forEach(c => {
+                    addCritique({
+                        id: c.critique_id, category: c.category, type: c.type, title: c.title,
+                        strengthSummary: c.strength_summary, problemCore: c.problem_core,
+                        suggestion: c.suggestion, example: c.example, options: c.options, optionsLabel: c.options_label
+                    });
+                });
+            }
+        } catch (e) { console.error("Reload Custom Critiques Error", e); }
+    }
+
+    // 3. 寫入 DOM
+    const finalCritiques = Array.from(critiquesToLoad.values());
+    applyCritiquesToDOM(finalCritiques);
+    
+    // 4. 重建 UI
+    buildChecklist();
+    buildOverviewPage();
+    
+    console.log(`✅ 評語庫已切換至：${genre || '通用'} (共 ${finalCritiques.length} 條)`);
+}
+
 </script> <!-- 呢個係原本全個檔案唯一的結尾，保留佢 -->
 
 
