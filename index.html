@@ -7091,134 +7091,157 @@ function restoreFromLocalBackup() {
     }
 }
 
-// [Pro-v8.4-NoJoin-Dashboard] 暴力讀取版 (不依賴 DB 關聯，分開讀取再組裝)
+// [Pro-v8.5-Stabilized] 防撞鎖定版 (防止重複請求 + 超時保護)
+let _isDashboardLoading = false; // 全域鎖定變數
+
 async function loadDashboard() {
     const focusList = document.getElementById('focus-task-list');
     const classContainer = document.getElementById('class-accordion-container');
     if(!focusList) return; 
 
-    // 1. 顯示讀取中
+    // 1. 防撞機制：如果正在讀取，直接離開，不做任何事
+    if (_isDashboardLoading) {
+        console.log("⚠️ Dashboard 正在讀取中，跳過本次重複請求...");
+        return;
+    }
+
+    // 上鎖
+    _isDashboardLoading = true;
+
+    // 2. 顯示狀態
     focusList.style.display = 'block';
-    focusList.innerHTML = '<div class="dashboard-loading"><div class="spinner"></div> 正在暴力讀取數據...</div>';
+    focusList.innerHTML = '<div class="dashboard-loading"><div class="spinner"></div> 正在連線資料庫...</div>';
     if(classContainer) classContainer.innerHTML = '';
 
     if (!currentUser) {
+        _isDashboardLoading = false; // 解鎖
         renderEmptyState(focusList);
         return;
     }
 
+    console.log("🚀 開始讀取 Dashboard (單一線程)...");
+
+    // 設定超時保護：5秒後如果還沒讀完，就報錯 (防止無限轉圈)
+    const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("連線逾時 (Timeout)")), 8000)
+    );
+
     try {
-        console.log("🚀 Step 1: 讀取所有作業 (Assignments)...");
-        // 只讀 assignments 本體，不讀 classes 關聯，避免卡死
-        const { data: assignments, error: assignError } = await supabaseClient
-            .from('assignments')
-            .select('*') // 簡單直接
-            .eq('user_id', currentUser.id)
-            .order('created_at', { ascending: false });
+        // --- 核心邏輯包在 Promise.race 中 ---
+        // 意思是：數據庫回來得快，還是 8秒超時到得快？
+        await Promise.race([
+            (async () => {
+                // Step A: 讀取作業 (只讀最基本的欄位，減輕負擔)
+                console.log("📡 Step 1: 請求 Assignments...");
+                const { data: assignments, error: assignError } = await supabaseClient
+                    .from('assignments')
+                    .select('id, title, created_at, class_id') // 最小化查詢
+                    .eq('user_id', currentUser.id)
+                    .order('created_at', { ascending: false });
 
-        if (assignError) throw assignError;
+                if (assignError) throw assignError;
 
-        if (!assignments || assignments.length === 0) {
-            renderEmptyState(focusList);
-            return;
-        }
+                if (!assignments || assignments.length === 0) {
+                    renderEmptyState(focusList);
+                    return;
+                }
 
-        console.log("🚀 Step 2: 讀取所有班級 (Classes)...");
-        // 獨立讀取班級表
-        const { data: allClasses } = await supabaseClient
-            .from('classes')
-            .select('*')
-            .eq('user_id', currentUser.id);
-            
-        // 建立班級對照表 (Map)
-        const classMap = {};
-        if (allClasses) {
-            allClasses.forEach(c => {
-                classMap[c.id] = c;
-            });
-        }
+                console.log(`✅ 獲取 ${assignments.length} 份作業，準備讀取詳細資訊...`);
 
-        console.log("🚀 Step 3: 讀取批改數量 (Results)...");
-        // 讀取所有 results 的 assignment_id
-        const assignmentIds = assignments.map(a => a.id);
-        const { data: resultsData } = await supabaseClient
-            .from('results')
-            .select('assignment_id')
-            .in('assignment_id', assignmentIds);
-            
-        const gradedCounts = {};
-        if (resultsData) {
-            resultsData.forEach(r => {
-                gradedCounts[r.assignment_id] = (gradedCounts[r.assignment_id] || 0) + 1;
-            });
-        }
+                // Step B: 讀取班級 (Classes)
+                const { data: allClasses } = await supabaseClient
+                    .from('classes')
+                    .select('id, class_name, academic_year')
+                    .eq('user_id', currentUser.id);
+                
+                const classMap = {};
+                if (allClasses) allClasses.forEach(c => classMap[c.id] = c);
 
-        console.log("🚀 Step 4: 讀取學生總數 (Students)...");
-        const { data: allStudents } = await supabaseClient
-            .from('students')
-            .select('class_id'); // 這裡如果沒有 user_id 過濾，可能讀到別人的，但在 RLS 下應該安全
-            
-        const classStudentCounts = {};
-        if (allStudents) {
-            allStudents.forEach(s => {
-                classStudentCounts[s.class_id] = (classStudentCounts[s.class_id] || 0) + 1;
-            });
-        }
+                // Step C: 讀取批改數 (Results)
+                const assignmentIds = assignments.map(a => a.id);
+                const { data: resultsData } = await supabaseClient
+                    .from('results')
+                    .select('assignment_id')
+                    .in('assignment_id', assignmentIds);
+                    
+                const gradedCounts = {};
+                if (resultsData) resultsData.forEach(r => gradedCounts[r.assignment_id] = (gradedCounts[r.assignment_id] || 0) + 1);
 
-        // --- Step 5: 前端組裝 (Manual Stitching) ---
-        console.log("🧩 正在組裝數據...");
-        
-        const processedProjects = assignments.map(a => {
-            // 1. 手動找回班級資料
-            const cls = classMap[a.class_id] || { class_name: '(未知班級)', academic_year: '---' };
-            
-            // 2. 獲取計數
-            const graded = gradedCounts[a.id] || 0;
-            const total = classStudentCounts[a.class_id] || 0;
-            
-            // 3. 計算進度
-            const progress = total > 0 ? Math.round((graded / total) * 100) : 0;
-            const isCompleted = (total > 0 && graded >= total);
+                // Step D: 讀取總人數 (Students)
+                // 這裡我們不篩選 class_id，直接讀取該老師所有的學生數量，然後在 JS 過濾
+                // 這樣可以減少 SQL 語句的長度，防止 URL 過長錯誤
+                const { data: allStudents } = await supabaseClient
+                    .from('students')
+                    .select('class_id')
+                    // 假設你有 RLS 保護，這裡只會讀到該老師的學生
+                    // 如果沒有 RLS，可以加 .in('class_id', uniqueClassIds)
+                    ; 
+                    
+                const classStudentCounts = {};
+                if (allStudents) {
+                    allStudents.forEach(s => {
+                        classStudentCounts[s.class_id] = (classStudentCounts[s.class_id] || 0) + 1;
+                    });
+                }
 
-            return {
-                id: a.id,
-                source_type: 'new',
-                topic: a.title,
-                class_id: a.class_id,
-                class_name: cls.class_name,
-                academic_year: cls.academic_year,
-                normalizedYear: cls.academic_year,
-                last_updated: a.created_at,
-                graded_count: graded,
-                total_students: total,
-                progress: progress,
-                isCompleted: isCompleted
-            };
-        });
+                // Step E: 組裝與渲染
+                console.log("🧩 正在組裝...");
+                const processedProjects = assignments.map(a => {
+                    const cls = classMap[a.class_id] || { class_name: '(未知班級)', academic_year: '---' };
+                    const graded = gradedCounts[a.id] || 0;
+                    const total = classStudentCounts[a.class_id] || 0;
+                    const progress = total > 0 ? Math.round((graded / total) * 100) : 0;
+                    const isCompleted = (total > 0 && graded >= total);
 
-        // --- Step 6: 渲染 ---
-        const focusItems = processedProjects.filter(p => !p.isCompleted).slice(0, 5);
-        focusList.innerHTML = ''; 
-        renderFocusList(focusItems, focusList);
+                    return {
+                        id: a.id,
+                        source_type: 'new',
+                        topic: a.title,
+                        class_id: a.class_id,
+                        class_name: cls.class_name,
+                        academic_year: cls.academic_year,
+                        normalizedYear: cls.academic_year,
+                        last_updated: a.created_at,
+                        graded_count: graded,
+                        total_students: total,
+                        progress: progress,
+                        isCompleted: isCompleted
+                    };
+                });
 
-        const grouped = groupByYearAndClass(processedProjects);
-        if(classContainer) {
-            classContainer.innerHTML = ''; 
-            renderClassAccordion(grouped, classContainer);
-        }
-        
-        updateWelcomeMessage();
-        console.log("✅ Dashboard 載入成功！");
+                const focusItems = processedProjects.filter(p => !p.isCompleted).slice(0, 5);
+                focusList.innerHTML = ''; 
+                renderFocusList(focusItems, focusList);
+
+                const grouped = groupByYearAndClass(processedProjects);
+                if(classContainer) {
+                    classContainer.innerHTML = ''; 
+                    renderClassAccordion(grouped, classContainer);
+                }
+                
+                updateWelcomeMessage();
+                console.log("✨ Dashboard 載入完成！");
+            })(),
+            timeoutPromise
+        ]);
 
     } catch (error) {
         console.error("Dashboard Error:", error);
-        focusList.innerHTML = `<div style="color:#c86a5a; padding:1rem; text-align:center;">
-            載入失敗 (v8.4)<br>
-            <span style="font-size:0.8rem; background:#fff0f0;">${error.message}</span>
-        </div>`;
+        focusList.innerHTML = `
+            <div style="color:#c86a5a; padding:1.5rem; text-align:center; border:2px dashed #ffcdd2; border-radius:12px; background:#fffafa;">
+                <div style="font-size:2rem; margin-bottom:10px;">⚠️</div>
+                <strong>數據讀取受阻</strong><br>
+                <span style="font-size:0.85rem; color:#666;">原因：${error.message}</span>
+                <br>
+                <button class="action-btn" onclick="_isDashboardLoading=false; loadDashboard()" style="margin-top:15px; padding:8px 20px; font-size:0.9rem;">
+                    🔄 重新載入
+                </button>
+            </div>`;
+    } finally {
+        // 無論成功失敗，最後一定要解鎖，否則按鈕會死掉
+        _isDashboardLoading = false;
     }
 }
-
 // [Pro-v4.2-UI] 停止載入離線備份到 Dashboard (避免重複混亂)
 function getOfflineProjectMeta() {
     // 強制回傳 null，讓 Dashboard 只顯示雲端資料
