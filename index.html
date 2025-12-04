@@ -4421,19 +4421,38 @@ function concretizeExample(id, rawExample) {
   return lines.slice(0, 2);
 }
 
+// [Pro-v3.2] 名單解析器 (增強容錯)
 function parseStudentName(rawName) {
-    const match = rawName.trim().match(/^(\d+)[-\s._]*(.*)$/);
+    if (!rawName) return { number: null, name: '', originalName: '' };
+
+    // 1. 如果不幸還是收到 JSON，嘗試解析它
+    if (rawName.trim().startsWith('{')) {
+        try {
+            const obj = JSON.parse(rawName);
+            return {
+                number: obj.num || null,
+                name: obj.name || '',
+                originalName: `${obj.num ? obj.num + '-' : ''}${obj.name}` // 強制轉回文字
+            };
+        } catch (e) {}
+    }
+
+    // 2. 正常文字解析邏輯 (支援 "01-陳大文", "1. 陳大文", "1 陳大文")
+    // 移除開頭的引號 (如果有)
+    let clean = rawName.replace(/^"|"$/g, '').trim();
+    
+    const match = clean.match(/^(\d+)[-\s._]*(.*)$/);
     if (match) {
         return {
             number: parseInt(match[1], 10),
             name: match[2].trim(),
-            originalName: rawName.trim()
+            originalName: clean
         };
     }
     return {
         number: null,
-        name: rawName.trim(),
-        originalName: rawName.trim()
+        name: clean,
+        originalName: clean
     };
 }
 
@@ -8191,7 +8210,7 @@ async function loadPage1ClassDropdown(forceRefresh = false) {
     }
 }
 
-// [Pro-v3.1] Page 1 班級名單 (自然排序修正版)
+// [Pro-v3.2] Page 1 班級名單 (修復 JSON 亂碼問題)
 async function handleClassSelectChange() {
     const select = document.getElementById('setup-class-select');
     const container = document.getElementById('setup-student-checklist');
@@ -8218,16 +8237,13 @@ async function handleClassSelectChange() {
             return; 
         }
 
-        // 🔥 [修正] 使用 Intl.Collator 確保 "1" 在 "10" 前面
+        // 自然排序
         const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
-        
         students.sort((a, b) => {
             const numA = (a.student_number || '').toString();
             const numB = (b.student_number || '').toString();
-            // 先排學號
             const numResult = collator.compare(numA, numB);
             if (numResult !== 0) return numResult;
-            // 學號一樣排姓名
             return collator.compare(a.name || '', b.name || '');
         });
 
@@ -8235,12 +8251,14 @@ async function handleClassSelectChange() {
             const div = document.createElement('div');
             div.className = 'student-check-card checked'; 
             
-            // 補零顯示 (視覺優化)
+            // 補零顯示
             let displayNum = s.student_number;
             if (displayNum && /^\d$/.test(displayNum)) displayNum = '0' + displayNum;
 
-            // 這裡傳給 Page 2 的 info 保持原始格式，讓 Page 2 的 updateStudentDropdown 自己處理
-            div.dataset.info = `${s.student_number || ''}${s.student_number ? '-' : ''}${s.name}`;
+            // 🔥 [關鍵修正] 改回純文字格式，不傳 JSON
+            // 格式： "01-陳大文" (如果有學號) 或 "陳大文"
+            const cleanName = `${displayNum ? displayNum + '-' : ''}${s.name}`;
+            div.dataset.info = cleanName;
             
             div.innerHTML = `<input type="checkbox" checked><span>${escapeHtml(displayNum)}<br>${escapeHtml(s.name)}</span>`;
             div.onclick = () => {
