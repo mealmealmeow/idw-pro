@@ -4098,6 +4098,68 @@ function loadDefaultCritiques() {
     };
 }
 
+// [Pro-v9.2] 智能重載評語庫 (Helper)
+async function reloadCritiqueLibrary(genre) {
+    const dataContainer = document.getElementById('critique-data');
+    if (!dataContainer) return;
+    
+    dataContainer.innerHTML = ''; // 1. 清空現有 DOM
+
+    // 2. 準備要載入的文體 (指定文體 + 通用)
+    const genresToLoad = genre ? [genre, 'common'] : ['common'];
+    const critiquesToLoad = new Map();
+
+    const addCritique = (critique) => {
+        if (!critiquesToLoad.has(critique.id)) {
+            critiquesToLoad.set(critique.id, critique);
+        }
+    };
+
+    // 3. 載入罐頭評語
+    genresToLoad.forEach(g => {
+        if (cannedCritiques && cannedCritiques[g]) {
+            cannedCritiques[g].forEach(addCritique);
+        }
+    });
+
+    // 4. 載入用戶自定義評語 (從雲端)
+    if (currentUser) {
+        try {
+            const { data: customData } = await supabaseClient
+                .from('critiques')
+                .select('*')
+                .eq('user_id', currentUser.id);
+            
+            if (customData) {
+                customData.forEach(c => {
+                    // 確保欄位對應
+                    addCritique({
+                        id: c.critique_id, 
+                        category: c.category, 
+                        type: c.type, 
+                        title: c.title,
+                        strengthSummary: c.strength_summary, 
+                        problemCore: c.problem_core,
+                        suggestion: c.suggestion, 
+                        example: c.example, 
+                        options: c.options, 
+                        optionsLabel: c.options_label
+                    });
+                });
+            }
+        } catch (e) { console.error("Reload Custom Critiques Error", e); }
+    }
+
+    // 5. 寫入 DOM 並重建介面
+    const finalCritiques = Array.from(critiquesToLoad.values());
+    applyCritiquesToDOM(finalCritiques);
+    buildChecklist();
+    buildOverviewPage();
+    
+    console.log(`✅ 評語庫已切換至：${genre || '通用'}`);
+}
+
+
 function loadCannedCritiquesAndFocus() {
     const selectedGenres = Array.from(document.querySelectorAll('#genre-selection input:checked')).map(cb => cb.value);
     if (selectedGenres.length === 0) {
@@ -7531,116 +7593,90 @@ function buildCardHtml(item, uniqueId) {
         </div>
     </div>`;
 }
-// [Pro-v9.1-Restored] 開啟作業 (穩定還原版)
+// [Pro-v9.2] 開啟作業 (加入文體自動偵測，修復評語消失)
 async function openAssignment(assignmentId) {
-    // A. 離線與備份處理
-    if (assignmentId === 'local_memory') {
-        showPage('page2');
-        showToast("已返回編輯中的草稿", "success");
-        return;
-    }
-    if (assignmentId === 'local_backup') {
-        restoreFromLocalBackup(); 
-        return;
-    }
-
-    // B. 雲端讀取檢查
-    if (!currentUser) {
-        showToast("請先登入以開啟此雲端專案", "warning");
-        return;
-    }
+    if (assignmentId === 'local_memory') { showPage('page2'); showToast("已返回編輯中的草稿", "success"); return; }
+    if (assignmentId === 'local_backup') { restoreFromLocalBackup(); return; }
+    if (!currentUser) { showToast("請先登入以開啟此雲端專案", "warning"); return; }
     
     showToast("正在載入雲端作業...", "info");
     
     try {
         // 1. 讀取 Assignment 資訊
         const { data: assignment, error: assignError } = await supabaseClient
-            .from('assignments')
-            .select(`*, classes(class_name)`)
-            .eq('id', assignmentId)
-            .single();
-            
+            .from('assignments').select(`*, classes(class_name)`).eq('id', assignmentId).single();
         if (assignError) throw assignError;
 
         // 2. 讀取學生名單
         const { data: students, error: studentError } = await supabaseClient
-            .from('students')
-            .select('*')
-            .eq('class_id', assignment.class_id)
-            .order('student_number', { ascending: true }); 
+            .from('students').select('*').eq('class_id', assignment.class_id).order('student_number', { ascending: true }); 
         if (studentError) throw studentError;
 
-        // 3. 讀取成績
+        // 3. 讀取成績與評語
         const { data: results, error: resultError } = await supabaseClient
-            .from('results')
-            .select('*')
-            .eq('assignment_id', assignmentId);
+            .from('results').select('*').eq('assignment_id', assignmentId);
         if (resultError) throw resultError;
+
+        // 🔥 [核心修復] 智能偵測文體 (Auto-Detect Genre)
+        let detectedGenre = 'common'; 
+        // 收集所有成績中用過的 Tag ID
+        const allTags = results.flatMap(r => r.tags || []); 
+        const tagString = allTags.join(',');
+
+        if (tagString.includes('nar_')) detectedGenre = 'narrative';      // 記敘
+        else if (tagString.includes('des_')) detectedGenre = 'descriptive'; // 描寫
+        else if (tagString.includes('arg_')) detectedGenre = 'argumentative'; // 議論
+        else if (tagString.includes('lyr_')) detectedGenre = 'lyrical';     // 抒情
+        
+        console.log(`🕵️‍♂️ 偵測到文體類型: ${detectedGenre}`);
+
+        // 立即切換評語庫！
+        await reloadCritiqueLibrary(detectedGenre);
 
         // 4. 重建記憶體數據
         clearAllCore(false); 
-        
-        // 填寫 Header 資訊
         if(document.getElementById('student-class')) document.getElementById('student-class').value = assignment.classes.class_name;
         if(document.getElementById('topic')) document.getElementById('topic').value = assignment.title;
         
-        // 鎖定 ID
         window.currentAssignmentId = assignment.id;
         window.currentClassId = assignment.class_id;
 
-        // 5. 組合學生數據
         allStudentRecords = students.map(st => {
             const res = results.find(r => r.student_id === st.id);
             let dataObj = null;
-            
             if (res) {
-                // 如果有成績，還原它
                 const extraData = res.comment_data || {}; 
                 dataObj = {
                     class: assignment.classes.class_name,
                     topic: assignment.title,
                     uniqueComment: extraData.uniqueComment || '',
                     scores: {
-                        content: res.content_score,
-                        expression: res.expression_score,
-                        structure: res.structure_score,
-                        punctuation: res.punctuation_score,
-                        total: res.total_score,
-                        // 優先使用 DB 的 typo_score，如果沒有才用 extraData
-                        typos: res.typo_score || 0 
+                        content: res.content_score, expression: res.expression_score, structure: res.structure_score,
+                        punctuation: res.punctuation_score, total: res.total_score, typos: res.typo_score || 0 
                     },
-                    typos: extraData.typos || [],
-                    checkedCritiques: extraData.checkedCritiques || [],
-                    fullComment: res.comment_full || '',
-                    studentComment: extraData.studentComment || '',
-                    pureStudentComment: extraData.pureStudentComment || '',
-                    pureFullComment: extraData.pureFullComment || ''
+                    typos: extraData.typos || [], checkedCritiques: extraData.checkedCritiques || [],
+                    fullComment: res.comment_full || '', studentComment: extraData.studentComment || '',
+                    pureStudentComment: extraData.pureStudentComment || '', pureFullComment: extraData.pureFullComment || ''
                 };
             }
-            
             return {
-                number: st.student_number,
-                name: st.name,
-                originalName: st.student_number ? `${st.student_number}-${st.name}` : st.name,
-                dbId: st.id,
-                data: dataObj
+                number: st.student_number, name: st.name, originalName: st.student_number ? `${st.student_number}-${st.name}` : st.name,
+                dbId: st.id, data: dataObj
             };
         });
 
-        // 6. 更新 UI
         document.getElementById('student-names').value = allStudentRecords.map(r => r.originalName).join('\n');
-        updateStudentDropdown();
-        renderStudentOverviewTable();
-        updateHeaderInfo();
+        updateStudentDropdown(); renderStudentOverviewTable(); updateHeaderInfo();
         
         showPage('page2');
-        showToast(`已載入：${assignment.title}`, "success");
+        showToast(`已載入：${assignment.title} (${detectedGenre === 'common' ? '通用' : detectedGenre})`, "success");
 
     } catch (error) {
         console.error(error);
         alert(`載入失敗：${error.message}`);
     }
 }
+
 // 5. 歡迎訊息更新
 function updateWelcomeMessage() {
     const h = new Date().getHours();
@@ -9122,8 +9158,6 @@ async function editClass(classId, oldYear, oldName) {
         alert("更新失敗：" + e.message);
     }
 }
-
-
 </script> <!-- 呢個係原本全個檔案唯一的結尾，保留佢 -->
 
 
