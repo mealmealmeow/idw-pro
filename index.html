@@ -3512,7 +3512,7 @@ scroll-margin-top: 180px; /* 手機版 Header 疊起來比較高 */
 <!-- [Pro-v9.9.7] 登入牆 (強制置頂版) -->
 <!-- ================================================= -->
 <div id="login-gate" class="login-gate">
-  <div class="pop-modal gate-card" style="padding: 30px 30px 40px 30px;">
+  <div class="pop-modal gate-card" style="display: none;">
     
     <div style="font-size: 2.5rem; margin-bottom: 5px;">☕️</div>
     <h2 style="color: #3d5c4f; font-size: 1.5rem; margin: 5px 0 10px 0;">我不想努力了 Pro</h2>
@@ -3676,6 +3676,7 @@ function updateHeaderInfo() {
 
 
 // 修正版登出：無論 Server 發生什麼事，本地都強制登出 (v10.0-Auth-Core-Fix)
+// 修正版登出 (v10.4-Fix: 登出即時彈牆)
 async function handleLogout() {
   if (!confirm("確定要登出嗎？所有未同步的變更將會遺失。")) return;
 
@@ -3683,20 +3684,16 @@ async function handleLogout() {
   if (authStatus) authStatus.textContent = "正在登出...";
 
   try {
-    // 嘗試通知伺服器
     await supabaseClient.auth.signOut();
   } catch (error) {
     console.warn("雲端登出回報錯誤 (已忽略):", error.message);
   } finally {
-    // 🔥 重點：無論如何都執行本地清理
     currentUser = null;
     allStudentRecords = [];
     commonTypos = [];
     
-    // 清除緩存標記
     sessionStorage.removeItem('projectPromptShownThisSession');
     
-    // 重置介面
     resetToDefaultCritiques(false);
     buildChecklist();
     buildOverviewPage();
@@ -3708,19 +3705,19 @@ async function handleLogout() {
     
     if (typeof loadDashboard === 'function') loadDashboard();
     
-    // 🔥 核心改動：登出後立即將登入牆「鎖上」(移除 unlocked class)
+    // 🔥 核心修復：登出後，強制顯示登入牆 (Full Card)
     const gate = document.getElementById('login-gate');
     if (gate) {
-        gate.classList.remove('unlocked');
-        // 重置輸入框，費事下一手見到
-        document.getElementById('gate-email').value = '';
-        document.getElementById('gate-password').value = '';
+        gate.style.display = 'flex'; // 顯示出來
+        
+        // 重置輸入框 (以防萬一)
+        if(document.getElementById('gate-email')) document.getElementById('gate-email').value = '';
+        if(document.getElementById('gate-password')) document.getElementById('gate-password').value = '';
     }
 
     if (typeof showToast === 'function') showToast("已安全登出", "success");
   }
 }
-
 // [Pro-v7.2] 雲端資料初始化 (移除自動彈出專案列表)
 async function loadDataFromCloud() {
   if (!currentUser) return;
@@ -8443,20 +8440,10 @@ async function deleteProject() {
 // [Pro-v7.1] 全域變數：捕捉網址 Hash (防止 Supabase 清除後遺失)
 const _globalHash = window.location.hash;
 
-// [Pro-v10.2] 檢查用戶 (防閃跳最終版：先隱藏輸入框，確認未登入才顯示)
+// [Pro-v10.4] 檢查用戶 (無閃跳版：預設隱藏，未登入才彈出)
 async function checkUser() {
   const gate = document.getElementById('login-gate');
-  // 獲取登入牆內的輸入區域
-  const gateInputGroup = document.querySelector('.gate-input-group');
   
-  // 🔥 步驟 0：即刻隱藏輸入框 (只留 Icon)，防止「殘影」
-  // 咁樣就算 Check 緊，老師都只會見到杯咖啡，唔會見到個 Form 彈出嚟又消失
-  if (gateInputGroup) {
-      gateInputGroup.style.transition = 'opacity 0.5s ease';
-      gateInputGroup.style.opacity = '0';
-      gateInputGroup.style.visibility = 'hidden'; 
-  }
-
   // 1. 檢查 Session
   const { data: { session }, error } = await supabaseClient.auth.getSession();
   
@@ -8466,10 +8453,11 @@ async function checkUser() {
   if (currentUser) {
       console.log("✅ 歡迎回來:", currentUser.email);
       
-      // 2. 有登入 -> 開門 (輸入框從未出現過，所以好順)
-      if (gate) gate.classList.add('unlocked');
+      // 2. 已登入：保持隱藏 (display: none)，無需做任何動作，畫面絕對唔會閃
+      // (雙重保險：確保肯定係 none)
+      if (gate) gate.style.display = 'none';
 
-      // 3. 後台靜靜雞刷新數據
+      // 3. 數據同步
       try {
           await Promise.all([
               loadDataFromCloud(),
@@ -8481,7 +8469,7 @@ async function checkUser() {
           console.warn("背景數據更新:", e);
       }
 
-      // 4. 處理邀請連結
+      // 4. 邀請連結處理
       if (typeof _globalHash !== 'undefined' && _globalHash && _globalHash.includes('type=invite')) {
           setTimeout(() => {
               const pwdModal = document.getElementById('pop-reset-password-modal');
@@ -8493,18 +8481,10 @@ async function checkUser() {
           }, 1000);
       }
   } else {
-      console.log("🔒 未登入，請先打卡。");
+      console.log("🔒 未登入，顯示登入牆。");
       
-      // 5. 確定未登入 -> 先至顯示輸入框
-      if (gate) gate.classList.remove('unlocked');
-      
-      if (gateInputGroup) {
-          // 加少少延遲，令佢 fade in 出嚟，感覺高級啲
-          setTimeout(() => {
-              gateInputGroup.style.visibility = 'visible';
-              gateInputGroup.style.opacity = '1';
-          }, 100);
-      }
+      // 5. 未登入：將牆顯示出嚟 (Flex 用於置中)
+      if (gate) gate.style.display = 'flex';
   }
 }
 
@@ -10113,7 +10093,7 @@ async function switchProject(newProjectId) {
 
 // [Pro-v9.9.6] 登入牆按鈕功能
 
-// [Pro-v9.9.9] 登入牆按鈕 (等待數據載入版)
+// [Pro-v10.4] 登入牆按鈕 (配合 Display 控制)
 async function handleGateAuth() {
     const email = document.getElementById('gate-email').value.trim();
     const password = document.getElementById('gate-password').value.trim();
@@ -10138,12 +10118,11 @@ async function handleGateAuth() {
             // 視覺回饋
             if (typeof showToast === 'function') showToast("歡迎回來，老師。", "success");
             
-            // 🔥 關鍵：等待 checkUser 完成數據載入才開門
-            // 這樣使用者一看到畫面，數據就已經在那裡了
+            // 🔥 關鍵：立即隱藏登入牆，然後再讀數據
+            const gate = document.getElementById('login-gate');
+            if(gate) gate.style.display = 'none';
+
             await checkUser(); 
-            
-            // 雙重保險：確保門是開的
-            document.getElementById('login-gate').classList.add('unlocked');
         }
     } catch (e) {
         alert("登入失敗：" + e.message);
@@ -10167,73 +10146,42 @@ function openRegisterModal() {
     }
 }
 
-// [Pro-v10.2] 忘記密碼 (溫暖文案版)
+// [Pro-v10.1] 忘記密碼 (加強檢查版)
 async function openForgotModal() {
     const emailInput = document.getElementById('gate-email');
     if(!emailInput) return;
     
     const email = emailInput.value.trim();
     if (!email) {
-        // 使用自定義 Modal 提示，比 alert 更溫柔 (如果失敗會 fallback 去 alert)
-        if (typeof showCustomModal === 'function') {
-            showCustomModal({
-                icon: '📮',
-                title: '請輸入電郵',
-                desc: '請先在上方輸入您的電郵地址，\n我們才能把重設連結寄給您。',
-                confirmText: '好的'
-            });
-        } else {
-            alert("請先在上方輸入您的電郵地址。");
-        }
+        alert("請先在上方輸入您的電郵地址，方便我們寄送重設連結給您。");
         emailInput.focus();
         return;
     }
     
-    // 確認發送
-    const confirmSend = await new Promise(resolve => {
-        if (typeof showCustomModal === 'function') {
-            showCustomModal({
-                icon: '🔑',
-                title: '重設密碼',
-                desc: `我們將發送一封重設郵件到：\n${email}\n\n確定嗎？`,
-                confirmText: '發送吧',
-                cancelText: '取消'
-            }).then(resolve);
-        } else {
-            resolve(confirm(`確定要發送重設密碼郵件到：${email} 嗎？`));
-        }
-    });
-
-    if(!confirmSend) return;
+    if(!confirm(`確定要發送重設密碼郵件到：\n${email}\n\n(請檢查垃圾郵件箱)`)) return;
 
     // 視覺反饋
     const link = document.querySelector('a[onclick="openForgotModal()"]');
     const originalText = link ? link.textContent : '忘記密碼？';
-    if(link) link.textContent = "正在準備郵件... 🕊️";
+    if(link) link.textContent = "發送中...";
 
     try {
         console.log("正在發送重設郵件至:", email);
+        console.log("Redirect URL:", window.location.href);
 
         const { data, error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-            redirectTo: window.location.href,
+            redirectTo: window.location.href, // 確保重設後會跳返嚟呢一頁
         });
 
         if (error) {
-            if (error.message.includes("Rate limit")) throw new Error("發送太頻繁了，請休息一分鐘再試。");
+            // 特別處理 Rate Limit 錯誤
+            if (error.message.includes("Rate limit")) {
+                throw new Error("發送太頻繁，請稍後再試 (約 1 分鐘後)。");
+            }
             throw error;
         }
 
-        // 成功提示 (溫暖版)
-        if (typeof showCustomModal === 'function') {
-            showCustomModal({
-                icon: '✅',
-                title: '郵件已飛奔而出',
-                desc: `請前往 ${email} 查收。\n\n(如果找不到，它可能躲在垃圾郵件箱裡了 🗑️)`,
-                confirmText: '我去看看'
-            });
-        } else {
-            alert(`✅ 郵件已發送！\n請查收 ${email}。`);
-        }
+        alert(`✅ 郵件已發送！\n\n請前往 Email (${email}) 查收。\n(如收不到，請檢查 Spam/Junk Folder)`);
 
     } catch (err) {
         console.error("Forgot Password Error:", err);
