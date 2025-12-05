@@ -2583,7 +2583,7 @@ scroll-margin-top: 180px; /* 手機版 Header 疊起來比較高 */
       <label class="mode-card">
         <input type="radio" name="setup-mode" value="manual" onchange="toggleSetupMode()"> 
         <span style="font-size:1.8rem; margin-bottom:0.5rem;">✍️</span>
-        <span>自訂名單 / 評語 (AI & 匯入)</span>
+        <span>自訂名單</span>
       </label>
     </div>
 
@@ -7019,49 +7019,118 @@ function generateStudentWord() {
 // ====== 新增：鍵盤快捷鍵功能 (開始) ======
 // ==========================================
 
+// [Pro-v9.6.1] 全能快捷鍵 (包含舊有導航 + 新增輸入流)
 function initHotkeys() {
+  
   document.addEventListener('keydown', (e) => {
-    // 1. 儲存當前學生 (Ctrl + S 或 Cmd + S)
+    
+    // ============================
+    // 1. 【舊有功能保留】 (Navigation & Save)
+    // ============================
+
+    // (A) 儲存 (Ctrl + S / Cmd + S)
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
-      e.preventDefault(); // 阻止瀏覽器預設的儲存網頁
-      
-      // 只在「批改頁 (Page 2)」才生效
+      e.preventDefault(); // 阻止瀏覽器存網頁
       if (document.getElementById('page2').classList.contains('active')) {
-         saveCurrentStudentData();
+         saveCurrentStudentData('cloud');
       }
     }
 
-    // 2. 切換學生 (Alt + 左 / Alt + 右)
+    // (B) Alt 組合鍵 (切換學生 / 切換頁面)
     if (e.altKey && !e.ctrlKey && !e.shiftKey) {
+      
+      // B1. 切換學生 (Alt + 左/右)
       if (['ArrowLeft', 'ArrowRight'].includes(e.key)) {
         if (document.getElementById('page2').classList.contains('active')) {
           e.preventDefault();
           const direction = e.key === 'ArrowRight' ? 'next' : 'prev';
           navigateToStudent(direction);
           
-          // 顯示 Toast 提示
+          // 增加 Toast 提示，讓你知轉了誰
           const select = document.getElementById('student-select');
           if (select && select.value) {
-             if (typeof showToast === 'function') showToast(`已切換至：${select.value}`, 'info');
+             if (typeof showToast === 'function') showToast(`已切換至：${select.options[select.selectedIndex].text}`, 'info');
           }
+        }
+      }
+      
+      // B2. 切換分頁 (Alt + 1~8)
+      const pageKeys = ['1', '2', '3', '4', '5', '6', '7', '8'];
+      if (pageKeys.includes(e.key)) {
+        e.preventDefault();
+        const targetPage = document.getElementById('page' + e.key);
+        if (targetPage) {
+            showPage('page' + e.key);
+            const pageNames = {'1':'基本設定','2':'批改頁','3':'評語庫','4':'學生總覽','5':'分析','6':'AI 生成','7':'AI 回饋','8':'班級管理'};
+            if (typeof showToast === 'function') showToast(`已切換至：${pageNames[e.key] || '頁面 ' + e.key}`, 'info');
         }
       }
     }
 
-    // 3. 切換分頁 (Alt + 1 到 7)
-    if (e.altKey && !e.ctrlKey && !e.shiftKey) {
-      const key = e.key;
-      if (['1', '2', '3', '4', '5', '6', '7'].includes(key)) {
-        e.preventDefault();
-        showPage('page' + key);
-        
-        const pageNames = {
-            '1': '基本設定', '2': '批改頁', '3': '評語總覽', 
-            '4': '學生總覽', '5': '評語分析', '6': 'AI 生成庫', '7': 'AI 回饋'
-        };
-        if (typeof showToast === 'function') showToast(`已切換至：${pageNames[key]}`, 'info');
-      }
+    // ============================
+    // 2. 【新增功能】 (Input Flow)
+    // ============================
+
+    // (C) 彈窗內 Enter = 確認 (Smart Modal Enter)
+    if (e.key === 'Enter') {
+        // 檢查焦點是否在彈窗的 input 內 (排除 textarea，因為 textarea Enter 要換行)
+        if (e.target.matches('.pop-modal input')) {
+            const modal = e.target.closest('.pop-modal');
+            // 找該彈窗內的「確認」按鈕
+            const confirmBtn = modal ? modal.querySelector('.pop-btn-confirm') : null;
+            
+            if (confirmBtn && !confirmBtn.disabled && confirmBtn.offsetParent !== null) {
+                e.preventDefault();
+                confirmBtn.click(); // 模擬點擊
+            }
+        }
     }
+  });
+
+  // ============================
+  // 3. 【新增功能】 (Score & Textarea Flow)
+  // ============================
+
+  // (D) 分數欄 Enter 自動跳下一格 (Excel 體驗)
+  const scoreInputs = ['score-content', 'score-expression', 'score-structure', 'score-punctuation', 'score-typos'];
+  scoreInputs.forEach((id, index) => {
+      const el = document.getElementById(id);
+      if (el) {
+          el.addEventListener('keydown', (e) => {
+              if (e.key === 'Enter') {
+                  e.preventDefault();
+                  if (index < scoreInputs.length - 1) {
+                      // 跳去下一格
+                      const nextId = scoreInputs[index + 1];
+                      const nextEl = document.getElementById(nextId);
+                      if(nextEl) {
+                          nextEl.focus();
+                          nextEl.select(); // 自動全選，方便覆蓋
+                      }
+                  } else {
+                      // 最後一格 (錯別字) -> 跳去「特別留言」
+                      document.getElementById('unique-comment')?.focus();
+                  }
+              }
+          });
+          // 點擊選框時也自動全選
+          el.addEventListener('focus', function() { this.select(); });
+      }
+  });
+
+  // (E) 文字框 Ctrl+Enter 快速儲存
+  const textAreas = ['unique-comment', 'student-report-output', 'full-output'];
+  textAreas.forEach(id => {
+      const el = document.getElementById(id);
+      if(el) {
+          el.addEventListener('keydown', (e) => {
+              if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                  e.preventDefault();
+                  saveCurrentStudentData('cloud');
+                  el.blur(); // 移除焦點，代表「已處理」
+              }
+          });
+      }
   });
 }
 
