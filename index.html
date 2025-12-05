@@ -2415,29 +2415,7 @@ scroll-margin-top: 180px; /* 手機版 Header 疊起來比較高 */
   margin-top: 4px;
 }
 
-/* 登入牆專用樣式 */
-.login-gate {
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  
-  /* 深綠色背景 + 強力模糊 (營造沉浸感) */
-  background: rgba(47, 79, 79, 0.92); 
-  backdrop-filter: blur(12px); 
-  
-  z-index: 2147483647; /* 確保在最上層 */
-  
-  /* Flex 置中 */
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 20px;
-  
-  /* 過場動畫 */
-  transition: opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1), visibility 0.8s;
-  opacity: 1;
-  visibility: visible;
-}
-
+.login-gate
 /* 開門動畫 (Fade Out) */
 .login-gate.unlocked {
   opacity: 0;
@@ -3459,45 +3437,37 @@ scroll-margin-top: 180px; /* 手機版 Header 疊起來比較高 */
 </div>
 
 <!-- ✅✅✅ 貼上結束 ✅✅✅ -->
-<!-- ================================================= -->
-<!-- [Pro-v9.9.6] 登入牆 (The Cozy Gate) -->
-<!-- ================================================= -->
+<!-- [Pro-v9.9.6] 登入牆 (Premium Glass Style) -->
 <div id="login-gate" class="login-gate">
-  <!-- 卡片本體 -->
-  <div class="pop-modal" style="max-width: 400px; margin: auto; display: block; border: none; box-shadow: 0 25px 50px rgba(0,0,0,0.25);">
+  <div class="pop-modal gate-card">
     
-    <!-- ☕️ 溫暖 Icon -->
-    <div style="font-size: 3.5rem; margin-bottom: 10px;">☕️</div>
+    <div style="font-size: 3.5rem; margin-bottom: 15px;">☕️</div>
     
-    <h2 style="margin: 0 0 5px 0; color:#3d5c4f; font-weight: 700; letter-spacing: 1px;">我不想努力了 Pro</h2>
-    <p style="color:#8c867a; font-size: 0.9rem; margin-bottom: 25px;">
-        願您的週末，有一杯熱咖啡的時間。
-    </p>
+    <h2>我不想努力了 Pro</h2>
+    <p>願您的週末，有一杯熱咖啡的時間。</p>
     
-    <!-- 登入輸入區 -->
-    <div style="text-align:left;">
-        <label style="font-size:0.8rem; color:#888; margin-left:4px;">電郵地址 (Email)</label>
-        <input type="text" id="gate-email" class="pop-input" style="margin-bottom:12px;">
+    <!-- 輸入區 -->
+    <div class="gate-input-group">
+        <label style="font-size:0.85rem; color:#888; font-weight:bold; margin-left:4px; display:block; margin-bottom:6px;">電郵地址 (Email)</label>
+        <input type="text" id="gate-email" class="pop-input" style="margin-bottom:18px;">
         
-        <label style="font-size:0.8rem; color:#888; margin-left:4px;">密碼 (Password)</label>
-        <input type="password" id="gate-password" class="pop-input" style="margin-bottom:20px;">
+        <label style="font-size:0.85rem; color:#888; font-weight:bold; margin-left:4px; display:block; margin-bottom:6px;">密碼 (Password)</label>
+        <input type="password" id="gate-password" class="pop-input" style="margin-bottom:30px;">
         
-        <!-- 主按鈕 -->
-        <button class="pop-btn pop-btn-confirm" style="width:100%; max-width:100%; padding:12px; font-size:1.1rem; box-shadow: 0 8px 20px rgba(242, 192, 55, 0.25);" onclick="handleGateAuth()">
+        <button class="pop-btn pop-btn-confirm" style="width:100%; padding:14px; font-size:1.1rem; box-shadow: 0 10px 25px rgba(242, 192, 55, 0.35);" onclick="handleGateAuth()">
             進入 Pro 版
         </button>
     </div>
 
-    <!-- 輔助功能區 (分開兩行) -->
-    <div style="margin-top: 25px; padding-top: 15px; border-top: 1px dashed #e1d8c8; font-size: 0.9rem; display: flex; justify-content: space-between;">
+    <!-- 連結區 -->
+    <div class="gate-links">
         <a href="javascript:void(0)" onclick="openRegisterModal()" style="color:#5A8F7B; font-weight:bold; text-decoration:none;">📝 申請註冊</a>
-        <a href="javascript:void(0)" onclick="openForgotModal()" style="color:#888; text-decoration:underline;">忘記密碼？</a>
+        <a href="javascript:void(0)" onclick="openForgotModal()" style="color:#999; text-decoration:underline;">忘記密碼？</a>
     </div>
 
     <!-- 免費版分流 -->
-    <div style="margin-top: 15px; font-size: 0.85rem; background: #fdfbf7; padding: 8px; border-radius: 8px;">
-        只是想簡單改文？<br>
-        <a href="http://idw-free.vercel.app" target="_blank" style="color:#8d775f; font-weight:bold; text-decoration:underline;">前往免費版 (Lite) 👉</a>
+    <div style="margin-top: 20px; font-size: 0.85rem; background: rgba(90,143,123,0.08); padding: 8px 15px; border-radius: 99px;">
+        <a href="http://idw-free.vercel.app" target="_blank" style="color:#555; text-decoration:none;">只是想簡單改文？ <span style="color:#8d775f; font-weight:bold;">前往免費版 (Lite) 👉</span></a>
     </div>
   </div>
 </div>
