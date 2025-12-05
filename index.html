@@ -4791,7 +4791,7 @@ function parseStudentName(rawName) {
     };
 }
 
-// [Pro-v5.1] 更新下拉選單 (使用共用排序 sortStudents)
+// [Pro-v9.9.1] 更新學生選單 (加入狀態紅綠燈)
 function updateStudentDropdown() {
   const namesText = document.getElementById('student-names').value;
   const studentSelect = document.getElementById('student-select');
@@ -4801,65 +4801,85 @@ function updateStudentDropdown() {
       .map(name => parseStudentName(name))
       .filter(p => p.name);
 
-  // 🔥 [統一] 使用 v5.0 建立的共用排序工具
+  // 使用共用排序
   sortStudents(parsedNames);
 
-  // 2. 更新全域變數
+  // 2. 更新全域變數 (保留現有數據)
   const oldRecords = [...allStudentRecords];
   allStudentRecords = parsedNames.map(p => {
     const existingRecord = oldRecords.find(r => r.originalName === p.originalName);
-    // 保留現有的 dbId，如果沒有則設為 null
     return existingRecord || { ...p, data: null, dbId: existingRecord?.dbId || null };
   });
 
-  // 3. 渲染選單
+  // 3. 渲染選單 (Status Logic)
   const currentSelected = studentSelect.value;
   studentSelect.innerHTML = parsedNames.length === 0 ? '<option value="">請先在上方輸入學生名單</option>' : '';
   
   let newSelectionExists = false;
+  
+  // 統計進度
+  let doneCount = 0;
+
   parsedNames.forEach(p => {
+    const record = allStudentRecords.find(r => r.originalName === p.originalName);
     const option = document.createElement('option');
     option.value = p.originalName;
     
-    // 補零顯示 (例如 01)
+    // --- 狀態判斷核心 ---
+    let icon = '⚪'; // 預設：未改 (白波)
+    let statusClass = '';
+
+    if (record && record.data) {
+        // 如果有數據 (檢查是否有分數或評語)
+        const hasScore = record.data.scores && record.data.scores.total;
+        const hasComment = record.data.pureStudentComment;
+        
+        if (hasScore || hasComment) {
+            if (record.dbId) {
+                icon = '✅'; // 已上雲 (綠剔)
+                option.style.color = '#2e7d32'; // 電腦版顯示綠字
+                option.style.fontWeight = 'bold';
+            } else {
+                icon = '💾'; // 本地暫存 (磁碟)
+                option.style.color = '#f57f17'; // 電腦版顯示橙字
+            }
+            doneCount++;
+        }
+    }
+    // ------------------
+
+    // 補零顯示學號
     let displayName = p.name;
     if (p.number !== null) {
         const paddedNum = p.number.toString().padStart(2, '0');
         displayName = `${paddedNum} ${p.name}`;
     }
-    option.textContent = displayName;
+    
+    option.textContent = `${icon} ${displayName}`;
     
     studentSelect.appendChild(option);
+    
     if (p.originalName === currentSelected) {
         newSelectionExists = true;
     }
   });
 
+  // 4. 更新選單標題 (顯示進度)
+  // 如果支援的話，可以在 select label 顯示進度，或者這裡做一個 Log
+  // console.log(`進度：${doneCount} / ${parsedNames.length}`);
+
   if (newSelectionExists) {
       studentSelect.value = currentSelected;
   } else if (studentSelect.options.length > 0) {
+      // 預設選第一個
       studentSelect.selectedIndex = 0;
       loadStudentData(studentSelect.value);
   }
   
+  // 觸發其他 UI 更新
   updateAllOutputs();
   renderStudentOverviewTable();
-
-  // 雙重保險：如果是在 Cloud Mode 且還有學生沒 ID，再次嘗試後台獲取
-  if (window.currentClassId && allStudentRecords.some(r => !r.dbId)) {
-      supabaseClient
-          .from('students')
-          .select('id, name')
-          .eq('class_id', window.currentClassId)
-          .then(({ data }) => {
-              if (data) {
-                  data.forEach(d => {
-                      const rec = allStudentRecords.find(r => r.name.trim() === d.name.trim());
-                      if (rec) rec.dbId = d.id;
-                  });
-              }
-          });
-  }
+  updateHeaderInfo();
 }
 
 function toggleOtherBlock(selectId, value) {
@@ -7761,8 +7781,7 @@ async function openAssignment(assignmentId) {
     if (assignmentId === 'local_backup') { restoreFromLocalBackup(); return; }
     if (!currentUser) { showToast("請先登入以開啟此雲端專案", "warning"); return; }
     
-   
-    
+
     try {
         // 1. 讀取 Assignment (包含 settings)
         const { data: assignment, error: assignError } = await supabaseClient
