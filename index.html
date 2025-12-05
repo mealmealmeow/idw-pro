@@ -3675,7 +3675,7 @@ function updateHeaderInfo() {
 
 
 
-// 修正版登出：無論 Server 發生什麼事，本地都強制登出
+// 修正版登出：無論 Server 發生什麼事，本地都強制登出 (v10.0-Auth-Core-Fix)
 async function handleLogout() {
   if (!confirm("確定要登出嗎？所有未同步的變更將會遺失。")) return;
 
@@ -3683,7 +3683,7 @@ async function handleLogout() {
   if (authStatus) authStatus.textContent = "正在登出...";
 
   try {
-    // 嘗試通知伺服器 (即使失敗也不要緊)
+    // 嘗試通知伺服器
     await supabaseClient.auth.signOut();
   } catch (error) {
     console.warn("雲端登出回報錯誤 (已忽略):", error.message);
@@ -3708,8 +3708,16 @@ async function handleLogout() {
     
     if (typeof loadDashboard === 'function') loadDashboard();
     
+    // 🔥 核心改動：登出後立即將登入牆「鎖上」(移除 unlocked class)
+    const gate = document.getElementById('login-gate');
+    if (gate) {
+        gate.classList.remove('unlocked');
+        // 重置輸入框，費事下一手見到
+        document.getElementById('gate-email').value = '';
+        document.getElementById('gate-password').value = '';
+    }
+
     if (typeof showToast === 'function') showToast("已安全登出", "success");
-    else alert("已登出");
   }
 }
 
@@ -4071,7 +4079,7 @@ async function syncDataToCloud() {
 // ====== 登入/介面狀態 強制修復版 ======
 // ==========================================
 
-// 1. 介面狀態更新函數 (確保文字正確)
+// 1. 介面狀態更新函數 (v10.0-Auth-Core-Fix: 隱藏多餘登入制)
 function updateUIBasedOnAuthState() {
     const authStatus = document.getElementById('auth-status');
     const loginBtn = document.getElementById('login-btn');
@@ -4083,7 +4091,7 @@ function updateUIBasedOnAuthState() {
     if (currentUser) {
         // 已登入狀態
         if(authStatus) authStatus.textContent = `已登入: ${currentUser.email}`;
-        if(authStatus) authStatus.style.backgroundColor = "rgba(90, 143, 123, 0.2)"; // 綠色底顯示已登入
+        if(authStatus) authStatus.style.backgroundColor = "rgba(90, 143, 123, 0.2)";
         
         if(loginBtn) loginBtn.style.display = 'none';
         if(logoutBtn) logoutBtn.style.display = 'inline-flex';
@@ -4102,9 +4110,11 @@ function updateUIBasedOnAuthState() {
     } else {
         // 未登入狀態
         if(authStatus) authStatus.textContent = '未連接';
-        if(authStatus) authStatus.style.backgroundColor = "rgba(0, 0, 0, 0.15)"; // 還原灰色
+        if(authStatus) authStatus.style.backgroundColor = "rgba(0, 0, 0, 0.15)";
 
-        if(loginBtn) loginBtn.style.display = 'inline-flex';
+        // 🔥 核心改動：因為有登入牆，Header 嘅「登入/註冊」按鈕隱藏，避免雙重入口
+        if(loginBtn) loginBtn.style.display = 'none';
+        
         if(logoutBtn) logoutBtn.style.display = 'none';
         if(syncBtn) syncBtn.style.display = 'none';
         if(selectProjectBtn) selectProjectBtn.style.display = 'none';
@@ -8409,7 +8419,7 @@ async function deleteProject() {
 // [Pro-v7.1] 全域變數：捕捉網址 Hash (防止 Supabase 清除後遺失)
 const _globalHash = window.location.hash;
 
-// [Pro-v9.9.9] 檢查用戶 (強制數據同步版)
+// [Pro-v9.9.9] 檢查用戶 (v10.0-Auth-Core-Fix: 強制數據同步 + 閃爍優化)
 async function checkUser() {
   const gate = document.getElementById('login-gate');
   
@@ -8422,7 +8432,7 @@ async function checkUser() {
   if (currentUser) {
       console.log("✅ 歡迎回來:", currentUser.email);
       
-      // 2. 有登入 -> 開門
+      // 2. 有登入 -> 開門 (這裡越早做越好，減少閃爍)
       if (gate) gate.classList.add('unlocked');
 
       // 3. 🔥 強制刷新所有數據 (加入 await 確保次序)
@@ -8431,15 +8441,16 @@ async function checkUser() {
       // 刷新 Dashboard
       if (typeof loadDashboard === 'function') await loadDashboard();
       
-      // 🔥 刷新 Page 1 下拉選單 (關鍵：傳入 true 強制重讀)
+      // 刷新 Page 1 下拉選單 (關鍵：傳入 true 強制重讀)
       if (typeof loadPage1ClassDropdown === 'function') await loadPage1ClassDropdown(true);
       
       // 刷新 Page 8 班級列表 (如果在該頁面)
       if (typeof loadAllClasses === 'function') await loadAllClasses();
 
-      // 4. 處理邀請連結
+      // 4. 處理邀請連結 (Hash check)
       if (typeof _globalHash !== 'undefined' && _globalHash && _globalHash.includes('type=invite')) {
           setTimeout(() => {
+              // 這裡稍後會在 v10.1 升級為新 Style Modal，暫時用住舊嘅先
               const pwdModal = document.getElementById('pop-reset-password-modal');
               if(pwdModal) {
                   pwdModal.querySelector('h3').textContent = "👋 歡迎加入！請設定密碼";
@@ -8450,6 +8461,7 @@ async function checkUser() {
       }
   } else {
       console.log("🔒 未登入，請先打卡。");
+      // 確保門是關的
       if (gate) gate.classList.remove('unlocked');
   }
 }
