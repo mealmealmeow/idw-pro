@@ -7719,13 +7719,11 @@ function restoreFromLocalBackup() {
    ========================================== */
 let isDashboardRendering = false; // 加入鎖定旗標
 
-// [Pro-v8.6-Safe-Dashboard] 安全讀取版 (分開查詢，在前端組裝，避免 SQL 卡死)
-// [Pro-v9.9.9] Dashboard 讀取 (無鎖版，強制讀取)
+// [Pro-v10.1] Dashboard 讀取 (以班級為本位，顯示所有班級)
 async function loadDashboard() {
     const focusList = document.getElementById('focus-task-list');
     const classContainer = document.getElementById('class-accordion-container');
     
-    // 如果連容器都搵唔到 (例如未 Load HTML)，就走
     if(!focusList) return; 
 
     // 1. 顯示讀取中 (增加用戶反饋)
@@ -7738,10 +7736,18 @@ async function loadDashboard() {
     }
 
     try {
-        console.log("📊 正在強制刷新 Dashboard...");
+        console.log("📊 正在刷新 Dashboard (Class-Centric Mode)...");
 
-        // --- Step A: 讀取所有作業 ---
-        // 唔好用 Cache，直接問 DB 攞最新
+        // --- Step A: 讀取所有班級 (這是主角) ---
+        const { data: classesData, error: classError } = await supabaseClient
+            .from('classes')
+            .select('*') // 讀晒所有欄位
+            .eq('user_id', currentUser.id)
+            .order('academic_year', { ascending: false });
+
+        if (classError) throw classError;
+
+        // --- Step B: 讀取所有作業 ---
         const { data: assignments, error: assignError } = await supabaseClient
             .from('assignments')
             .select('id, title, created_at, class_id') 
@@ -7750,97 +7756,75 @@ async function loadDashboard() {
 
         if (assignError) throw assignError;
 
-        if (!assignments || assignments.length === 0) {
-            renderEmptyState(focusList);
-            return;
-        }
+        // 建立作業查找表 (Class ID -> Assignments Array)
+        const assignmentMap = {};
+        const allProjectsFlat = []; // 用來做 Focus List
 
-        // --- Step B: 讀取所有班級 ---
-        const { data: classesData } = await supabaseClient
-            .from('classes')
-            .select('id, class_name, academic_year')
-            .eq('user_id', currentUser.id);
+        // --- Step C: 統計數據 (Results & Students) ---
+        // 為了效能，我們只讀取需要的統計
+        const assignmentIds = assignments ? assignments.map(a => a.id) : [];
+        const classIds = classesData ? classesData.map(c => c.id) : [];
 
-        const classMap = {};
-        if (classesData) {
-            classesData.forEach(c => { classMap[c.id] = c; });
-        }
-
-        // --- Step C: 統計已批改數量 ---
-        const assignmentIds = assignments.map(a => a.id);
-        
-        const { data: resultsData } = await supabaseClient
-            .from('results')
-            .select('assignment_id')
-            .in('assignment_id', assignmentIds);
+        const { data: resultsData } = await supabaseClient.from('results').select('assignment_id').in('assignment_id', assignmentIds);
+        const { data: studentsData } = await supabaseClient.from('students').select('class_id').in('class_id', classIds);
 
         const gradedCounts = {};
-        if (resultsData) {
-            resultsData.forEach(r => {
-                gradedCounts[r.assignment_id] = (gradedCounts[r.assignment_id] || 0) + 1;
-            });
-        }
-
-        // --- Step D: 統計班級總人數 ---
-        const uniqueClassIds = [...new Set(assignments.map(a => a.class_id))];
-        const { data: studentsData } = await supabaseClient
-            .from('students')
-            .select('class_id')
-            .in('class_id', uniqueClassIds);
+        if (resultsData) resultsData.forEach(r => gradedCounts[r.assignment_id] = (gradedCounts[r.assignment_id] || 0) + 1);
 
         const classStudentCounts = {};
-        if (studentsData) {
-            studentsData.forEach(s => {
-                classStudentCounts[s.class_id] = (classStudentCounts[s.class_id] || 0) + 1;
+        if (studentsData) studentsData.forEach(s => classStudentCounts[s.class_id] = (classStudentCounts[s.class_id] || 0) + 1);
+
+        // --- Step D: 組裝數據 ---
+        
+        // 先處理 assignments 變成豐富物件
+        if (assignments) {
+            assignments.forEach(a => {
+                const cls = classesData.find(c => c.id === a.class_id) || { class_name: '未知', academic_year: '' };
+                const graded = gradedCounts[a.id] || 0;
+                const total = classStudentCounts[a.class_id] || 0;
+                const progress = total > 0 ? Math.round((graded / total) * 100) : 0;
+                
+                const richProject = {
+                    id: a.id,
+                    source_type: 'new',
+                    topic: a.title,
+                    class_id: a.class_id,
+                    class_name: cls.class_name,
+                    academic_year: cls.academic_year,
+                    last_updated: a.created_at,
+                    graded_count: graded,
+                    total_students: total,
+                    progress: progress,
+                    isCompleted: (total > 0 && graded >= total)
+                };
+
+                allProjectsFlat.push(richProject);
+
+                if (!assignmentMap[a.class_id]) assignmentMap[a.class_id] = [];
+                assignmentMap[a.class_id].push(richProject);
             });
         }
 
-        // --- Step E: 數據組裝 ---
-        const processedProjects = assignments.map(a => {
-            const cls = classMap[a.class_id] || { class_name: '(未知/已刪)', academic_year: '' };
-            const graded = gradedCounts[a.id] || 0;
-            const total = classStudentCounts[a.class_id] || 0;
-            const progress = total > 0 ? Math.round((graded / total) * 100) : 0;
-            const isCompleted = (total > 0 && graded >= total);
-
-            return {
-                id: a.id,
-                source_type: 'new',
-                topic: a.title,
-                class_id: a.class_id,
-                class_name: cls.class_name,
-                academic_year: cls.academic_year,
-                normalizedYear: cls.academic_year,
-                last_updated: a.created_at,
-                graded_count: graded,
-                total_students: total,
-                progress: progress,
-                isCompleted: isCompleted
-            };
-        });
-
-        // --- Step F: 渲染 ---
-        // Focus List: 顯示未完成的 (最新的在前面)
-        const focusItems = processedProjects.filter(p => !p.isCompleted).slice(0, 5);
+        // --- Step E: 渲染 ---
+        
+        // 1. Focus List (只顯示未完成的作業)
+        const focusItems = allProjectsFlat.filter(p => !p.isCompleted).slice(0, 5);
         focusList.innerHTML = ''; 
         renderFocusList(focusItems, focusList);
 
-        // Archives: 按學年分組
-        const grouped = groupByYearAndClass(processedProjects);
+        // 2. Class Archives (傳入 classData 同 assignmentMap)
         if(classContainer) {
             classContainer.innerHTML = ''; 
-            renderClassAccordion(grouped, classContainer);
+            // 這裡不再用舊的 group function，改用新的渲染邏輯
+            renderClassCentricAccordion(classesData, assignmentMap, classContainer);
         }
         
         updateWelcomeMessage();
-        console.log("✅ Dashboard 強制刷新完成！");
+        console.log("✅ Dashboard 刷新完成");
 
     } catch (error) {
         console.error("Dashboard Load Error:", error);
-        focusList.innerHTML = `<div style="color:#c86a5a; padding:1rem; text-align:center;">
-            數據讀取失敗<br><span style="font-size:0.8rem">${error.message}</span>
-            <br><button class="secondary-btn" onclick="loadDashboard()" style="margin-top:10px; font-size:0.8rem">重試</button>
-        </div>`;
+        focusList.innerHTML = `<div style="color:#c86a5a; padding:1rem;">讀取失敗: ${error.message}</div>`;
     }
 }
 
@@ -7923,50 +7907,71 @@ function groupByYearAndClass(projects) {
     return groups;
 }
 
-// --- Helper: 渲染手風琴 (卡片網格版) ---
-function renderClassAccordion(groups, container) {
-    if(Object.keys(groups).length === 0) {
-        container.innerHTML = '<div style="color:#ccc; text-align:center; padding:1rem;">(暫無歸檔資料)</div>';
+// [Pro-v10.1] 渲染以班級為中心的列表 (空班級都會顯示)
+function renderClassCentricAccordion(classes, assignmentMap, container) {
+    if(!classes || classes.length === 0) {
+        container.innerHTML = '<div style="color:#ccc; text-align:center; padding:1rem;">(暫無班級資料)</div>';
         return;
     }
-    
+
+    // 1. 按學年分組
+    const groups = {};
+    classes.forEach(c => {
+        const year = c.academic_year || '未知學年';
+        if (!groups[year]) groups[year] = [];
+        groups[year].push(c);
+    });
+
     const years = Object.keys(groups).sort().reverse();
 
-    years.forEach((year, yIndex) => {
+    years.forEach((year) => {
         const yearDiv = document.createElement('div');
         yearDiv.innerHTML = `<h4 style="margin: 2rem 0 0.8rem 0; color:#aaa; font-size:0.85rem; text-transform:uppercase; letter-spacing:1px; border-bottom:1px solid #eee; padding-bottom:4px;">📅 ${year} 學年</h4>`;
         container.appendChild(yearDiv);
 
-        const classesObj = groups[year];
-        const classNames = Object.keys(classesObj).sort();
+        // 該學年下的班級 (按名稱排)
+        const yearClasses = groups[year].sort((a, b) => a.class_name.localeCompare(b.class_name));
 
-        classNames.forEach((className, cIndex) => {
-            const classProjects = classesObj[className];
+        yearClasses.forEach((cls) => {
+            const projects = assignmentMap[cls.id] || [];
             
             // Header
             const header = document.createElement('div');
             header.className = 'class-group-header';
             header.innerHTML = `
-                <span>📁 ${escapeHtml(className)}</span>
-                <span style="font-weight:normal; color:#888; font-size:0.9rem;">${classProjects.length} 份作業 ▼</span>
+                <span>📁 ${escapeHtml(cls.class_name)}</span>
+                <span style="font-weight:normal; color:#888; font-size:0.9rem;">${projects.length} 份作業 ${projects.length > 0 ? '▼' : '➕'}</span>
             `;
             
-            // Content (Grid)
+            // Content
             const content = document.createElement('div');
             content.className = 'class-group-content';
             
-            let listHtml = '';
-            classProjects.forEach((p, pIndex) => {
-                const uniqueId = `archive-${yIndex}-${cIndex}-${pIndex}`;
-                listHtml += buildCardHtml(p, uniqueId);
-            });
-            content.innerHTML = listHtml;
+            if (projects.length > 0) {
+                let listHtml = '';
+                projects.forEach((p, pIndex) => {
+                    const uniqueId = `cls-${cls.id}-${pIndex}`;
+                    listHtml += buildCardHtml(p, uniqueId);
+                });
+                content.innerHTML = listHtml;
+            } else {
+                // 🔥 空班級：顯示開新 Project 按鈕
+                content.innerHTML = `
+                    <div style="grid-column: 1 / -1; text-align:center; padding:20px; border:2px dashed #eee; border-radius:12px; background:#fafafa;">
+                        <p style="color:#999; font-size:0.9rem; margin-bottom:10px;">此班級尚未有作業</p>
+                        <button class="action-btn" onclick="startNewProjectForClass('${cls.id}', '${escapeHtmlAttr(cls.class_name)}')" style="font-size:0.9rem;">
+                            ✨ 為 ${escapeHtml(cls.class_name)} 開新作業
+                        </button>
+                    </div>
+                `;
+            }
 
             header.onclick = () => {
                 content.classList.toggle('active');
+                // 箭咀動畫邏輯
                 const arrow = header.querySelector('span:last-child');
-                if(content.classList.contains('active')) arrow.textContent = `${classProjects.length} 份作業 ▲`;
-                else arrow.textContent = `${classProjects.length} 份作業 ▼`;
+                const symbol = projects.length > 0 ? (content.classList.contains('active') ? '▲' : '▼') : '➕';
+                arrow.textContent = `${projects.length} 份作業 ${symbol}`;
             };
 
             container.appendChild(header);
@@ -7975,6 +7980,25 @@ function renderClassAccordion(groups, container) {
     });
 }
 
+// 輔助函數：從 Dashboard 直接跳轉去開新 Project
+function startNewProjectForClass(classId, className) {
+    // 1. 轉去 Page 1
+    showPage('page1');
+    
+    // 2. 自動設定模式為「從班級名單」
+    const rb = document.querySelector('input[name="setup-mode"][value="registry"]');
+    if(rb) { rb.checked = true; toggleSetupMode(); }
+
+    // 3. 自動選取該班級 (延遲少少等 Dropdown Load 完)
+    setTimeout(() => {
+        const select = document.getElementById('setup-class-select');
+        if(select) {
+            select.value = classId;
+            handleClassSelectChange(); // 觸發學生名單載入
+            if(typeof showToast === 'function') showToast(`已為您選取：${className}`, "info");
+        }
+    }, 500);
+}
 // --- [新] 通用卡片 HTML 產生器 ---
 // [Pro-v7.6] 通用卡片 HTML 產生器 (移除冗餘刪除按鈕，修復雙重彈窗)
 function buildCardHtml(item, uniqueId) {
@@ -8419,7 +8443,7 @@ async function deleteProject() {
 // [Pro-v7.1] 全域變數：捕捉網址 Hash (防止 Supabase 清除後遺失)
 const _globalHash = window.location.hash;
 
-// [Pro-v9.9.9] 檢查用戶 (v10.0-Auth-Core-Fix: 強制數據同步 + 閃爍優化)
+// [Pro-v9.9.9] 檢查用戶 (v10.1-Fix: 極速開門版)
 async function checkUser() {
   const gate = document.getElementById('login-gate');
   
@@ -8432,25 +8456,25 @@ async function checkUser() {
   if (currentUser) {
       console.log("✅ 歡迎回來:", currentUser.email);
       
-      // 2. 有登入 -> 開門 (這裡越早做越好，減少閃爍)
+      // 2. 🔥 關鍵改動：即刻開門！唔好等數據！
       if (gate) gate.classList.add('unlocked');
 
-      // 3. 🔥 強制刷新所有數據 (加入 await 確保次序)
-      await loadDataFromCloud();
-      
-      // 刷新 Dashboard
-      if (typeof loadDashboard === 'function') await loadDashboard();
-      
-      // 刷新 Page 1 下拉選單 (關鍵：傳入 true 強制重讀)
-      if (typeof loadPage1ClassDropdown === 'function') await loadPage1ClassDropdown(true);
-      
-      // 刷新 Page 8 班級列表 (如果在該頁面)
-      if (typeof loadAllClasses === 'function') await loadAllClasses();
+      // 3. 後台靜靜雞刷新數據 (用戶已經入咗去，唔覺慢)
+      // 使用 Promise.all 並行處理，進一步加速
+      try {
+          await Promise.all([
+              loadDataFromCloud(),
+              (typeof loadDashboard === 'function') ? loadDashboard() : Promise.resolve(),
+              (typeof loadPage1ClassDropdown === 'function') ? loadPage1ClassDropdown(true) : Promise.resolve(),
+              (typeof loadAllClasses === 'function') ? loadAllClasses() : Promise.resolve()
+          ]);
+      } catch (e) {
+          console.warn("背景數據更新有少少問題，但不影響使用:", e);
+      }
 
-      // 4. 處理邀請連結 (Hash check)
+      // 4. 處理邀請連結
       if (typeof _globalHash !== 'undefined' && _globalHash && _globalHash.includes('type=invite')) {
           setTimeout(() => {
-              // 這裡稍後會在 v10.1 升級為新 Style Modal，暫時用住舊嘅先
               const pwdModal = document.getElementById('pop-reset-password-modal');
               if(pwdModal) {
                   pwdModal.querySelector('h3').textContent = "👋 歡迎加入！請設定密碼";
@@ -8461,7 +8485,6 @@ async function checkUser() {
       }
   } else {
       console.log("🔒 未登入，請先打卡。");
-      // 確保門是關的
       if (gate) gate.classList.remove('unlocked');
   }
 }
@@ -10125,23 +10148,48 @@ function openRegisterModal() {
     }
 }
 
-// C. 打開忘記密碼 (處理邏輯)
-function openForgotModal() {
-    const email = document.getElementById('gate-email').value.trim();
+// [Pro-v10.1] 忘記密碼 (加強檢查版)
+async function openForgotModal() {
+    const emailInput = document.getElementById('gate-email');
+    if(!emailInput) return;
+    
+    const email = emailInput.value.trim();
     if (!email) {
         alert("請先在上方輸入您的電郵地址，方便我們寄送重設連結給您。");
-        document.getElementById('gate-email').focus();
+        emailInput.focus();
         return;
     }
     
-    if(confirm(`確定要發送重設密碼郵件到：${email} 嗎？`)) {
-        // 呼叫原本的重設邏輯 (重用舊有代碼)
-        supabaseClient.auth.resetPasswordForEmail(email, {
-            redirectTo: window.location.href,
-        }).then(({ data, error }) => {
-            if (error) alert("發送失敗：" + error.message);
-            else alert("✅ 郵件已發送！請查收 Email。");
+    if(!confirm(`確定要發送重設密碼郵件到：\n${email}\n\n(請檢查垃圾郵件箱)`)) return;
+
+    // 視覺反饋
+    const link = document.querySelector('a[onclick="openForgotModal()"]');
+    const originalText = link ? link.textContent : '忘記密碼？';
+    if(link) link.textContent = "發送中...";
+
+    try {
+        console.log("正在發送重設郵件至:", email);
+        console.log("Redirect URL:", window.location.href);
+
+        const { data, error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+            redirectTo: window.location.href, // 確保重設後會跳返嚟呢一頁
         });
+
+        if (error) {
+            // 特別處理 Rate Limit 錯誤
+            if (error.message.includes("Rate limit")) {
+                throw new Error("發送太頻繁，請稍後再試 (約 1 分鐘後)。");
+            }
+            throw error;
+        }
+
+        alert(`✅ 郵件已發送！\n\n請前往 Email (${email}) 查收。\n(如收不到，請檢查 Spam/Junk Folder)`);
+
+    } catch (err) {
+        console.error("Forgot Password Error:", err);
+        alert("發送失敗：" + err.message);
+    } finally {
+        if(link) link.textContent = originalText;
     }
 }
 </script> <!-- 呢個係原本全個檔案唯一的結尾，保留佢 -->
