@@ -3893,8 +3893,8 @@ function scrollToSection(event, targetId) {
   const stickyBar = document.querySelector('.sticky-top-bar');
   const stickyBarHeight = stickyBar ? stickyBar.offsetHeight : 0;
   
-   // 🔥 加大到 140px，確保標題和上方有一段距離
-  const extraBuffer = 140; 
+   // 🔥 加大到 100px，確保標題和上方有一段距離
+  const extraBuffer = 100; 
   
   const elementPosition = targetElement.getBoundingClientRect().top;
   const offsetPosition = elementPosition + window.pageYOffset - stickyBarHeight - extraBuffer; 
