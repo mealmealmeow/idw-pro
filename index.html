@@ -3428,34 +3428,6 @@ scroll-margin-top: 180px; /* 手機版 Header 疊起來比較高 */
   </div>
 </div>
 
-<!-- 自定義登入 Modal (Email + 密碼 + 忘記密碼版) -->
-<div id="pop-login-modal" class="pop-overlay">
-  <div class="pop-modal">
-    <div class="pop-icon">🔐</div>
-    <h3>帳戶登入</h3>
-    <p class="pop-desc">
-      請使用 Email 及密碼登入。<br>
-      <span style="font-size:0.85rem; color:#999;">(如未有帳戶，請填好資料後按「註冊」)</span>
-    </p>
-    
-    <!-- Email 輸入框 -->
-    <input type="text" id="login-email" class="pop-input" placeholder="電郵地址 (Email)" autocomplete="email" style="margin-bottom: 10px;">
-    
-    <!-- 密碼輸入框 -->
-    <input type="password" id="login-password" class="pop-input" placeholder="密碼 (Password)" autocomplete="current-password">
-
-    <!-- 忘記密碼連結 -->
-    <div style="text-align: right; width: 80%; margin: -10px auto 20px auto;">
-      <a href="javascript:void(0)" onclick="handleForgotPassword()" style="color: #888; font-size: 0.85rem; text-decoration: underline;">忘記密碼 / 設定新密碼？</a>
-    </div>
-
-    <div class="pop-footer" style="flex-wrap: wrap; gap: 10px; justify-content: center;">
-      <button class="pop-btn pop-btn-cancel" onclick="closeLoginModal()">取消</button>
-      <button class="pop-btn" style="background:#e0e0e0; color:#555;" onclick="handlePasswordAuth('signup')">註冊</button>
-      <button class="pop-btn pop-btn-confirm" onclick="handlePasswordAuth('login')">登入</button>
-    </div>
-  </div>
-</div>
 
 
 
@@ -3463,33 +3435,8 @@ scroll-margin-top: 180px; /* 手機版 Header 疊起來比較高 */
 
 
 
-<div id="login-gate" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#455a54; z-index:9999; justify-content:center; align-items:center;">
-  
-  <div class="pop-modal gate-card" style="background:white; padding:30px 30px 40px 30px; border-radius:24px; max-width:400px; width:90%; text-align:center; box-shadow: 0 20px 50px rgba(0,0,0,0.5);">
-    
-    <div style="font-size: 2.5rem; margin-bottom: 5px;">☕️</div>
-    <h2 style="color: #3d5c4f; font-size: 1.5rem; margin: 5px 0 10px 0;">我不想努力了 Pro</h2>
-    <p style="color: #666; font-size: 0.9rem; margin-bottom: 20px;">願您的週末，有一杯熱咖啡的時間。</p>
-    
-    <div style="text-align:left;">
-        <label style="display:block; color:#888; font-size:0.85rem; margin-bottom:5px;">電郵地址 (Email)</label>
-        <input type="text" id="gate-email" class="pop-input" style="width:100%; margin-bottom:15px; padding:10px; border:1px solid #ddd; border-radius:8px; box-sizing: border-box;">
-        
-        <label style="display:block; color:#888; font-size:0.85rem; margin-bottom:5px;">密碼 (Password)</label>
-        <input type="password" id="gate-password" class="pop-input" style="width:100%; margin-bottom:5px; padding:10px; border:1px solid #ddd; border-radius:8px; box-sizing: border-box;">
-        
-        <div style="text-align: right; margin-bottom: 25px;">
-             <a href="javascript:void(0)" onclick="openCozyForgotModal()" style="color:#999; font-size: 0.8rem; text-decoration:underline;">忘記密碼？</a>
-        </div>
-    </div>
 
-    <button class="pop-btn" 
-            style="width:100%; background:#F2C037; color:white; border:none; padding:12px; font-size:1.1rem; border-radius:8px; cursor:pointer; box-shadow: 0 10px 20px rgba(242, 192, 55, 0.3);" 
-            onclick="handleGateAuth()">
-         進入你的愜意工作咖啡廳 🥐
-    </button>
-  </div>
-</div>
+
 
 <div id="cozy-reset-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:10000; justify-content:center; align-items:center;">
   <div class="pop-modal" style="background:white; padding:30px; border-radius:24px; max-width:400px; width:90%; text-align:center;">
@@ -3669,64 +3616,6 @@ function updateHeaderInfo() {
 // [Step 2] 身份驗證邏輯 (The Brain)
 // =================================================
 
-// A. 檢查用戶狀態 (核心入口)
-async function checkUser() {
-    const gate = document.getElementById('login-gate');
-    
-    // 1. 檢查 Supabase 登入狀態
-    const { data: { session } } = await supabaseClient.auth.getSession();
-    currentUser = session ? session.user : null;
-
-    if (currentUser) {
-        // ✅ 已登入：隱藏牆壁，進入系統
-        if(gate) gate.style.display = 'none';
-        document.body.style.overflow = 'auto'; // 允許捲動
-        
-        console.log("✅ 用戶已登入:", currentUser.email);
-
-        // 載入雲端數據
-        if(typeof loadDataFromCloud === 'function') loadDataFromCloud();
-        
-        // 🔥 檢查是否邀請連結 (Invite Link) -> 強制設密碼
-        if (window.location.hash && window.location.hash.includes('type=invite')) {
-            openCozyResetModal(true); // true = 強制模式
-        }
-        // 🔥 檢查是否重設密碼連結 (Recovery Link) -> 普通重設
-        else if (window.location.hash && window.location.hash.includes('type=recovery')) {
-            openCozyResetModal(false); // false = 普通模式
-        }
-
-    } else {
-        // ⛔ 未登入：顯示牆壁 (死胡同的出口！)
-        if(gate) {
-            gate.style.display = 'flex'; 
-            document.body.style.overflow = 'hidden'; // 禁止捲動背景
-        }
-    }
-}
-
-// B. 登出邏輯 (登出後 -> 變回牆壁)
-async function handleLogout() {
-    if (!confirm("確定要登出並離開咖啡廳嗎？")) return;
-    
-    try {
-        await supabaseClient.auth.signOut();
-    } catch(e) { console.error(e); }
-    
-    // 清空狀態
-    currentUser = null;
-    
-    // 🔥 關鍵：登出即刻變返「登入牆」
-    const gate = document.getElementById('login-gate');
-    if (gate) {
-        gate.style.display = 'flex'; // 彈番個牆出黎
-        document.getElementById('gate-password').value = ''; // 清空密碼，以策安全
-    }
-    document.body.style.overflow = 'hidden'; // 鎖死背景
-    
-    // 提示
-    if(typeof showToast === 'function') showToast("已登出，期待下次見面。", "info");
-}
 
 // C. 登入牆按鈕邏輯
 async function handleGateAuth() {
@@ -10106,13 +9995,112 @@ function openForgotModal() {
         });
     }
 }
+// ===========================================
+// [FINAL FIXED] 邏輯修復
+// ===========================================
 
+// 1. 檢查用戶 (入口)
+async function checkUser() {
+    const gate = document.getElementById('login-gate');
+    
+    // 檢查 Session
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    currentUser = session ? session.user : null;
 
-// =================================================
-// [Step 3] 輔助視窗邏輯
-// =================================================
+    if (currentUser) {
+        // ✅ 已登入：隱藏牆壁
+        if(gate) gate.style.display = 'none';
+        document.body.style.overflow = 'auto'; 
+        
+        // 載入數據
+        if(typeof loadDataFromCloud === 'function') loadDataFromCloud();
+        if(typeof updateUIBasedOnAuthState === 'function') updateUIBasedOnAuthState();
+        
+        // 🔥 檢查邀請連結 (Invite Link)
+        if (window.location.hash && window.location.hash.includes('type=invite')) {
+            openCozyResetModal(true); // true = 強制設定
+        }
+        // 🔥 檢查重設連結 (Recovery Link)
+        if (window.location.hash && window.location.hash.includes('type=recovery')) {
+            openCozyResetModal(false); // false = 普通重設
+        }
 
-// A. 打開重設視窗 (Invite / Recovery)
+    } else {
+        // ⛔ 未登入：顯示牆壁 (你的設計)
+        if(gate) {
+            gate.style.display = 'flex';
+            document.body.style.overflow = 'hidden'; // 禁止捲動
+        }
+    }
+}
+
+// 2. 登出邏輯 (修復：登出後立即彈牆)
+async function handleLogout() {
+    if (!confirm("確定要登出並離開咖啡廳嗎？")) return;
+    
+    try { await supabaseClient.auth.signOut(); } catch(e) {}
+    
+    currentUser = null;
+    
+    // 🔥 關鍵：登出即刻變返「登入牆」
+    const gate = document.getElementById('login-gate');
+    if (gate) {
+        gate.style.display = 'flex'; // 彈出牆壁
+        document.getElementById('gate-password').value = ''; // 清空密碼
+    }
+    document.body.style.overflow = 'hidden'; // 鎖死背景
+    
+    if(typeof showToast === 'function') showToast("已登出。", "info");
+}
+
+// 3. 登入牆按鈕邏輯
+async function handleGateAuth() {
+    const email = document.getElementById('gate-email').value.trim();
+    const password = document.getElementById('gate-password').value.trim();
+    
+    if(!email || !password) return alert("請輸入 Email 和密碼");
+    
+    const btn = event.target;
+    const orgText = btn.innerText;
+    btn.innerText = "驗證中...";
+    btn.disabled = true;
+
+    try {
+        const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        checkUser(); // 成功後重跑檢查
+    } catch (e) {
+        alert("登入失敗：" + e.message);
+    } finally {
+        btn.innerText = orgText;
+        btn.disabled = false;
+    }
+}
+
+// 4. 打開「忘記密碼」 (修復 click error)
+function openCozyForgotModal() {
+    const gateEmail = document.getElementById('gate-email').value;
+    if(gateEmail) document.getElementById('cozy-forgot-email').value = gateEmail;
+    document.getElementById('cozy-forgot-modal').style.display = 'flex';
+}
+
+// 5. 發送重設郵件
+async function handleCozyForgotSubmit() {
+    const email = document.getElementById('cozy-forgot-email').value.trim();
+    if(!email) return alert("請輸入 Email");
+    
+    const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin + '#type=recovery'
+    });
+    
+    if (error) alert("發送失敗: " + error.message);
+    else {
+        alert("已發送！請檢查郵箱。");
+        document.getElementById('cozy-forgot-modal').style.display = 'none';
+    }
+}
+
+// 6. 打開重設視窗 (Invite / Recovery)
 function openCozyResetModal(isInvite) {
     const modal = document.getElementById('cozy-reset-modal');
     const title = document.getElementById('cozy-reset-title');
@@ -10121,63 +10109,94 @@ function openCozyResetModal(isInvite) {
     modal.style.display = 'flex';
     
     if (isInvite) {
-        // 邀請模式：強制性 (不能關閉)
         title.innerText = "🎉 歡迎加入咖啡廳";
         desc.innerText = "這是您的首次登入，請設定新密碼。";
-        // 確保沒有任何方法可以關閉這個視窗
-        modal.onclick = null; 
+        modal.onclick = null; // 強制性
     } else {
-        // 普通重設模式
         title.innerText = "🔐 重設密碼";
         desc.innerText = "請輸入您的新密碼。";
-        // 點擊背景可以關閉 (如果想的話，或者強制都得)
     }
 }
 
-// B. 執行重設密碼
+// 7. 執行重設密碼
 async function handleCozyReset() {
     const newPw = document.getElementById('cozy-new-password').value.trim();
     if(!newPw) return alert("請輸入新密碼");
     
     const { error } = await supabaseClient.auth.updateUser({ password: newPw });
-    
-    if (error) {
-        alert("設定失敗: " + error.message);
-    } else {
-        alert("密碼設定成功！歡迎進入。");
+    if (error) alert("失敗: " + error.message);
+    else {
+        alert("成功！歡迎進入。");
         document.getElementById('cozy-reset-modal').style.display = 'none';
-        // 清除網址上的 hash，以免重整後又彈出黎
         history.replaceState(null, null, ' ');
     }
 }
 
-// C. 打開忘記密碼小窗
-function openCozyForgotModal() {
-    // 自動填入牆上的 Email (如果有)
-    const gateEmail = document.getElementById('gate-email').value;
-    if(gateEmail) document.getElementById('cozy-forgot-email').value = gateEmail;
-    
-    document.getElementById('cozy-forgot-modal').style.display = 'flex';
-}
 
-// D. 發送重設郵件
-async function handleCozyForgotSubmit() {
-    const email = document.getElementById('cozy-forgot-email').value.trim();
-    if(!email) return alert("請輸入 Email");
-    
-    const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-        redirectTo: window.location.origin + '#type=recovery' // 確保跳回這頁並觸發 Reset Modal
-    });
-    
-    if (error) alert("發送失敗: " + error.message);
-    else {
-        alert("已發送！請檢查郵箱 (包括垃圾郵件)。");
-        document.getElementById('cozy-forgot-modal').style.display = 'none';
-    }
-}
 </script> <!-- 呢個係原本全個檔案唯一的結尾，保留佢 -->
 
+<div id="login-gate" class="login-gate" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#455a54; z-index:9999; justify-content:center; align-items:center;">
+  
+  <div class="pop-modal gate-card" style="background:white; padding: 30px 30px 40px 30px; border-radius:24px; max-width:400px; width:90%; box-shadow: 0 20px 50px rgba(0,0,0,0.5);">
+    
+    <div style="font-size: 2.5rem; margin-bottom: 5px; text-align:center;">☕️</div>
+    <h2 style="color: #3d5c4f; font-size: 1.5rem; margin: 5px 0 10px 0; text-align:center;">我不想努力了 Pro</h2>
+    <p style="color: #666; font-size: 0.9rem; margin-bottom: 20px; text-align:center;">願您的週末，有一杯熱咖啡的時間。</p>
+    
+    <div class="gate-input-group">
+        <label style="display:block; color:#888; font-size:0.85rem; margin-bottom:5px; text-align: left;">電郵地址 (Email)</label>
+        <input type="text" id="gate-email" class="pop-input" style="margin-bottom:15px; width: 100%; padding:10px; border:1px solid #ddd; border-radius:8px; box-sizing:border-box;">
+        
+        <label style="display:block; color:#888; font-size:0.85rem; margin-bottom:5px; text-align: left;">密碼 (Password)</label>
+        <input type="password" id="gate-password" class="pop-input" style="margin-bottom:5px; width: 100%; padding:10px; border:1px solid #ddd; border-radius:8px; box-sizing:border-box;">
+        
+        <div style="text-align: right; margin-bottom: 25px;">
+             <a href="javascript:void(0)" onclick="openCozyForgotModal()" style="color:#999; font-size: 0.8rem; text-decoration:underline;">忘記密碼？</a>
+        </div>
+        
+        <button class="pop-btn pop-btn-confirm" 
+                style="width:100%; max-width:100%; margin: 0 auto; display: block; text-align: center; padding:12px; font-size:1.1rem; border:none; border-radius:8px; background:#F2C037; color:white; cursor:pointer; box-shadow: 0 10px 20px rgba(242, 192, 55, 0.3);" 
+                onclick="handleGateAuth()">
+             進入你的愜意工作咖啡廳 🥐
+        </button>
 
+        <div style="margin-top: 20px; text-align: center;">
+            <a href="https://forms.gle/YOUR_GOOGLE_FORM_ID" target="_blank" 
+               style="color: #5A8F7B; font-weight: bold; text-decoration: none; border-bottom: 1px dashed #5A8F7B; font-size: 0.9rem; transition: all 0.2s;">
+                尚未持有通行證？申請成為咖啡廳常客🤍
+            </a>
+        </div>
+    </div>
+
+    <div style="margin-top: 25px; font-size: 0.85rem; background: rgba(90,143,123,0.08); padding: 10px 15px; border-radius: 99px; text-align:center;">
+        <a href="http://idw-lite.vercel.app" target="_blank" style="color:#555; text-decoration:none;">
+            只需單次批改？ <span style="color:#8d775f; font-weight:bold;">🌱 前往輕量版 (Lite) 試用</span>
+        </a>
+    </div>
+
+  </div>
+</div>
+
+<div id="cozy-reset-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:10000; justify-content:center; align-items:center;">
+  <div class="pop-modal" style="background:white; padding:30px; border-radius:24px; max-width:400px; width:90%; text-align:center;">
+    <div style="font-size: 2.5rem; margin-bottom: 10px;">🎉</div>
+    <h2 id="cozy-reset-title" style="color: #3d5c4f; margin:0 0 10px 0;">歡迎加入</h2>
+    <p id="cozy-reset-desc" style="color: #666; font-size: 0.9rem; margin-bottom: 20px;">請設定您的專屬密碼以啟用帳戶。</p>
+    <input type="password" id="cozy-new-password" placeholder="新密碼 (New Password)" style="width:100%; margin-bottom:20px; padding:12px; border:1px solid #ddd; border-radius:8px; box-sizing:border-box;">
+    <button onclick="handleCozyReset()" style="width:100%; background:#5A8F7B; color:white; padding:12px; border-radius:8px; border:none; cursor:pointer; font-size:1.1rem; box-shadow: 0 10px 20px rgba(90, 143, 123, 0.3);">確認設定 ✨</button>
+  </div>
+</div>
+
+<div id="cozy-forgot-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:10001; justify-content:center; align-items:center;">
+  <div class="pop-modal" style="background:white; padding:30px; border-radius:24px; max-width:400px; width:90%; text-align:center; position:relative;">
+    <span onclick="document.getElementById('cozy-forgot-modal').style.display='none'" style="position:absolute; right:20px; top:15px; cursor:pointer; font-size:1.5rem; color:#999;">&times;</span>
+    <div style="font-size: 2.5rem; margin-bottom: 10px;">🤔</div>
+    <h2 style="color: #3d5c4f; margin:0 0 10px 0;">忘記密碼？</h2>
+    <p style="color: #666; font-size: 0.9rem; margin-bottom: 20px;">我們會發送重設連結到您的電郵。</p>
+    <input type="text" id="cozy-forgot-email" placeholder="您的 Email" style="width:100%; margin-bottom:20px; padding:12px; border:1px solid #ddd; border-radius:8px; box-sizing:border-box;">
+    <button onclick="handleCozyForgotSubmit()" style="width:100%; background:#d97706; color:white; padding:12px; border-radius:8px; border:none; cursor:pointer; font-size:1.1rem;">發送重設郵件 📨</button>
+  </div>
+</div>
 
 </body>
 </html>
