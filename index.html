@@ -758,15 +758,16 @@ scroll-margin-top: 180px; /* 手機版 Header 疊起來比較高 */
     /* 關鍵：移除這裏的 gap，改用 padding 控制 */
   }
 
-  /* 隱藏原生 Checkbox (或是保留但縮小)，這裡我們保留但改樣式 */
+  /* [v10.2-Step2] 封鎖原生點擊，交由 Parent 統一處理 */
   .check-item-header input[type="checkbox"] { 
-    margin-left: 12px; /* 左邊留空 */
+    margin-left: 12px;
     width: 1.2rem; 
     height: 1.2rem; 
     flex-shrink: 0; 
     accent-color: var(--accent-color); 
     border-radius: 4px;
     cursor: pointer;
+    pointer-events: none; /* 🔑 關鍵：讓點擊穿透，防止雙重觸發 */
   }
 
   /* 🔥 核心止痛：將 Label 撐大填滿整個 Header */
@@ -4478,18 +4479,31 @@ triggerAutoSave();
     }
   });
   
+ // [v10.2-Step2] 全局點擊監聽 (One-Touch Flow)
   document.body.addEventListener('click', (e) => {
-      const checkItem = e.target.closest('.check-item');
-      if (checkItem) {
-          const checkbox = checkItem.querySelector('input[type="checkbox"]');
-          if (checkbox && e.target.tagName !== 'SELECT' && e.target.tagName !== 'TEXTAREA' && e.target.tagName !== 'INPUT') {
+      // 1. 處理評語卡片點擊 (Header 區域)
+      // 只要點中 .check-item-header (包含裡面的字、白位、格仔)，就觸發
+      const header = e.target.closest('.check-item-header');
+      if (header) {
+          const checkbox = header.querySelector('input[type="checkbox"]');
+          if (checkbox) {
+              // A. 切換狀態
               checkbox.checked = !checkbox.checked;
+              
+              // B. 執行聯動 (顯示/隱藏下拉選單 + 填入文字)
               handleCheckboxChange(checkbox);
-                triggerAutoSave();
+              
+              // C. 觸發儲存
+              triggerAutoSave();
               isDataDirty = true;
               updateUIBasedOnAuthState();
           }
+          return; // 處理完即走，避免干擾其他邏輯
       }
+
+      // 2. 處理其他 UI 點擊 (如 Kebab Menu 以外的關閉邏輯)
+      // (這裡保留原本用來關閉 Kebab Menu 的邏輯，如果之前有的話)
+      // closeAllKebabMenus(); // 如果你有這個函數
   });
 
   document.body.addEventListener('change', (e) => {
