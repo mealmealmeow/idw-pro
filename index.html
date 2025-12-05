@@ -280,72 +280,64 @@
 
 
   /* --- 文青風色彩與字體定義 --- */
+ /* --- [v10.3] Cozy 視覺系統 (The Foundation) --- */
   :root {
-    --primary-bg: #f7f3eb;       /* 主背景色 - 溫潤米白偏灰 */
-    --secondary-bg: #fcfaf6;     /* 卡片背景 - 柔和奶油白 */
-    --text-color: #5b5044;       /* 主要文字 - 深啡灰 */
-    --border-color: #e1d8c8;     /* 邊框色 - 淺亞麻色 */
-    --accent-color: #5A8F7B;     /* 主題色/強調色 - 沉靜灰綠 */
-    --accent-color-soft: #cfe3d9;
-    --title-color: #3d5c4f;      /* 標題色 - 深灰綠 */
-    --header-bg: linear-gradient(120deg, #5A8F7B, #93b8a5); /* 頁首背景漸層 */
-    --nav-bg: #f1ece4;           /* 導航背景 - 亞麻色 */
-    --nav-active-bg: #5A8F7B;    /* 導航啟用背景 - 主題色 */
-    --nav-active-color: #fff;    /* 導航啟用文字 - 白色 */
-    --problem-color: #c86a5a;    /* 問題/待改進 - 柔和磚紅 */
-    --excellent-color: #7a9e78;  /* 優點/佳作 - 沉穩橄欖綠 */
-    --copy-success-bg: #5f9f80;  /* 複製成功 - 稍亮綠色 */
-    --modal-bg: rgba(0,0,0,0.28);
-    --modal-card-bg: #fffdf8;
-    --shadow-color: rgba(52, 43, 32, 0.10); /* 陰影顏色 */
-    --btn-brown-bg: #a18b73;     /* 啡色按鈕背景 */
-    --btn-brown-hover: #8f7a63;
-    --dashed-box-bg: #f9fbff;    /* 虛線框背景色 */
-    --empty-state-bg: #f7f2ea;   /* 空狀態背景色 */
-    --empty-state-text: #93897a; /* 空狀態文字顏色 */
-    --missing-bg: #fff0f0;       /* 未填寫學生背景色 - 淡粉紅 */
-    --missing-text: #c86a5a;     /* 未填寫學生文字顏色 */
-    --danger-bg-soft: #fef2f2;
-    --danger-border-soft: #fecaca;
+    /* 背景與層次 */
+    --primary-bg: #f3f4f6;       /* 全局背景：Cozy Grey */
+    --secondary-bg: #ffffff;     /* 卡片背景：純白 */
+    
+    /* 品牌色 */
+    --accent-color: #5A8F7B;     /* 抹茶綠 */
+    --accent-color-soft: #eaf4f0; /* 極淡抹茶 (Hover/Active) */
+    
+    /* 文字 */
+    --text-color: #374151;       /* 深灰 (比純黑更柔和) */
+    --text-light: #6b7280;       /* 次要文字 */
+    --title-color: #1f2937;      /* 標題黑 */
+    
+    /* 邊框與裝飾 */
+    --border-color: #e5e7eb;     /* 淺灰邊框 */
+    --radius-lg: 16px;           /* 大圓角 (卡片) */
+    --radius-md: 12px;           /* 中圓角 (按鈕) */
+    
+    /* 陰影 (Elevation) */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.03);
 
-    --radius-lg: 14px;
-    --radius-md: 10px;
-    --radius-sm: 6px;
-    --transition-fast: 0.18s ease-out;
-    --transition-normal: 0.25s ease-out;
-  }
-  
-  html { 
-    scroll-behavior: smooth; 
-    font-size: 16px;
+    --transition-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   body {
-    font-family: 'LXGW WenKai TC', -apple-system, BlinkMacSystemFont, "Segoe UI",
-                 system-ui, sans-serif;
-    line-height: 1.7;
-    letter-spacing: 0.04em;
-    background: radial-gradient(circle at top left, #faf3e4, #f5f3ef 55%, #f1f5f4);
+    font-family: 'LXGW WenKai TC', sans-serif; /* 全局強制文楷體 */
+    background-color: var(--primary-bg);
     color: var(--text-color);
     margin: 0;
     padding: 0;
-    font-size: 1rem;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased; /* 字體平滑 */
   }
 
-  /* ===== 容器 & Header ===== */
-
+  /* 主容器卡片化 */
   .main-container { 
-    max-width: 1200px;
-    margin: 2rem auto 2.5rem; 
+    max-width: 1100px; /* 稍微收窄，閱讀感更好 */
+    margin: 2rem auto; 
     background-color: var(--secondary-bg); 
-    box-shadow: 0 18px 45px var(--shadow-color); 
-    border-radius: 20px; 
+    border-radius: 24px; /* 更大的圓角 */
+    box-shadow: var(--shadow-lg);
+    border: 1px solid rgba(255,255,255,0.8);
     overflow: hidden;
-    border: 1px solid rgba(255,255,255,0.7);
-    backdrop-filter: blur(10px);
-    position: relative; /* 新增，為懸浮導覽提供相對定位（雖然目前用fixed） */
+    min-height: 85vh; /* 確保有份量感 */
   }
-
+  
+  /* 手機版適配 */
+  @media (max-width: 600px) {
+    .main-container {
+        margin: 0;
+        border-radius: 0;
+        box-shadow: none;
+    }
+  }
   .sticky-top-bar {
     position: sticky;
     top: 0;
@@ -724,99 +716,145 @@ scroll-margin-top: 180px; /* 手機版 Header 疊起來比較高 */
     padding-bottom: 0;
   }
 
- /* ===== [v10.3] 評語卡片 (Modern List Style) ===== */
+ /* ===== [v10.2-Step1] 評語 Checkbox (Cozy Touch 版) ===== */
 
   .check-item { 
-    /* 結構 */
+    border: 1px solid rgba(225,216,200,0.9); 
+    border-radius: 12px; /* 圓角再溫潤一點 */
+    margin-bottom: 0.8rem; 
     background: #ffffff; 
-    border: 1px solid var(--border-color); 
-    border-radius: var(--radius-md); 
-    margin-bottom: 0.75rem; 
-    
-    /* 視覺 */
-    box-shadow: var(--shadow-sm); 
+    box-shadow: 0 2px 5px rgba(0,0,0,0.03); /* 陰影輕量化 */
     transition: all 0.2s ease;
-    
-    /* 行為 */
     cursor: pointer;
-    position: relative;
-    overflow: hidden;
+    overflow: hidden; /* 確保內部 hover 唔會溢出 */
+    position: relative; /* 為了定位 */
   }
 
-  /* Hover 效果：輕微浮起 + 邊框加深 */
+  /* 滑鼠經過時：輕微浮起 + 邊框變色 */
   .check-item:hover {
-    transform: translateY(-1px);
-    box-shadow: var(--shadow-md);
-    border-color: #d1d5db;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 15px rgba(90, 143, 123, 0.1);
+    border-color: var(--accent-color);
   }
 
-  /* 🔥 狀態：已選取 (Active) */
-  /* 使用 has 選擇器 (現代瀏覽器支援) */
+  /* 選中時的狀態 (需配合 JS 添加 class，暫時靠 checkbox 聯動) */
   .check-item:has(input:checked) {
-    background-color: var(--accent-color-soft); /* 淡抹茶綠背景 */
-    border-color: var(--accent-color);          /* 深綠邊框 */
-    box-shadow: 0 0 0 1px var(--accent-color);  /* 加粗邊框效果 */
+    background-color: #f4fcf9; /* 極淡的綠色背景，表示已選 */
+    border-color: var(--accent-color);
   }
 
-  /* Header 佈局 */
   .check-item-header { 
     display: flex; 
     align-items: center; 
     width: 100%;
-    min-height: 3.5rem; /* 增加高度，更容易點擊 */
+    /* 關鍵：移除這裏的 gap，改用 padding 控制 */
   }
 
-  /* Checkbox 本體 */
+  /* [v10.2-Step2] 封鎖原生點擊，交由 Parent 統一處理 */
   .check-item-header input[type="checkbox"] { 
-    margin-left: 16px; /* 左邊距 */
-    width: 1.3rem; 
-    height: 1.3rem; 
+    margin-left: 12px;
+    width: 1.2rem; 
+    height: 1.2rem; 
     flex-shrink: 0; 
     accent-color: var(--accent-color); 
-    border-radius: 6px;
+    border-radius: 4px;
     cursor: pointer;
-    pointer-events: none; /* 保持邏輯：穿透點擊 */
+    pointer-events: none; /* 🔑 關鍵：讓點擊穿透，防止雙重觸發 */
   }
 
-  /* 文字標籤 */
+  /* 🔥 核心止痛：將 Label 撐大填滿整個 Header */
   .check-item-header label { 
     flex: 1; 
     font-size: 1.05rem; 
-    font-weight: 600; /* 加粗少少 */
-    color: var(--text-color);
-    padding: 16px; /* 大範圍熱區 */
-    display: flex;
-    align-items: center;
-    line-height: 1.4;
+    font-weight: 500; 
     cursor: pointer;
-    user-select: none;
-  }
-  
-  /* 選中時文字變色 */
-  .check-item:has(input:checked) label {
-      color: #2c4c3f; /* 深綠色文字 */
+    padding: 14px 12px; /* 上下左右都有肉，容易撳 */
+    display: block; /* 變成區塊 */
+    user-select: none; /* 防止連點時選取文字 */
+    color: #5b5044;
   }
 
-  /* 下拉模組 (隱藏時) */
+  /* 互動模組 (下拉選單) 稍微內縮 */
   .interactive-module { 
     display: none; 
-    background-color: rgba(255,255,255,0.6); 
-    border-top: 1px solid rgba(90, 143, 123, 0.2); 
-    padding: 16px; 
+    background-color: #fbfbfb; 
+    border-top: 1px dashed rgba(225,216,200,0.8); 
+    padding: 12px; 
+    margin: 0; /* 貼齊邊緣 */
   }
 
-  /* 編輯框 (隱藏時) */
   .editable-comment { 
     display: none; 
-    padding: 0 16px 16px 16px; /* 左右下 padding */
-    background-color: transparent;
+    padding: 12px;
+    background-color: #fff;
   }
-  
-  .editable-comment textarea {
-      background: #ffffff;
-      border: 1px solid #d1d5db;
-      box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
+
+  .check-item.is-problem label { 
+    color: var(--problem-color); 
   }
+
+  .check-item.is-excellent label { 
+    color: var(--excellent-color); 
+  }
+
+  .interactive-module { 
+    display: none; 
+    background-color: #f7faf7; 
+    border: 1px dashed rgba(90,143,123,0.5); 
+    border-radius: var(--radius-md); 
+    padding: 0.9rem; 
+    margin-top: 0.8rem; 
+  }
+
+  .interactive-module .module-row { 
+    display: flex; 
+    align-items: center; 
+    gap: 0.7rem; 
+    margin-bottom: 0.7rem; 
+    flex-wrap: wrap; 
+  }
+  .interactive-module .module-row:last-child {
+    margin-bottom: 0;
+  }
+
+  .interactive-module .module-row label { 
+    font-weight: normal; 
+    margin-bottom: 0; 
+    flex-shrink: 0; 
+  }
+
+  .interactive-module select, 
+  .interactive-module input[type="text"] { 
+    flex-grow: 1; 
+    padding: 0.5rem 0.8rem; 
+    border: 1px solid var(--border-color); 
+    border-radius: var(--radius-sm); 
+    min-width: 150px; 
+    background-color: #ffffff;
+  }
+
+  .interactive-module .other-input { 
+    display: none; 
+    margin-top: 0.3rem; 
+  }
+
+  .editable-comment { 
+    display: none; 
+    margin-top: 0.8rem; 
+  }
+
+  .editable-comment textarea { 
+    width: 100%; 
+    min-height: 120px; 
+    padding: 0.75rem; 
+    font-size: 0.94rem; 
+    line-height: 1.7; 
+    border: 1px dashed var(--accent-color); 
+    border-radius: var(--radius-md); 
+    background: #fcfffd; 
+    box-sizing: border-box; 
+  }
+
   /* ===== Output Panel ===== */
   
   .panel { 
