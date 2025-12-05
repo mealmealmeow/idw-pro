@@ -3512,7 +3512,7 @@ scroll-margin-top: 180px; /* 手機版 Header 疊起來比較高 */
 <!-- [Pro-v9.9.7] 登入牆 (強制置頂版) -->
 <!-- ================================================= -->
 <div id="login-gate" class="login-gate">
-  <div class="pop-modal gate-card" style="display: none">
+  <div class="pop-modal gate-card" style="padding: 30px 30px 40px 30px;">
     
     <div style="font-size: 2.5rem; margin-bottom: 5px;">☕️</div>
     <h2 style="color: #3d5c4f; font-size: 1.5rem; margin: 5px 0 10px 0;">我不想努力了 Pro</h2>
@@ -8443,7 +8443,7 @@ async function deleteProject() {
 // [Pro-v7.1] 全域變數：捕捉網址 Hash (防止 Supabase 清除後遺失)
 const _globalHash = window.location.hash;
 
-// [Pro-v10.8] 檢查用戶 (硬切版：Display Control)
+// [Pro-v9.9.9] 檢查用戶 (v10.1-Fix: 極速開門版)
 async function checkUser() {
   const gate = document.getElementById('login-gate');
   
@@ -8456,10 +8456,11 @@ async function checkUser() {
   if (currentUser) {
       console.log("✅ 歡迎回來:", currentUser.email);
       
-      // 2. 已登入：確保隱藏 (HTML 預設係 none，呢度係雙重保險)
-      if (gate) gate.style.display = 'none';
+      // 2. 🔥 關鍵改動：即刻開門！唔好等數據！
+      if (gate) gate.classList.add('unlocked');
 
-      // 3. 數據同步 (後台進行)
+      // 3. 後台靜靜雞刷新數據 (用戶已經入咗去，唔覺慢)
+      // 使用 Promise.all 並行處理，進一步加速
       try {
           await Promise.all([
               loadDataFromCloud(),
@@ -8467,9 +8468,11 @@ async function checkUser() {
               (typeof loadPage1ClassDropdown === 'function') ? loadPage1ClassDropdown(true) : Promise.resolve(),
               (typeof loadAllClasses === 'function') ? loadAllClasses() : Promise.resolve()
           ]);
-      } catch (e) { console.warn("背景數據更新:", e); }
+      } catch (e) {
+          console.warn("背景數據更新有少少問題，但不影響使用:", e);
+      }
 
-      // 4. 邀請連結處理
+      // 4. 處理邀請連結
       if (typeof _globalHash !== 'undefined' && _globalHash && _globalHash.includes('type=invite')) {
           setTimeout(() => {
               const pwdModal = document.getElementById('pop-reset-password-modal');
@@ -8481,10 +8484,8 @@ async function checkUser() {
           }, 1000);
       }
   } else {
-      console.log("🔒 未登入，立即顯示登入牆。");
-      
-      // 5. 未登入：立即顯示 (使用 Flex 以保持置中)
-      if (gate) gate.style.display = 'flex';
+      console.log("🔒 未登入，請先打卡。");
+      if (gate) gate.classList.remove('unlocked');
   }
 }
 
@@ -10093,7 +10094,7 @@ async function switchProject(newProjectId) {
 
 // [Pro-v9.9.6] 登入牆按鈕功能
 
-// [Pro-v10.8] 登入牆按鈕 (登入成功即刻隱藏)
+// [Pro-v9.9.9] 登入牆按鈕 (等待數據載入版)
 async function handleGateAuth() {
     const email = document.getElementById('gate-email').value.trim();
     const password = document.getElementById('gate-password').value.trim();
@@ -10115,13 +10116,15 @@ async function handleGateAuth() {
         if (data.user) {
             currentUser = data.user;
             
+            // 視覺回饋
             if (typeof showToast === 'function') showToast("歡迎回來，老師。", "success");
             
-            // 🔥 關鍵：立即隱藏 (Instant Hide)
-            const gate = document.getElementById('login-gate');
-            if(gate) gate.style.display = 'none';
-
+            // 🔥 關鍵：等待 checkUser 完成數據載入才開門
+            // 這樣使用者一看到畫面，數據就已經在那裡了
             await checkUser(); 
+            
+            // 雙重保險：確保門是開的
+            document.getElementById('login-gate').classList.add('unlocked');
         }
     } catch (e) {
         alert("登入失敗：" + e.message);
