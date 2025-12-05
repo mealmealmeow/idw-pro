@@ -2415,83 +2415,165 @@ scroll-margin-top: 180px; /* 手機版 Header 疊起來比較高 */
   margin-top: 4px;
 }
 
-/* ================================================= */
-/* === [Pro-v9.9.8] 登入牆樣式 (Clean & Force) === */
-/* ================================================= */
+/* --- Phase 13: The Glass House UI (Final) --- */
 
-/* 1. 全螢幕遮罩 (強制置頂 + 磨砂背景) */
+/* 1. 全螢幕背景 (深綠漸層 + 磨砂) */
 #login-gate {
   position: fixed !important;
   top: 0; left: 0; right: 0; bottom: 0;
   
-  /* 深綠色背景 + 強力模糊 (保留 Cozy 風格) */
-  background: rgba(47, 79, 79, 0.9) !important; 
-  backdrop-filter: blur(15px) !important; 
+  background: linear-gradient(135deg, rgba(47, 79, 79, 0.95), rgba(30, 50, 50, 0.98)) !important;
+  backdrop-filter: blur(20px) !important;
   
-  z-index: 2147483647 !important; /* 確保在最上層 */
+  z-index: 2147483647 !important;
   display: flex !important;
   justify-content: center !important;
   align-items: center !important;
   padding: 20px !important;
   
-  /* 預設顯示 */
   opacity: 1;
   visibility: visible;
-  pointer-events: auto;
-  
-  /* 過場動畫 */
-  transition: opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1), visibility 0.8s;
+  transition: opacity 0.8s ease, visibility 0.8s;
 }
 
-/* 2. 解鎖狀態 (消失) */
 #login-gate.unlocked {
   opacity: 0 !important;
   visibility: hidden !important;
   pointer-events: none !important;
 }
 
-/* 3. 卡片本體 (橫向大氣版) */
+/* 2. 玻璃卡片 */
 .gate-card {
-  /* 玻璃質感：半透明白底 + 陰影 */
-  background: rgba(255, 255, 255, 0.95) !important;
-  box-shadow: 0 40px 100px rgba(0,0,0,0.5) !important;
-  border: 1px solid rgba(255,255,255,0.6) !important;
-  border-radius: 24px !important;
+  width: 100%;
+  max-width: 480px;
+  padding: 50px 40px;
   
-  /* 尺寸設定 */
-  width: 100% !important;
-  max-width: 550px !important; /* 闊度適中 */
-  padding: 50px 40px !important;
+  background: rgba(255, 255, 255, 0.85); 
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 20px 50px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.2) inset;
+    
+  border-radius: 30px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
   
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: center !important;
+  /* 確保 Flex 佈局讓內容置中 */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
-/* 4. 內部元素排版 */
+/* 3. 輸入框樣式 */
 .gate-input-group {
-  width: 100% !important;
-  max-width: 380px !important;
-  text-align: left !important;
+  width: 100%; /* 確保佔滿卡片寬度 */
+  text-align: left;
+  margin-bottom: 10px;
 }
 
-.gate-links {
-  width: 100% !important;
-  max-width: 380px !important;
-  margin-top: 30px !important;
-  padding-top: 20px !important;
-  border-top: 1px solid rgba(0,0,0,0.1) !important;
-  
-  display: flex !important;
-  justify-content: space-between !important;
-  font-size: 0.9rem !important;
+.gate-input-group label {
+  display: block;
+  font-size: 0.85rem;
+  color: #666;
+  margin-bottom: 6px;
+  font-weight: 500;
+  padding-left: 5px;
 }
 
-/* 手機版微調 */
+.gate-input {
+  width: 100%;
+  padding: 14px 16px;
+  border: 2px solid rgba(0,0,0,0.05);
+  background: rgba(255,255,255,0.9);
+  border-radius: 12px;
+  font-size: 1rem;
+  outline: none;
+  margin-bottom: 18px;
+  transition: all 0.2s;
+  box-sizing: border-box; /* 防止 padding 撐爆 */
+}
+
+.gate-input:focus {
+  border-color: #5A8F7B;
+  background: #fff;
+  box-shadow: 0 0 0 4px rgba(90, 143, 123, 0.1);
+}
+
+/* 4. 主按鈕 */
+.gate-main-btn {
+  display: block;
+  width: 100%;
+  margin: 15px auto 0 auto;
+  padding: 16px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: #fff;
+  border: none;
+  border-radius: 99px;
+  cursor: pointer;
+  background: linear-gradient(135deg, #eebb4d 0%, #d4a017 100%);
+  box-shadow: 0 10px 20px rgba(212, 160, 23, 0.3);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.gate-main-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 15px 30px rgba(212, 160, 23, 0.4);
+}
+
+.gate-main-btn:active {
+  transform: translateY(1px);
+}
+
+/* 5. 連結樣式 */
+.gate-premium-link {
+  color: #5A8F7B;
+  font-weight: bold;
+  text-decoration: none;
+  font-size: 0.95rem;
+  border-bottom: 1px dashed #5A8F7B;
+  transition: all 0.2s;
+}
+.gate-premium-link:hover {
+  color: #3d5c4f;
+  border-bottom-style: solid;
+}
+
+.gate-footer-links {
+  margin-top: 15px;
+  font-size: 0.9rem;
+}
+.gate-footer-links a { color: #999; text-decoration: none; }
+.gate-footer-links a:hover { color: #666; text-decoration: underline; }
+
+/* 6. Lite 分流區 (新文案樣式) */
+.gate-lite-box {
+  margin-top: 30px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(0,0,0,0.06);
+  font-size: 0.9rem;
+  color: #888;
+  width: 100%; /* 確保線條拉滿 */
+  line-height: 1.8;
+}
+.gate-lite-box a {
+  color: #8d775f;
+  font-weight: bold;
+  text-decoration: none;
+  font-size: 1rem; /* 稍微大一點 */
+}
+.gate-lite-box a:hover {
+  text-decoration: underline;
+}
+
+/* 手機版微調 (Mobile Responsive) */
 @media (max-width: 600px) {
   .gate-card {
-    padding: 30px 20px !important;
-    max-width: 90% !important;
+    /* 手機上唔好咁多留白，慳返啲位 */
+    padding: 30px 20px !important; 
+    
+    /* 確保唔會闊過手機螢幕 */
+    max-width: 90% !important; 
   }
 }
 
@@ -3509,38 +3591,54 @@ scroll-margin-top: 180px; /* 手機版 Header 疊起來比較高 */
 
 <!-- ✅✅✅ 貼上結束 ✅✅✅ -->
 <!-- ================================================= -->
-<!-- [Pro-v9.9.7] 登入牆 (強制置頂版) -->
+<!-- [Phase 13] 登入牆 (Glass UI + Final Text) -->
 <!-- ================================================= -->
 <div id="login-gate" class="login-gate">
-  <div class="pop-modal gate-card">
+  <div class="gate-card">
     
-    <div style="font-size: 3.5rem; margin-bottom: 15px;">☕️</div>
+    <!-- Logo -->
+    <div style="font-size: 3.8rem; margin-bottom: 10px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));">☕️</div>
     
-    <h2 style="color: #3d5c4f;">我不想努力了 Pro</h2>
-    <p style="color: #666;">願您的週末，有一杯熱咖啡的時間。</p>
+    <h2 style="font-size: 2.2rem; color: #2F4F4F; letter-spacing: 2px; margin-bottom: 5px; font-weight: 700;">
+        我不想努力了 <span style="font-weight:300;">Pro</span>
+    </h2>
+    
+    <div style="width: 60px; height: 3px; background: #D4AF37; margin: 15px auto 20px auto; border-radius: 2px;"></div>
+
+    <p style="color: #555; font-size: 1rem; font-family: 'LXGW WenKai TC', serif; margin-bottom: 35px;">
+        願您的週末，有一杯熱咖啡的時間。
+    </p>
     
     <!-- 輸入區 -->
     <div class="gate-input-group">
-        <label style="display:block; color:#888; font-size:0.85rem; margin-bottom:5px;">電郵地址 (Email)</label>
-        <input type="text" id="gate-email" class="pop-input" style="margin-bottom:15px;">
+        <label>電郵地址 (Email)</label>
+        <input type="text" id="gate-email" class="gate-input">
         
-        <label style="display:block; color:#888; font-size:0.85rem; margin-bottom:5px;">密碼 (Password)</label>
-        <input type="password" id="gate-password" class="pop-input" style="margin-bottom:25px;">
+        <label>密碼 (Password)</label>
+        <input type="password" id="gate-password" class="gate-input">
         
-        <button class="pop-btn pop-btn-confirm" style="width:100%; padding:12px; font-size:1.1rem; box-shadow: 0 10px 20px rgba(242, 192, 55, 0.3);" onclick="handleGateAuth()">
-            進入 Pro 版
+        <!-- 主按鈕 -->
+        <button class="gate-main-btn" onclick="handleGateAuth()">
+            進入你的愜意工作咖啡廳 ☕️
         </button>
     </div>
 
-    <!-- 連結區 -->
-    <div class="gate-links">
-        <a href="javascript:void(0)" onclick="openRegisterModal()" style="color:#5A8F7B; font-weight:bold; text-decoration:none;">📝 申請註冊</a>
-        <a href="javascript:void(0)" onclick="openForgotModal()" style="color:#999; text-decoration:underline;">忘記密碼？</a>
+    <!-- 付費/申請引導 -->
+    <div style="margin-top: 25px; margin-bottom: 10px;">
+        <a href="https://forms.gle/YOUR_GOOGLE_FORM_ID" target="_blank" class="gate-premium-link">
+            尚未持有通行證？申請成為會員 💎
+        </a>
     </div>
 
-    <!-- 免費版分流 -->
-    <div style="margin-top: 20px; font-size: 0.85rem; background: rgba(90,143,123,0.08); padding: 8px 15px; border-radius: 99px;">
-        <a href="http://idw-free.vercel.app" target="_blank" style="color:#555; text-decoration:none;">只是想簡單改文？ <span style="color:#8d775f; font-weight:bold;">前往免費版 (Lite) 👉</span></a>
+    <!-- 輔助連結 -->
+    <div class="gate-footer-links">
+        <a href="javascript:void(0)" onclick="openForgotModal()">忘記密碼？</a>
+    </div>
+
+    <!-- Lite 分流 (已更新文案) -->
+    <div class="gate-lite-box">
+        只需單次批改，無需存檔？<br>
+        <a href="http://idw-free.vercel.app" target="_blank">🌱 前往輕量版 (Lite) 試用</a>
     </div>
   </div>
 </div>
