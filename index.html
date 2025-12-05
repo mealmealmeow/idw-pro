@@ -2340,6 +2340,81 @@ scroll-margin-top: 180px; /* 手機版 Header 疊起來比較高 */
 }
 .student-check-card input { display: none; }
 
+/* ========================================= */
+/* === [Step 2] 評語庫救援卡片 (Rescue UI) === */
+/* ========================================= */
+
+.rescue-card {
+  background: #ffffff;
+  border: 1px solid #e1d8c8; /* 實線，Cozy 風格 */
+  border-radius: 20px;
+  padding: 40px 30px;
+  text-align: center;
+  box-shadow: 0 15px 40px rgba(90, 143, 123, 0.08); /* 淡淡的綠色陰影 */
+  margin: 20px 0;
+  animation: fadeIn 0.5s ease-out;
+}
+
+.rescue-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #5A8F7B;
+  margin: 0 0 10px 0;
+}
+
+.rescue-desc {
+  font-size: 1rem;
+  color: #8c867a;
+  margin-bottom: 30px;
+  line-height: 1.6;
+}
+
+.rescue-grid {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.rescue-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 140px;
+  padding: 20px 15px;
+  background: #fdfbf7;
+  border: 2px solid #f0ebe4;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  text-align: center;
+  color: #5b5044;
+}
+
+.rescue-btn:hover {
+  transform: translateY(-5px);
+  border-color: #5A8F7B;
+  background: #fff;
+  box-shadow: 0 10px 20px rgba(90, 143, 123, 0.15);
+}
+
+.rescue-icon {
+  font-size: 2.5rem;
+  margin-bottom: 12px;
+}
+
+.rescue-label {
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.rescue-sub {
+  font-size: 0.8rem;
+  color: #aaa;
+  margin-top: 4px;
+}
+
 </style>
 </head>
 <body>
@@ -4385,10 +4460,12 @@ function initHotkeys() {
     }
   });
 }
+// [Pro-v9.5 Step 2] 構建評語清單 (包含空狀態救援)
 function buildChecklist() {
   const dataContainer = document.getElementById('critique-data');
   const checklistContainer = document.getElementById('checklist-container');
 
+  // 1. 備份當前勾選狀態 (防止重繪時丟失)
   const checkedStates = {};
   const editedTexts = {};
   document.querySelectorAll('#checklist-container input[type="checkbox"]').forEach(cb => {
@@ -4401,15 +4478,17 @@ function buildChecklist() {
 
   checklistContainer.innerHTML = '';
   const currentCategories = {};
+  let hasItems = false;
 
+  // 2. 分類處理
   dataContainer.querySelectorAll('div[data-id]').forEach(el => {
-    const category = el.dataset.category;
-    if (!currentCategories[category]) {
-      currentCategories[category] = []; 
-    }
+    hasItems = true;
+    const category = el.dataset.category || '未分類';
+    if (!currentCategories[category]) currentCategories[category] = [];
     currentCategories[category].push(el);
   });
   
+  // 3. 排序範疇
   const sortedCategoryNames = Object.keys(currentCategories).sort((a, b) => {
     const indexA = CATEGORY_ORDER.indexOf(a);
     const indexB = CATEGORY_ORDER.indexOf(b);
@@ -4419,56 +4498,161 @@ function buildChecklist() {
     return a.localeCompare(b);
   });
 
-  let hasContent = false;
-  for (const categoryName of sortedCategoryNames) {
-    if (currentCategories[categoryName].length === 0) continue;
-    hasContent = true;
-    const categoryDetails = document.createElement('details');
-    categoryDetails.className = 'category-group';
-    categoryDetails.open = true;
-    categoryDetails.innerHTML = `<summary><h3>${categoryName}</h3></summary>`;
-    const itemsContainer = document.createElement('div');
-    itemsContainer.className = 'category-content';
+  // 4. 渲染列表 (如果有評語)
+  if (hasItems) {
+      // 恢復網格佈局 (如果之前被改過)
+      checklistContainer.style.display = 'grid'; 
+      checklistContainer.className = ''; // 清除特殊 class
 
-    currentCategories[categoryName].forEach(critiqueEl => {
-      const id = critiqueEl.dataset.id;
-      const type = critiqueEl.dataset.type;
-      const title = critiqueEl.querySelector('h4').textContent;
-      const hasOptions = (critiqueEl.dataset.options || '').trim() !== '';
+      for (const categoryName of sortedCategoryNames) {
+        const categoryDetails = document.createElement('details');
+        categoryDetails.className = 'category-group';
+        categoryDetails.open = true; // 預設展開
+        categoryDetails.innerHTML = `<summary><h3>${categoryName}</h3></summary>`;
+        const itemsContainer = document.createElement('div');
+        itemsContainer.className = 'category-content';
 
-      const itemDiv = document.createElement('div');
-      itemDiv.className = `check-item ${type === 'problem' ? 'is-problem' : 'is-excellent'}`;
+        currentCategories[categoryName].forEach(critiqueEl => {
+          const id = critiqueEl.dataset.id;
+          const type = critiqueEl.dataset.type;
+          const title = critiqueEl.querySelector('h4').textContent;
+          const hasOptions = (critiqueEl.dataset.options || '').trim() !== '';
 
-      const headerDiv = document.createElement('div');
-      headerDiv.className = 'check-item-header';
-      headerDiv.innerHTML = `<input type="checkbox" id="${id}"><label for="${id}">${title}</label>`;
-      itemDiv.appendChild(headerDiv);
+          const itemDiv = document.createElement('div');
+          itemDiv.className = `check-item ${type === 'problem' ? 'is-problem' : 'is-excellent'}`;
 
-      if (hasOptions) itemDiv.appendChild(createInteractiveModule(id));
+          const headerDiv = document.createElement('div');
+          headerDiv.className = 'check-item-header';
+          headerDiv.innerHTML = `<input type="checkbox" id="${id}"><label for="${id}">${title}</label>`;
+          itemDiv.appendChild(headerDiv);
 
-      const editableCommentDiv = document.createElement('div');
-      editableCommentDiv.className = 'editable-comment';
-      editableCommentDiv.innerHTML = `<textarea id="text-${id}" placeholder="此處顯示學生版預覽（已細化例子）…"></textarea>`;
-      itemDiv.appendChild(editableCommentDiv);
+          if (hasOptions) itemDiv.appendChild(createInteractiveModule(id));
 
-      itemsContainer.appendChild(itemDiv);
+          const editableCommentDiv = document.createElement('div');
+          editableCommentDiv.className = 'editable-comment';
+          editableCommentDiv.innerHTML = `<textarea id="text-${id}" placeholder="此處顯示學生版預覽（已細化例子）…"></textarea>`;
+          itemDiv.appendChild(editableCommentDiv);
 
-      const checkbox = headerDiv.querySelector(`#${id}`);
-      if (checkedStates[id]) {
-        checkbox.checked = true;
-        handleCheckboxChange(checkbox, false);
-        const textarea = itemDiv.querySelector(`#text-${id}`);
-        if (textarea && editedTexts[id]) textarea.value = editedTexts[id];
+          itemsContainer.appendChild(itemDiv);
+
+          // 恢復勾選狀態
+          const checkbox = headerDiv.querySelector(`#${id}`);
+          if (checkedStates[id]) {
+            checkbox.checked = true;
+            handleCheckboxChange(checkbox, false);
+            const textarea = itemDiv.querySelector(`#text-${id}`);
+            if (textarea && editedTexts[id]) textarea.value = editedTexts[id];
+          }
+        });
+
+        categoryDetails.appendChild(itemsContainer);
+        checklistContainer.appendChild(categoryDetails);
       }
-    });
+  } 
+  else {
+    // 🔥 [核心改動] 空狀態救援卡片 (Rescue Card)
+    checklistContainer.style.display = 'block'; // 卡片要佔滿寬度
+    checklistContainer.innerHTML = `
+      <div class="rescue-card">
+        <div class="rescue-title">🌱 評語庫準備就緒</div>
+        <p class="rescue-desc">這份作業尚未設定評語。請選擇一種方式開始：</p>
+        
+        <div class="rescue-grid">
+          <!-- 選項 1: 預設罐頭 -->
+          <div class="rescue-btn" onclick="quickLoadPresets()">
+            <div class="rescue-icon">📦</div>
+            <div class="rescue-label">載入預設</div>
+            <div class="rescue-sub">記敘、抒情...</div>
+          </div>
 
-    categoryDetails.appendChild(itemsContainer);
-    checklistContainer.appendChild(categoryDetails);
-  }
+          <!-- 選項 2: 匯入檔案 -->
+          <label class="rescue-btn" for="import-critique-excel">
+            <div class="rescue-icon">📂</div>
+            <div class="rescue-label">匯入 Excel</div>
+            <div class="rescue-sub">從舊檔導入</div>
+          </label>
 
-  if (!hasContent) {
-    checklistContainer.innerHTML = `<div class="empty-state-message">評語庫目前為空。<br>請返回「基本設定」頁選擇或建立評語庫，或在「評語總覽」頁新增/導入。</div>`;
+          <!-- 選項 3: AI 生成 -->
+          <div class="rescue-btn" onclick="showPage('page6')">
+            <div class="rescue-icon">🤖</div>
+            <div class="rescue-label">AI 生成</div>
+            <div class="rescue-sub">量身打造</div>
+          </div>
+        </div>
+      </div>
+    `;
   }
+}
+
+// [Pro-v9.5] 快速載入預設 (Rescue Action)
+function quickLoadPresets() {
+    // 這裡我們用回你現在最穩陣的 "Pop Art 彈窗" (Step 1.5 版)
+    // 雖然 CSS 係 Step 1.5，但結構係一樣的
+    
+    // 1. 建立選項內容
+    const optionsHtml = `
+        <div style="text-align:left; padding:10px;">
+            <label class="pop-list-item"><input type="checkbox" class="preset-cb" value="narrative" checked> 📝 記敘文套裝</label>
+            <label class="pop-list-item"><input type="checkbox" class="preset-cb" value="lyrical"> ❤️ 抒情文套裝</label>
+            <label class="pop-list-item"><input type="checkbox" class="preset-cb" value="descriptive"> 🖼️ 描寫文套裝</label>
+            <label class="pop-list-item"><input type="checkbox" class="preset-cb" value="argumentative"> 🗣️ 議論文套裝</label>
+            <label class="pop-list-item"><input type="checkbox" class="preset-cb" value="common" checked> 🔧 通用評語 (語法/標點)</label>
+        </div>
+    `;
+
+    // 2. 借用 Generic Modal 顯示
+    const modal = document.getElementById('pop-generic-modal');
+    const titleEl = document.getElementById('pop-generic-title');
+    const descEl = document.getElementById('pop-generic-desc');
+    const inputContainer = document.getElementById('pop-generic-input-container');
+    const confirmBtn = document.getElementById('pop-generic-confirm');
+    const cancelBtn = document.getElementById('pop-generic-cancel');
+
+    // 設定內容
+    document.getElementById('pop-generic-icon').textContent = '📥';
+    titleEl.textContent = '載入預設評語';
+    descEl.textContent = '請勾選您需要的評語類型：';
+    
+    // 插入選項
+    inputContainer.style.display = 'block';
+    inputContainer.innerHTML = optionsHtml; // 替換原本的 input
+
+    modal.classList.add('active');
+
+    // 綁定確認按鈕
+    confirmBtn.onclick = () => {
+        const selected = Array.from(inputContainer.querySelectorAll('.preset-cb:checked')).map(cb => cb.value);
+        
+        if (selected.length === 0) {
+            alert("請至少選擇一項！");
+            return;
+        }
+
+        // 載入邏輯
+        const critiquesToLoad = new Map();
+        selected.forEach(genre => {
+            if (cannedCritiques[genre]) {
+                cannedCritiques[genre].forEach(c => critiquesToLoad.set(c.id, c));
+            }
+        });
+
+        // 轉成 Array 並寫入
+        const finalCritiques = Array.from(critiquesToLoad.values());
+        applyCritiquesToDOM(finalCritiques);
+        buildChecklist(); // 重繪介面，這時 Rescue Card 會消失，變回 Checklist
+        
+        // 恢復 Modal 原狀 (以防影響其他功能)
+        inputContainer.innerHTML = '<input type="text" id="pop-generic-input" class="pop-input">';
+        modal.classList.remove('active');
+        
+        if(typeof showToast === 'function') showToast(`已載入 ${finalCritiques.length} 條評語`, "success");
+    };
+
+    // 綁定取消按鈕
+    cancelBtn.onclick = () => {
+        inputContainer.innerHTML = '<input type="text" id="pop-generic-input" class="pop-input">';
+        modal.classList.remove('active');
+    };
 }
 
 function createInteractiveModule(id) {
