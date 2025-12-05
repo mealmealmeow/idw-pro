@@ -3511,8 +3511,9 @@ scroll-margin-top: 180px; /* 手機版 Header 疊起來比較高 */
 <!-- ================================================= -->
 <!-- [Pro-v9.9.7] 登入牆 (強制置頂版) -->
 <!-- ================================================= -->
-<div id="login-gate" class="login-gate">
-  <div class="pop-modal gate-card" style="display: none;">
+<!-- 修改前： <div id="login-gate" class="login-gate"> (或其他版本) -->
+<!-- 修改後 (請 Copy 呢行取代)： -->
+<div id="login-gate" class="login-gate" style="display: none; transition: none !important; opacity: 1; visibility: visible;">
     
     <div style="font-size: 2.5rem; margin-bottom: 5px;">☕️</div>
     <h2 style="color: #3d5c4f; font-size: 1.5rem; margin: 5px 0 10px 0;">我不想努力了 Pro</h2>
@@ -3675,8 +3676,7 @@ function updateHeaderInfo() {
 
 
 
-// 修正版登出：無論 Server 發生什麼事，本地都強制登出 (v10.0-Auth-Core-Fix)
-// 修正版登出 (v10.4-Fix: 登出即時彈牆)
+// 修正版登出 (v10.6: 登出即時彈牆，無動畫)
 async function handleLogout() {
   if (!confirm("確定要登出嗎？所有未同步的變更將會遺失。")) return;
 
@@ -3705,12 +3705,13 @@ async function handleLogout() {
     
     if (typeof loadDashboard === 'function') loadDashboard();
     
-    // 🔥 核心修復：登出後，強制顯示登入牆 (Full Card)
+    // 🔥 核心修復：登出後，強制硬切顯示 (Instant Show)
     const gate = document.getElementById('login-gate');
     if (gate) {
-        gate.style.display = 'flex'; // 顯示出來
+        gate.style.display = 'flex';
+        gate.classList.remove('unlocked');
         
-        // 重置輸入框 (以防萬一)
+        // 重置輸入框
         if(document.getElementById('gate-email')) document.getElementById('gate-email').value = '';
         if(document.getElementById('gate-password')) document.getElementById('gate-password').value = '';
     }
@@ -3718,6 +3719,7 @@ async function handleLogout() {
     if (typeof showToast === 'function') showToast("已安全登出", "success");
   }
 }
+
 // [Pro-v7.2] 雲端資料初始化 (移除自動彈出專案列表)
 async function loadDataFromCloud() {
   if (!currentUser) return;
@@ -8440,7 +8442,7 @@ async function deleteProject() {
 // [Pro-v7.1] 全域變數：捕捉網址 Hash (防止 Supabase 清除後遺失)
 const _globalHash = window.location.hash;
 
-// [Pro-v10.4] 檢查用戶 (無閃跳版：預設隱藏，未登入才彈出)
+// [Pro-v10.6] 檢查用戶 (硬切版：無動畫，無 Fade-in)
 async function checkUser() {
   const gate = document.getElementById('login-gate');
   
@@ -8453,8 +8455,8 @@ async function checkUser() {
   if (currentUser) {
       console.log("✅ 歡迎回來:", currentUser.email);
       
-      // 2. 已登入：保持隱藏 (display: none)，無需做任何動作，畫面絕對唔會閃
-      // (雙重保險：確保肯定係 none)
+      // 2. 已登入：保持 display: none (HTML 預設)，確保絕對無殘影
+      // 雙重保險：
       if (gate) gate.style.display = 'none';
 
       // 3. 數據同步
@@ -8465,9 +8467,7 @@ async function checkUser() {
               (typeof loadPage1ClassDropdown === 'function') ? loadPage1ClassDropdown(true) : Promise.resolve(),
               (typeof loadAllClasses === 'function') ? loadAllClasses() : Promise.resolve()
           ]);
-      } catch (e) {
-          console.warn("背景數據更新:", e);
-      }
+      } catch (e) { console.warn("背景數據更新:", e); }
 
       // 4. 邀請連結處理
       if (typeof _globalHash !== 'undefined' && _globalHash && _globalHash.includes('type=invite')) {
@@ -8481,10 +8481,13 @@ async function checkUser() {
           }, 1000);
       }
   } else {
-      console.log("🔒 未登入，顯示登入牆。");
+      console.log("🔒 未登入，立即顯示登入牆。");
       
-      // 5. 未登入：將牆顯示出嚟 (Flex 用於置中)
-      if (gate) gate.style.display = 'flex';
+      // 5. 未登入：硬切顯示 (Instant Show)
+      if (gate) {
+          gate.style.display = 'flex';
+          gate.classList.remove('unlocked'); // 確保 CSS 唔會搞事
+      }
   }
 }
 
@@ -10091,9 +10094,7 @@ async function switchProject(newProjectId) {
 }
 
 
-// [Pro-v9.9.6] 登入牆按鈕功能
-
-// [Pro-v10.4] 登入牆按鈕 (配合 Display 控制)
+// [Pro-v10.6] 登入牆按鈕 (登入成功即刻隱藏)
 async function handleGateAuth() {
     const email = document.getElementById('gate-email').value.trim();
     const password = document.getElementById('gate-password').value.trim();
@@ -10115,10 +10116,9 @@ async function handleGateAuth() {
         if (data.user) {
             currentUser = data.user;
             
-            // 視覺回饋
             if (typeof showToast === 'function') showToast("歡迎回來，老師。", "success");
             
-            // 🔥 關鍵：立即隱藏登入牆，然後再讀數據
+            // 🔥 關鍵：立即隱藏 (Instant Hide)
             const gate = document.getElementById('login-gate');
             if(gate) gate.style.display = 'none';
 
