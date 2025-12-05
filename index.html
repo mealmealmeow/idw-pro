@@ -587,42 +587,129 @@
 /* 手機版漢堡按鈕 (預設隱藏) */
 .mobile-menu-btn { display: none; }
 
-/* === Mobile RWD (手機版導航) === */
+/* === [v10.4] Mobile RWD (全螢幕磨砂質感) === */
 @media (max-width: 768px) {
+  /* 1. 全螢幕遮罩容器 */
   .page-nav-wrapper {
-    display: none; /* 手機版預設隱藏 */
+    display: block; /* 預設存在但隱形，用 opacity 控制動畫 */
     position: fixed;
-    top: 60px; left: 0; right: 0; bottom: 0;
-    background: rgba(255,255,255,0.98);
+    inset: 0; /* 佔滿全螢幕 */
+    background: rgba(243, 244, 246, 0.95); /* 淺灰半透明 */
+    backdrop-filter: blur(15px); /* 強力磨砂 */
     z-index: 2000;
+    
+    /* 動畫設定 */
+    opacity: 0;
+    pointer-events: none; /* 隱形時不可點擊 */
+    transition: opacity 0.3s ease;
+    
+    /* 內容排版 */
     flex-direction: column;
-    padding-top: 20px;
-    backdrop-filter: blur(10px);
+    align-items: center;
+    justify-content: center;
+    padding: 80px 20px 40px; /* 避開頂部漢堡掣 */
   }
   
-  .page-nav-wrapper.mobile-active { display: flex; }
+  /* 激活狀態 */
+  .page-nav-wrapper.mobile-active {
+    opacity: 1;
+    pointer-events: auto;
+    display: flex; /* 改回 flex 以便置中 */
+  }
 
-  .main-nav { flex-direction: column; border: none; }
-  .nav-btn { padding: 15px; font-size: 1.2rem; text-align: left; border-bottom: 1px solid #eee; }
+  /* 2. 主選單按鈕 (加大) */
+  .main-nav {
+    flex-direction: column;
+    background: transparent;
+    border: none;
+    width: 100%;
+    align-items: center;
+    gap: 15px;
+  }
+
+  .nav-btn {
+    font-size: 1.4rem;
+    color: #888;
+    padding: 10px 0;
+    font-family: 'LXGW WenKai TC', serif;
+    border: none;
+  }
   
-  .sub-nav-container { flex-direction: column; background: transparent; }
-  .sub-nav-group { flex-direction: column; gap: 0; }
-  .sub-nav-btn { padding: 12px 20px; text-align: left; border-radius: 0; border-left: 3px solid transparent; }
-  .sub-nav-btn.active { background: transparent; color: var(--accent-color); border-left-color: var(--accent-color); box-shadow: none; }
+  .nav-btn.active {
+    color: var(--accent-color);
+    font-size: 1.6rem; /* Active 時再大啲 */
+  }
+  
+  .nav-btn::after { display: none; } /* 移除底線 */
 
-  /* 漢堡按鈕樣式 */
+  /* 3. 子選單 (置中，更柔和) */
+  .sub-nav-container {
+    flex-direction: column;
+    background: transparent;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px dashed #ddd;
+    width: 80%;
+    align-items: center;
+  }
+
+  .sub-nav-group {
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+    align-items: center;
+  }
+
+  .sub-nav-btn {
+    font-size: 1.1rem;
+    color: #666;
+    padding: 8px 16px;
+    background: #fff;
+    border: 1px solid #eee;
+    border-radius: 99px; /* 膠囊形 */
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    width: 100%;
+    text-align: center;
+    max-width: 200px;
+  }
+
+  .sub-nav-btn.active {
+    background: var(--accent-color);
+    color: #fff;
+    border-color: var(--accent-color);
+  }
+
+  /* 4. 漢堡按鈕 (固定右上角) */
   .mobile-menu-btn {
     display: flex;
     flex-direction: column;
-    gap: 5px;
-    position: absolute;
-    top: 20px; right: 20px;
-    z-index: 2001;
-    background: transparent; border: none; cursor: pointer;
+    gap: 6px;
+    position: fixed; /* 固定定位 */
+    top: 25px; 
+    right: 25px;
+    z-index: 2001; /* 確保在遮罩之上 */
+    background: rgba(255,255,255,0.8);
+    backdrop-filter: blur(5px);
+    border: 1px solid rgba(0,0,0,0.1);
+    padding: 10px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s;
   }
-  .mobile-menu-btn span { width: 25px; height: 3px; background: #333; border-radius: 2px; }
+  
+  /* 開啟時變成 X */
+  .page-nav-wrapper.mobile-active ~ .mobile-menu-btn span:nth-child(1) { transform: rotate(45deg) translate(5px, 6px); }
+  .page-nav-wrapper.mobile-active ~ .mobile-menu-btn span:nth-child(2) { opacity: 0; }
+  .page-nav-wrapper.mobile-active ~ .mobile-menu-btn span:nth-child(3) { transform: rotate(-45deg) translate(5px, -6px); }
+  
+  .mobile-menu-btn span {
+    width: 24px;
+    height: 2px;
+    background: #5b5044;
+    border-radius: 2px;
+    transition: all 0.3s;
+  }
 }
-
 /* ========================================= */
 /* === 頁面內容切換 (這部分必須保留！) === */
 /* ========================================= */
@@ -2623,7 +2710,87 @@ scroll-margin-top: 180px; /* 手機版 Header 疊起來比較高 */
     max-width: 90% !important;
   }
 }
+/* ===== [v10.4] Cozy Dashboard Styles ===== */
 
+.folder-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+/* 文件夾卡片 */
+.cozy-folder {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 1.5rem;
+  position: relative;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+  border: 1px solid rgba(0,0,0,0.05);
+  transition: all 0.3s ease;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 160px;
+}
+
+.cozy-folder:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 30px rgba(90, 143, 123, 0.1);
+  border-color: var(--accent-color-soft);
+}
+
+/* 頂部標籤裝飾 */
+.cozy-folder::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 24px;
+  width: 60px; height: 6px;
+  background: var(--accent-color);
+  border-radius: 0 0 6px 6px;
+  opacity: 0.6;
+}
+
+.folder-meta {
+  margin-top: 10px;
+}
+
+.folder-class {
+  font-size: 0.85rem;
+  color: #9ca3af;
+  font-weight: bold;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 5px;
+  display: block;
+}
+
+.folder-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--title-color);
+  line-height: 1.4;
+  margin-bottom: 10px;
+}
+
+.folder-stats {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  color: #6b7280;
+  margin-top: auto; /* 推到底部 */
+  padding-top: 15px;
+  border-top: 1px dashed #f3f4f6;
+}
+
+.folder-progress-pill {
+  background: #f3f4f6;
+  padding: 4px 10px;
+  border-radius: 99px;
+  font-weight: bold;
+  color: var(--accent-color);
+}
 </style>
 </head>
 <body>
@@ -2714,40 +2881,52 @@ scroll-margin-top: 180px; /* 手機版 Header 疊起來比較高 */
     <main>
 
 
-     <div id="page-home" class="page-content">
+   <!-- [v10.4] Cozy Dashboard HTML -->
+<div id="page-home" class="page-content">
   <div class="overview-container">
     
-    <!-- Header -->
-    <div class="dashboard-header">
-      <div>
-        <h2 id="welcome-msg">早晨，老師。</h2>
-        <p style="color:#777;">今天想處理哪一份作業？</p>
-      </div>
-      <button class="action-btn" onclick="showPage('page1')">＋ 開新批改</button>
+    <!-- 1. 問候區 -->
+    <div style="text-align: center; margin-bottom: 3rem; padding-top: 2rem;">
+      <h2 id="welcome-msg" style="font-size: 2rem; color: var(--accent-color); border: none; margin-bottom: 0.5rem;">
+        早晨，老師。
+      </h2>
+      <p style="color: #8c867a; font-size: 1.1rem;">
+        準備好開始一杯咖啡的時間了嗎？
+      </p>
     </div>
 
-    <!-- Section A: 進行中 (Focus Mode) -->
-    <div id="section-focus-mode" style="margin-bottom: 2.5rem;">
-        <h3 style="font-size: 1.1rem; color: #5A8F7B; border-bottom: 2px solid #5A8F7B; padding-bottom: 0.5rem; display:inline-block; margin-bottom: 1rem;">
-            🔥 進行中 (Focus)
+    <!-- 2. 核心操作區 (Quick Actions) -->
+    <div style="display: flex; gap: 15px; justify-content: center; margin-bottom: 3rem; flex-wrap: wrap;">
+      <button class="action-btn" onclick="startNewProjectForClass(null, null)" style="padding: 12px 24px; font-size: 1.1rem;">
+        ✨ 開新批改
+      </button>
+      <button class="secondary-btn" onclick="showPage('page8')" style="padding: 12px 24px; font-size: 1.1rem;">
+        🏫 管理班級
+      </button>
+    </div>
+
+    <!-- 3. 進行中 (On My Desk) -->
+    <div style="margin-bottom: 2rem;">
+        <h3 style="font-size: 1.2rem; color: #5b5044; margin-bottom: 1.5rem; text-align: left; border-left: 5px solid var(--accent-color); padding-left: 15px;">
+            📂 案頭工作 (Active Projects)
         </h3>
-        <div id="focus-task-list" class="task-list-container">
-            <!-- JS 會插入 "緊湊型" 任務條 -->
-            <div class="dashboard-loading"><div class="spinner"></div> 讀取中...</div>
+        <!-- 這裡會由 JS 插入「文件夾」卡片 -->
+        <div id="focus-task-list" class="folder-grid">
+            <div class="dashboard-loading">☕️ 正在沖泡數據...</div>
         </div>
     </div>
 
-    <!-- Section B: 班級歸檔 (Class Archives) -->
-    <div id="section-class-archives">
-        <h3 style="font-size: 1.1rem; color: #888; border-bottom: 1px solid #ddd; padding-bottom: 0.5rem; margin-bottom: 1rem;">
-            🏫 班級歸檔
-        </h3>
-        <!-- 這裡會顯示「學年 > 班級」的手風琴 -->
-        <div id="class-accordion-container"></div>
-    </div>
+    <!-- 4. 班級歸檔 (隱藏式) -->
+    <details style="background: transparent; border: none; box-shadow: none;">
+        <summary style="justify-content: center; background: transparent; color: #999; font-size: 0.9rem;">
+            查看過往歸檔
+        </summary>
+        <div id="class-accordion-container" style="margin-top: 1rem;"></div>
+    </details>
 
   </div>
 </div>
+
 <!-- 自定義編輯專案 Modal -->
 <div id="pop-edit-modal" class="pop-overlay">
   <div class="pop-modal">
@@ -8087,26 +8266,54 @@ function getOfflineProjectMeta() {
 // 為了防止舊代碼殘留，如果還有 loadOfflineData 函數，請手動刪除它，或將其內容清空
 function loadOfflineData() { return []; }
 
-// --- Helper: 渲染 Focus List (卡片網格版) ---
+// [v10.4] 渲染文件夾網格 (Cozy Folder Grid)
 function renderFocusList(items, container) {
     if (items.length === 0) {
-        // 保持空狀態樣式，但稍微調整以適應網格
         container.style.display = 'block'; 
-        container.innerHTML = `<div style="padding:2rem; text-align:center; color:#999; border:2px dashed #e0e0e0; border-radius:12px; background:#f9f9f9;">🎉 目前沒有待辦作業，去下方看看舊紀錄吧！</div>`;
+        container.innerHTML = `
+            <div style="text-align:center; padding:3rem; color:#aaa; background:rgba(255,255,255,0.5); border-radius:16px; border:2px dashed #eee;">
+                <div style="font-size:2.5rem; margin-bottom:10px;">🍃</div>
+                案頭很乾淨，沒有積壓的工作。<br>
+                <span style="font-size:0.9rem;">(點擊上方按鈕開始新工作)</span>
+            </div>`;
         return;
     }
     
-    // 恢復 Grid 佈局
     container.style.display = 'grid'; 
 
     let html = '';
     items.forEach((item, index) => {
-        const uniqueId = `focus-${index}`; // 唯一的 ID 用於選單
-        const htmlCard = buildCardHtml(item, uniqueId);
-        html += htmlCard;
+        // 使用新的文件夾 HTML 結構
+        const dateStr = new Date(item.last_updated).toLocaleDateString();
+        // 點擊動作
+        let clickAction = (item.source_type === 'legacy') ? `loadProjectById('${item.id}')` : `openAssignment('${item.id}')`;
+        // 準備 Edit Modal 數據
+        const itemSafe = JSON.stringify(item).replace(/"/g, '&quot;');
+
+        html += `
+        <div class="cozy-folder" onclick="${clickAction}">
+            <!-- 編輯按鈕 (右上角隱藏式) -->
+            <div style="position:absolute; top:15px; right:15px;" onclick="event.stopPropagation();">
+                <button onclick="openEditModal(${itemSafe})" style="background:transparent; border:none; color:#ddd; cursor:pointer; font-size:1.1rem; padding:5px;">⚙️</button>
+            </div>
+
+            <div class="folder-meta">
+                <span class="folder-class">${escapeHtml(item.class_name)}</span>
+                <div class="folder-title">${escapeHtml(item.topic)}</div>
+            </div>
+
+            <div class="folder-stats">
+                <span>📅 ${dateStr}</span>
+                <span class="folder-progress-pill">${item.progress}% 完成</span>
+            </div>
+        </div>`;
     });
     container.innerHTML = html;
 }
+
+// 為了兼容性，保留 buildCardHtml 但改名或不使用，這裡我們直接在 renderFocusList 裡寫了 HTML
+// 如果其他地方 (e.g. Archives) 還有用到 buildCardHtml，請將其更新為類似上面的簡約版，或者暫時保持原樣。
+// 為了統一，建議 Archives 也用類似樣式，但稍微緊湊一點。
 // --- Helper: 渲染 Empty State ---
 function renderEmptyState(container) {
     container.innerHTML = `
@@ -8248,55 +8455,7 @@ function startNewProjectForClass(classId, className) {
         }
     }, 500);
 }
-// --- [新] 通用卡片 HTML 產生器 ---
-// [Pro-v7.6] 通用卡片 HTML 產生器 (移除冗餘刪除按鈕，修復雙重彈窗)
-function buildCardHtml(item, uniqueId) {
-    const dateStr = new Date(item.last_updated).toLocaleDateString();
-    
-    // 點擊卡片動作
-    let clickAction = '';
-    if (item.source_type === 'new') clickAction = `openAssignment('${item.id}')`;
-    else if (item.source_type === 'legacy') clickAction = `loadProjectById('${item.id}')`;
-    else clickAction = `openAssignment('${item.id}')`;
 
-    // 準備物件給 Modal 用
-    const itemSafe = JSON.stringify(item).replace(/"/g, '&quot;');
-
-    return `
-    <div class="task-item" onclick="${clickAction}">
-        <!-- 1. 三點選單按鈕 -->
-        <div class="kebab-menu-container">
-            <button class="kebab-item" style="font-size:1.2rem; padding:4px 8px; color:#ccc; background:transparent; border:none; cursor:pointer;" onclick="event.stopPropagation(); openEditModal(${itemSafe});">
-                ⚙️
-            </button>
-            <!-- 
-               舊版 Kebab Menu (已移除) 
-               原因：直接點擊齒輪/三點就打開編輯 Modal 最直接，
-               不用再多點一層 dropdown，亦解決了刪除按鈕的雙重彈窗 bug。
-            -->
-        </div>
-
-        <!-- 2. 卡片內容 -->
-        <div class="task-meta">
-            <span class="task-class-badge">${escapeHtml(item.class_name)}</span>
-            <span class="task-topic" title="${escapeHtml(item.topic)}">${escapeHtml(item.topic)}</span>
-        </div>
-
-        <!-- 3. 底部資訊 -->
-        <div class="task-footer">
-            <div class="task-progress">
-                <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:#888;">
-                    <span>進度 ${item.progress}%</span>
-                    <span>${item.graded_count}/${item.total_students}</span>
-                </div>
-                <div class="task-progress-bar-bg">
-                    <div class="task-progress-bar-fill" style="width: ${item.progress}%"></div>
-                </div>
-            </div>
-            <div class="task-date">${dateStr}</div>
-        </div>
-    </div>`;
-}
 // [Pro-v9.4] 開啟作業 (加入評語庫基準線記憶，為智能 Sync 鋪路)
 async function openAssignment(assignmentId) {
     if (assignmentId === 'local_memory') { showPage('page2'); showToast("已返回編輯中的草稿", "success"); return; }
