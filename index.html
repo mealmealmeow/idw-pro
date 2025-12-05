@@ -726,76 +726,89 @@ scroll-margin-top: 180px; /* 手機版 Header 疊起來比較高 */
 
  /* ===== [v10.2-Step1] 評語 Checkbox (Cozy Touch 版) ===== */
 
-  .check-item { 
-    border: 1px solid rgba(225,216,200,0.9); 
-    border-radius: 12px; /* 圓角再溫潤一點 */
-    margin-bottom: 0.8rem; 
-    background: #ffffff; 
-    box-shadow: 0 2px 5px rgba(0,0,0,0.03); /* 陰影輕量化 */
-    transition: all 0.2s ease;
-    cursor: pointer;
-    overflow: hidden; /* 確保內部 hover 唔會溢出 */
-    position: relative; /* 為了定位 */
-  }
+  /* ===== [v10.2-Final] 評語 Checkbox (只改格仔，不動全站) ===== */
 
-  /* 滑鼠經過時：輕微浮起 + 邊框變色 */
-  .check-item:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 15px rgba(90, 143, 123, 0.1);
-    border-color: var(--accent-color);
-  }
+/* 1. 卡片本體 */
+.check-item { 
+  border: 1px solid rgba(225,216,200,0.9); /* 維持原有邊框色 */
+  border-radius: 10px; 
+  margin-bottom: 0.8rem; 
+  background: #ffffff; 
+  box-shadow: 0 2px 5px rgba(0,0,0,0.03); 
+  transition: all 0.2s ease;
+  cursor: pointer;
+  overflow: hidden; /* 確保內容唔會爆出圓角 */
+}
 
-  /* 選中時的狀態 (需配合 JS 添加 class，暫時靠 checkbox 聯動) */
-  .check-item:has(input:checked) {
-    background-color: #f4fcf9; /* 極淡的綠色背景，表示已選 */
-    border-color: var(--accent-color);
-  }
+/* Hover 效果 */
+.check-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(90, 143, 123, 0.1);
+  border-color: var(--accent-color);
+}
 
-  .check-item-header { 
-    display: flex; 
-    align-items: center; 
-    width: 100%;
-    /* 關鍵：移除這裏的 gap，改用 padding 控制 */
-  }
+/* 選中狀態 (配合 JS 邏輯) */
+/* 當裡面的 checkbox 被剔選時，改變外框顏色 */
+.check-item:has(input:checked) {
+  background-color: #fcfdfc; /* 極淡綠，區分已選 */
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 1px var(--accent-color) inset; /* 內發光邊框 */
+}
 
-  /* [v10.2-Step2] 封鎖原生點擊，交由 Parent 統一處理 */
-  .check-item-header input[type="checkbox"] { 
-    margin-left: 12px;
-    width: 1.2rem; 
-    height: 1.2rem; 
-    flex-shrink: 0; 
-    accent-color: var(--accent-color); 
-    border-radius: 4px;
-    cursor: pointer;
-    pointer-events: none; /* 🔑 關鍵：讓點擊穿透，防止雙重觸發 */
-  }
+/* 2. Header 佈局 (關鍵) */
+.check-item-header { 
+  display: flex; 
+  align-items: center; 
+  width: 100%;
+  position: relative;
+  /* 移除 padding，改由 label 撐開 */
+  padding: 0; 
+}
 
-  /* 🔥 核心止痛：將 Label 撐大填滿整個 Header */
-  .check-item-header label { 
-    flex: 1; 
-    font-size: 1.05rem; 
-    font-weight: 500; 
-    cursor: pointer;
-    padding: 14px 12px; /* 上下左右都有肉，容易撳 */
-    display: block; /* 變成區塊 */
-    user-select: none; /* 防止連點時選取文字 */
-    color: #5b5044;
-  }
+/* 3. Checkbox 本體 (封鎖點擊) */
+.check-item-header input[type="checkbox"] { 
+  position: absolute;
+  left: 12px; /* 固定在左邊 */
+  width: 1.2rem; 
+  height: 1.2rem; 
+  accent-color: var(--accent-color); 
+  border-radius: 4px;
+  cursor: pointer;
+  pointer-events: none; /* 🔥 核心：讓點擊穿透，交給 Parent 處理，消除憤怒點擊 */
+}
 
-  /* 互動模組 (下拉選單) 稍微內縮 */
-  .interactive-module { 
-    display: none; 
-    background-color: #fbfbfb; 
-    border-top: 1px dashed rgba(225,216,200,0.8); 
-    padding: 12px; 
-    margin: 0; /* 貼齊邊緣 */
-  }
+/* 4. 文字標籤 (撐大熱區) */
+.check-item-header label { 
+  flex: 1; 
+  font-size: 1.05rem; 
+  font-weight: 500; 
+  cursor: pointer;
+  padding: 14px 12px 14px 42px; /* 上右下左 (左邊預留位俾 checkbox) */
+  display: block; /* 填滿 */
+  user-select: none;
+  color: #5b5044;
+}
 
-  .editable-comment { 
-    display: none; 
-    padding: 12px;
-    background-color: #fff;
-  }
+/* 選中時文字變色 */
+.check-item:has(input:checked) label {
+  color: #2c4c3f; 
+  font-weight: 600;
+}
+
+/* 5. 下拉模組與編輯框 (微調間距) */
+.interactive-module { 
+  display: none; 
+  background-color: #f9f9f9; 
+  border-top: 1px dashed rgba(225,216,200,0.8); 
+  padding: 12px 16px; 
+  margin: 0;
+}
+
+.editable-comment { 
+  display: none; 
+  padding: 0 16px 16px 16px; 
+  background-color: transparent;
+}
 
   .check-item.is-problem label { 
     color: var(--problem-color); 
