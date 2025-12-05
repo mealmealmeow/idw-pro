@@ -3507,42 +3507,47 @@ scroll-margin-top: 180px; /* 手機版 Header 疊起來比較高 */
   </div>
 </div>
 
-<!-- [Pro-v10.7] 重置版登入牆 HTML (預設隱藏，修復版面) -->
-<div id="login-gate" class="login-gate" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(47, 79, 79, 0.95); backdrop-filter: blur(10px); z-index: 99999; justify-content: center; align-items: center;">
-  <div class="pop-modal gate-card" style="background: rgba(255, 255, 255, 0.95); box-shadow: 0 40px 100px rgba(0,0,0,0.5); border-radius: 24px; padding: 40px; width: 100%; max-width: 480px; display: flex; flex-direction: column; align-items: center;">
+<!-- ✅✅✅ 貼上結束 ✅✅✅ -->
+<!-- ================================================= -->
+<!-- [Pro-v9.9.7] 登入牆 (強制置頂版) -->
+<!-- ================================================= -->
+<div id="login-gate" class="login-gate">
+  <div class="pop-modal gate-card" style="display: none">
     
-    <div style="font-size: 3rem; margin-bottom: 10px;">☕️</div>
-    <h2 style="color: #3d5c4f; font-size: 1.6rem; margin: 5px 0 10px 0; font-weight: bold;">我不想努力了 Pro</h2>
-    <p style="color: #666; font-size: 0.95rem; margin-bottom: 25px;">願您的週末，有一杯熱咖啡的時間。</p>
+    <div style="font-size: 2.5rem; margin-bottom: 5px;">☕️</div>
+    <h2 style="color: #3d5c4f; font-size: 1.5rem; margin: 5px 0 10px 0;">我不想努力了 Pro</h2>
+    <p style="color: #666; font-size: 0.9rem; margin-bottom: 20px;">願您的週末，有一杯熱咖啡的時間。</p>
     
-    <div class="gate-input-group" style="width: 100%; text-align: left;">
-        <label style="display:block; color:#888; font-size:0.85rem; margin-bottom:5px; font-weight: bold;">電郵地址 (Email)</label>
-        <input type="text" id="gate-email" class="pop-input" style="width: 100%; margin-bottom: 15px; box-sizing: border-box;" placeholder="name@example.com">
+    <div class="gate-input-group">
+        <label style="display:block; color:#888; font-size:0.85rem; margin-bottom:5px; text-align: left;">電郵地址 (Email)</label>
+        <input type="text" id="gate-email" class="pop-input" style="margin-bottom:15px; width: 100%;">
         
-        <label style="display:block; color:#888; font-size:0.85rem; margin-bottom:5px; font-weight: bold;">密碼 (Password)</label>
-        <input type="password" id="gate-password" class="pop-input" style="width: 100%; margin-bottom: 5px; box-sizing: border-box;" placeholder="••••••••">
+        <label style="display:block; color:#888; font-size:0.85rem; margin-bottom:5px; text-align: left;">密碼 (Password)</label>
+        <input type="password" id="gate-password" class="pop-input" style="margin-bottom:5px; width: 100%;">
         
         <div style="text-align: right; margin-bottom: 25px;">
-             <a href="javascript:void(0)" onclick="openForgotModal()" style="color:#888; font-size: 0.8rem; text-decoration:underline;">忘記密碼？</a>
+             <a href="javascript:void(0)" onclick="openForgotModal()" style="color:#999; font-size: 0.8rem; text-decoration:underline;">忘記密碼？</a>
         </div>
         
         <button class="pop-btn pop-btn-confirm" 
-                style="width:100%; padding:12px; font-size:1.1rem; background: #F2C037; color: #fff; border: none; border-radius: 99px; cursor: pointer; box-shadow: 0 4px 15px rgba(242, 192, 55, 0.4);" 
+                style="width:100%; max-width:100%; margin: 0 auto; display: block; text-align: center; padding:12px; font-size:1.1rem; box-shadow: 0 10px 20px rgba(242, 192, 55, 0.3);" 
                 onclick="handleGateAuth()">
              進入你的愜意工作咖啡廳 🥐
         </button>
 
         <div style="margin-top: 20px; text-align: center;">
             <a href="https://forms.gle/你的GoogleFormID" target="_blank" 
-               style="color: #5A8F7B; font-size: 0.9rem; text-decoration: none; border-bottom: 1px dashed #5A8F7B;">
+               style="color: #5A8F7B; font-weight: bold; text-decoration: none; border-bottom: 1px dashed #5A8F7B; font-size: 0.9rem; transition: all 0.2s;" 
+               onmouseover="this.style.color='#3d5c4f'; this.style.borderBottomStyle='solid'" 
+               onmouseout="this.style.color='#5A8F7B'; this.style.borderBottomStyle='dashed'">
                 尚未持有通行證？申請成為咖啡廳常客🤍
             </a>
         </div>
     </div>
 
-    <div style="margin-top: 30px; font-size: 0.85rem; background: rgba(90,143,123,0.1); padding: 8px 15px; border-radius: 99px;">
+    <div style="margin-top: 25px; font-size: 0.85rem; background: rgba(90,143,123,0.08); padding: 10px 15px; border-radius: 99px;">
         <a href="http://idw-lite.vercel.app" target="_blank" style="color:#555; text-decoration:none;">
-            只需單次批改？ <span style="color:#3d5c4f; font-weight:bold;">🌱 前往輕量版 (Lite) 試用</span>
+            只需單次批改？ <span style="color:#8d775f; font-weight:bold;">🌱 前往輕量版 (Lite) 試用</span>
         </a>
     </div>
 
@@ -3670,7 +3675,7 @@ function updateHeaderInfo() {
 
 
 
-// 修正版登出 (v10.7-Fix: Flex 佈局)
+// 修正版登出：無論 Server 發生什麼事，本地都強制登出 (v10.0-Auth-Core-Fix)
 async function handleLogout() {
   if (!confirm("確定要登出嗎？所有未同步的變更將會遺失。")) return;
 
@@ -3678,16 +3683,20 @@ async function handleLogout() {
   if (authStatus) authStatus.textContent = "正在登出...";
 
   try {
+    // 嘗試通知伺服器
     await supabaseClient.auth.signOut();
   } catch (error) {
     console.warn("雲端登出回報錯誤 (已忽略):", error.message);
   } finally {
+    // 🔥 重點：無論如何都執行本地清理
     currentUser = null;
     allStudentRecords = [];
     commonTypos = [];
     
+    // 清除緩存標記
     sessionStorage.removeItem('projectPromptShownThisSession');
     
+    // 重置介面
     resetToDefaultCritiques(false);
     buildChecklist();
     buildOverviewPage();
@@ -3699,14 +3708,13 @@ async function handleLogout() {
     
     if (typeof loadDashboard === 'function') loadDashboard();
     
-    // 🔥 核心修復：登出後使用 Flex 顯示，保持置中
+    // 🔥 核心改動：登出後立即將登入牆「鎖上」(移除 unlocked class)
     const gate = document.getElementById('login-gate');
     if (gate) {
-        gate.style.display = 'flex'; 
         gate.classList.remove('unlocked');
-        
-        if(document.getElementById('gate-email')) document.getElementById('gate-email').value = '';
-        if(document.getElementById('gate-password')) document.getElementById('gate-password').value = '';
+        // 重置輸入框，費事下一手見到
+        document.getElementById('gate-email').value = '';
+        document.getElementById('gate-password').value = '';
     }
 
     if (typeof showToast === 'function') showToast("已安全登出", "success");
@@ -8435,7 +8443,7 @@ async function deleteProject() {
 // [Pro-v7.1] 全域變數：捕捉網址 Hash (防止 Supabase 清除後遺失)
 const _globalHash = window.location.hash;
 
-// [Pro-v10.7] 檢查用戶 (Layout Fix: 使用 Flex 顯示)
+// [Pro-v9.9.9] 檢查用戶 (v10.1-Fix: 極速開門版)
 async function checkUser() {
   const gate = document.getElementById('login-gate');
   
@@ -8448,10 +8456,11 @@ async function checkUser() {
   if (currentUser) {
       console.log("✅ 歡迎回來:", currentUser.email);
       
-      // 2. 已登入：隱藏
-      if (gate) gate.style.display = 'none';
+      // 2. 🔥 關鍵改動：即刻開門！唔好等數據！
+      if (gate) gate.classList.add('unlocked');
 
-      // 3. 數據同步
+      // 3. 後台靜靜雞刷新數據 (用戶已經入咗去，唔覺慢)
+      // 使用 Promise.all 並行處理，進一步加速
       try {
           await Promise.all([
               loadDataFromCloud(),
@@ -8459,9 +8468,11 @@ async function checkUser() {
               (typeof loadPage1ClassDropdown === 'function') ? loadPage1ClassDropdown(true) : Promise.resolve(),
               (typeof loadAllClasses === 'function') ? loadAllClasses() : Promise.resolve()
           ]);
-      } catch (e) { console.warn("背景數據更新:", e); }
+      } catch (e) {
+          console.warn("背景數據更新有少少問題，但不影響使用:", e);
+      }
 
-      // 4. 邀請連結處理
+      // 4. 處理邀請連結
       if (typeof _globalHash !== 'undefined' && _globalHash && _globalHash.includes('type=invite')) {
           setTimeout(() => {
               const pwdModal = document.getElementById('pop-reset-password-modal');
@@ -8473,13 +8484,8 @@ async function checkUser() {
           }, 1000);
       }
   } else {
-      console.log("🔒 未登入，顯示登入牆。");
-      
-      // 5. 未登入：使用 Flex 顯示 (關鍵！否則會散開)
-      if (gate) {
-          gate.style.display = 'flex'; 
-          gate.classList.remove('unlocked');
-      }
+      console.log("🔒 未登入，請先打卡。");
+      if (gate) gate.classList.remove('unlocked');
   }
 }
 
@@ -10086,7 +10092,9 @@ async function switchProject(newProjectId) {
 }
 
 
-// [Pro-v10.7] 登入牆按鈕 (登入成功隱藏)
+// [Pro-v9.9.6] 登入牆按鈕功能
+
+// [Pro-v9.9.9] 登入牆按鈕 (等待數據載入版)
 async function handleGateAuth() {
     const email = document.getElementById('gate-email').value.trim();
     const password = document.getElementById('gate-password').value.trim();
@@ -10108,13 +10116,15 @@ async function handleGateAuth() {
         if (data.user) {
             currentUser = data.user;
             
+            // 視覺回饋
             if (typeof showToast === 'function') showToast("歡迎回來，老師。", "success");
             
-            // 🔥 關鍵：立即隱藏
-            const gate = document.getElementById('login-gate');
-            if(gate) gate.style.display = 'none';
-
+            // 🔥 關鍵：等待 checkUser 完成數據載入才開門
+            // 這樣使用者一看到畫面，數據就已經在那裡了
             await checkUser(); 
+            
+            // 雙重保險：確保門是開的
+            document.getElementById('login-gate').classList.add('unlocked');
         }
     } catch (e) {
         alert("登入失敗：" + e.message);
@@ -10123,9 +10133,6 @@ async function handleGateAuth() {
         btn.disabled = false;
     }
 }
-
-
-
 // B. 打開註冊視窗 (借用原本的 Pop-up，浮在牆上面)
 function openRegisterModal() {
     // 這裡我們直接打開原本的登入/註冊 Modal，並切換狀態
