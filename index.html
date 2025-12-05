@@ -80,26 +80,33 @@
 }
 
 /* ========================================= */
-/* === [Pro-v9.5 Reboot] 彈窗系統 (自然流) === */
+/* === [Pro-v9.5] 彈窗系統 (全套修復版) === */
 /* ========================================= */
 
-/* 1. 底紙 (Overlay) - 滾動容器 */
+/* 1. 底紙 (Overlay) - 負責捲動與置中 */
 .pop-overlay {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
   width: 100%; height: 100%;
   
-  /* 深綠色背景 */
-  background: rgba(47, 79, 79, 0.75); 
-  backdrop-filter: blur(5px);
+  background: rgba(47, 79, 79, 0.75); /* Cozy Green */
+  backdrop-filter: blur(8px);
   z-index: 2147483647;
   
-  /* 🔥 關鍵：啟動原生捲動 */
+  /* 讓 Overlay 變成可捲動容器 */
   overflow-y: auto; 
-  display: block; /* 確保它是 Block Level */
   
-  /* 確保內容不會貼邊 */
-  padding: 0 15px; 
+  /* Flex 設定：讓內容置中，但容許長度延伸 */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  
+  /* 底部留極大空間，確保按鈕不被遮擋 */
+  padding: 40px 10px 150px 10px; 
+  
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
 }
 
 .pop-overlay.active {
@@ -107,118 +114,89 @@
   pointer-events: auto;
 }
 
-/* 2. 彈窗本體 (Base Modal) - 卡片 */
+/* 2. 彈窗本體 (Base Modal) - 基礎樣式 (救回白底！) */
 .pop-modal {
-  background: #ffffff;
-  border-radius: 16px;
-  box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+  background: #ffffff; /* 🔥 關鍵：白底回來了 */
+  border-radius: 20px;
+  box-shadow: 0 25px 60px rgba(0,0,0,0.3);
   padding: 30px;
   
-  /* 尺寸與定位 */
-  width: 100%;
-  max-width: 460px; /* 小窗預設 */
+  /* 尺寸設定 */
+  width: 90%;
+  max-width: 440px; /* 預設是小窗 */
   
-  /* 🔥 核心：用 Margin 來置中，上下留白 */
-  margin: 60px auto 100px auto; 
-  
+  /* 定位設定 */
   position: relative;
+  margin: auto; /* 在 Flex 容器中自動置中 */
+  flex-shrink: 0; /* 防止被壓縮 */
+  
   text-align: center;
   color: #4a4a4a;
-  
-  /* 移除所有高度限制，讓它自然生長 */
-  height: auto !important;
-  min-height: auto !important;
-  max-height: none !important;
-  
-  /* 移除 Transform 動畫，避免字體模糊或定位錯亂 */
-  transform: none !important; 
+  transform: scale(0.95);
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-/* 3. 特大彈窗 (Max Pop) */
+/* 3. 特大彈窗 (Max Pop) - 覆蓋基礎設定 */
 .pop-modal.pop-modal-large {
-  max-width: 900px; /* 變闊 */
-  text-align: left; /* 內容靠左 */
+  width: 95vw;
+  max-width: 900px;
+  
+  /* 移除高度限制，讓內容撐開 */
+  height: auto;
+  max-height: none; 
+  
+  /* 確保 Block 顯示 */
+  display: block; 
+}
+
+/* 顯示時的動畫 */
+.pop-overlay.active .pop-modal {
+  transform: scale(1);
 }
 
 /* 4. 內部元件 */
 .pop-icon {
   font-size: 36px;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   display: block;
-  text-align: center;
 }
 
 .pop-modal h3 {
-  margin: 0 0 15px 0;
-  font-size: 1.5rem;
+  margin: 0 0 10px 0;
+  font-size: 1.4rem;
   color: #333;
   font-weight: 700;
-  text-align: center;
 }
 
 .pop-desc {
   font-size: 0.95rem;
   color: #666;
-  margin-bottom: 20px;
-  line-height: 1.6;
-  text-align: center;
+  margin-bottom: 15px;
+  line-height: 1.5;
 }
 
-/* 5. 列表區 (不再負責捲動，只負責裝飾) */
+/* 5. 列表捲動區 (Max Pop 專用) */
 .pop-scroll-area {
+  text-align: left;
   background: #fdfbf7;
   border-radius: 12px;
   padding: 15px;
-  border: 1px solid #e1d8c8;
-  margin: 15px 0;
   
-  /* 移除所有 Scroll 設定 */
-  overflow: visible;
+  /* 移除內部捲動限制，讓它撐長彈窗 */
   height: auto;
+  max-height: none;
+  overflow: visible;
+  
+  margin: 15px 0;
+  border: 1px solid #e1d8c8;
+  box-shadow: inset 0 2px 6px rgba(0,0,0,0.03);
 }
 
-/* 6. 輸入框樣式 */
-.pop-input, 
-.input-area-wrapper textarea {
-  width: 100%;
-  box-sizing: border-box;
-  padding: 12px;
-  border: 2px solid #e0e0e0;
-  border-radius: 8px;
-  font-size: 16px;
-  outline: none;
-  font-family: inherit;
-  margin-bottom: 10px;
-  background: #fff;
-}
-
-.input-area-wrapper textarea {
-  min-height: 100px; /* 確保輸入框夠高 */
-  resize: vertical;
-}
-
-.pop-input:focus,
-.input-area-wrapper textarea:focus {
-  border-color: #F2C037;
-  background-color: #fffdf8;
-}
-
-/* 7. 底部按鈕區 */
-.pop-footer {
-  display: flex;
-  justify-content: center;
-  gap: 15px;
-  margin-top: 30px;
-  padding-top: 10px;
-  border-top: 1px solid #eee; /* 加條線分隔 */
-}
-
-/* 手機微調 */
+/* 手機適配 */
 @media (max-width: 600px) {
-  .pop-modal {
-    margin: 20px auto 80px auto; /* 手機版上下邊距細啲 */
-    padding: 20px;
-  }
+  .pop-overlay { padding: 20px 10px 120px 10px; }
+  .pop-modal { padding: 20px; }
+  .pop-modal.pop-modal-large { width: 100%; border-radius: 16px; }
 }
 
 .pop-btn {
