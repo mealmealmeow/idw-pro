@@ -589,25 +589,27 @@
 
 /* === [v10.4] Mobile RWD (全螢幕磨砂質感) === */
 @media (max-width: 768px) {
-  /* 1. 全螢幕遮罩容器 */
+  /* [v10.5] 手機版導航容器修正 (置頂顯示，無需 Scroll) */
   .page-nav-wrapper {
-    display: block; /* 預設存在但隱形，用 opacity 控制動畫 */
+    display: block;
     position: fixed;
-    inset: 0; /* 佔滿全螢幕 */
-    background: rgba(243, 244, 246, 0.95); /* 淺灰半透明 */
-    backdrop-filter: blur(15px); /* 強力磨砂 */
+    inset: 0;
+    background: rgba(243, 244, 246, 0.98); /* 加深少少背景色，睇得清楚啲 */
+    backdrop-filter: blur(15px);
     z-index: 2000;
     
-    /* 動畫設定 */
     opacity: 0;
-    pointer-events: none; /* 隱形時不可點擊 */
-    transition: opacity 0.3s ease;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
     
-    /* 內容排版 */
+    /* 🔥 關鍵修正：內容置頂，而非置中 */
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    padding: 80px 20px 40px; /* 避開頂部漢堡掣 */
+    justify-content: flex-start; 
+    padding-top: 100px; /* 留位俾漢堡掣，內容由這裡開始 */
+    padding-bottom: 40px;
+    overflow-y: auto; /* 只有當內容真係太長先 Scroll */
+  }
   }
   
   /* 激活狀態 */
@@ -4896,35 +4898,33 @@ triggerAutoSave();
 
 /* ===== [v10.3] 雙層導航邏輯 ===== */
 
-// 1. 切換主頁籤 (Main Tab)
+// [v10.5] 雙層導航邏輯 (手機版防跳轉優化)
 function switchMainTab(target) {
     // A. 更新 Main Nav 狀態
     document.querySelectorAll('.main-nav .nav-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.target === target);
     });
 
-    // B. 顯示對應的 Sub Nav Group
+    // B. 隱藏所有子選單組
     document.querySelectorAll('.sub-nav-group').forEach(grp => {
         grp.style.display = 'none';
     });
     
-    // C. 根據目標決定去邊度
+    // C. 根據目標處理
     if (target === 'home') {
-        showPage('page-home'); // 直接去 Dashboard
-        document.getElementById('sub-nav-container').style.display = 'none'; // 收埋第二層
+        showPage('page-home'); // 回首頁直接跳轉
+        document.getElementById('sub-nav-container').style.display = 'none';
+        // 只有回首頁才自動關閉手機 Menu
+        document.querySelector('.page-nav-wrapper').classList.remove('mobile-active');
     } else {
-        document.getElementById('sub-nav-container').style.display = 'flex'; // 顯示第二層
+        // 其他分頁：只顯示子選單，不跳轉，不關閉
+        document.getElementById('sub-nav-container').style.display = 'flex';
         const subGroup = document.getElementById('sub-nav-' + target);
         if (subGroup) {
             subGroup.style.display = 'flex';
-            // 自動點擊該組的第一個按鈕 (Default Page)
-            const firstBtn = subGroup.querySelector('.sub-nav-btn');
-            if (firstBtn) firstBtn.click();
+            // 🔥 移除自動點擊 firstBtn.click()，讓用戶自己選
         }
     }
-    
-    // 關閉手機選單 (如果開住)
-    document.querySelector('.page-nav-wrapper').classList.remove('mobile-active');
 }
 
 // 2. 擴充 showPage (兼容新導航)
@@ -8265,6 +8265,36 @@ function getOfflineProjectMeta() {
 }
 // 為了防止舊代碼殘留，如果還有 loadOfflineData 函數，請手動刪除它，或將其內容清空
 function loadOfflineData() { return []; }
+
+// [v10.5] 通用文件夾卡片生成器 (修復 Archives 顯示錯誤)
+function buildCardHtml(item, uniqueId) {
+    const dateStr = new Date(item.last_updated).toLocaleDateString();
+    
+    // 判斷點擊動作
+    let clickAction = (item.source_type === 'legacy') ? `loadProjectById('${item.id}')` : `openAssignment('${item.id}')`;
+    
+    // 準備 Edit Modal 數據 (防止引號破壞 HTML)
+    const itemSafe = JSON.stringify(item).replace(/"/g, '&quot;');
+
+    // 返回文件夾樣式的 HTML
+    return `
+    <div class="cozy-folder" onclick="${clickAction}">
+        <!-- 編輯按鈕 -->
+        <div style="position:absolute; top:15px; right:15px;" onclick="event.stopPropagation();">
+            <button onclick="openEditModal(${itemSafe})" style="background:transparent; border:none; color:#ddd; cursor:pointer; font-size:1.1rem; padding:5px;">⚙️</button>
+        </div>
+
+        <div class="folder-meta">
+            <span class="folder-class">${escapeHtml(item.class_name)}</span>
+            <div class="folder-title">${escapeHtml(item.topic)}</div>
+        </div>
+
+        <div class="folder-stats">
+            <span>📅 ${dateStr}</span>
+            <span class="folder-progress-pill">${item.progress}% 完成</span>
+        </div>
+    </div>`;
+}
 
 // [v10.4] 渲染文件夾網格 (Cozy Folder Grid)
 function renderFocusList(items, container) {
