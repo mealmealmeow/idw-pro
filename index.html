@@ -8435,7 +8435,7 @@ async function checkUser() {
       // 刷新 Dashboard
       if (typeof loadDashboard === 'function') await loadDashboard();
       
-      // 刷新 Page 1 下拉選單 (關鍵：傳入 true 強制重讀)
+      // 🔥 刷新 Page 1 下拉選單 (關鍵：傳入 true 強制重讀)
       if (typeof loadPage1ClassDropdown === 'function') await loadPage1ClassDropdown(true);
       
       // 刷新 Page 8 班級列表 (如果在該頁面)
@@ -8915,11 +8915,14 @@ async function createNewClass() {
         // 手動解鎖，防止因為之前的 Loading 狀態卡住
         if (typeof _isClassesLoading !== 'undefined') _isClassesLoading = false;
         
-        // 刷新 Page 8
+        // A. 刷新 Page 8 列表
         await loadAllClasses(); 
         
-        // 刷新 Page 1 下拉選單 (傳入 true)
+        // B. 刷新 Page 1 下拉選單 (傳入 true 強制重讀) <-- 解決你話 Page 1 見唔到新班級嘅問題
         await loadPage1ClassDropdown(true); 
+
+        // C. 刷新 Dashboard (雖然 Dashboard 唔直接顯示班級，但會更新統計數據)
+        if (typeof loadDashboard === 'function') loadDashboard();
 
         // 自動打開管理名單
         manageStudents(data.id, data.class_name);
@@ -9003,7 +9006,8 @@ async function loadPage1ClassDropdown(forceRefresh = false) {
         return;
     }
     
-    // 🔥 修正重點：如果不是強制刷新 (forceRefresh == false)，且已有資料，才跳過
+    // 🔥 修正重點：如果唔係強制刷新 (forceRefresh == false)，而且已經有資料，先至跳過
+    // 咁樣當我哋想強制更新時，傳入 true 就可以無視呢個檢查
     if (!forceRefresh && select.options.length > 1) return; 
 
     select.innerHTML = '<option>讀取中...</option>';
@@ -9188,10 +9192,7 @@ function toggleAllSetupStudents(checked) {
     });
 }
 
-// ==========================================
-// ====== 核心橋接函數 (雙軌兼容版) ======
-// ==========================================
-// [Pro-v7.3.1-InstantCreate] 啟動批改 (修正版：立即建立雲端存檔)
+// [Pro-v7.3.1-InstantCreate] 啟動批改 (修正版：立即建立雲端存檔並刷新 Dashboard)
 async function startGradingWithSetup(actionType) {
     const modeRadio = document.querySelector('input[name="setup-mode"]:checked');
     const mode = modeRadio ? modeRadio.value : 'manual';
@@ -9231,7 +9232,6 @@ async function startGradingWithSetup(actionType) {
         window.currentClassId = select.value;
 
         // 1. 構建學生名單
-        // 為了保險，我們先去 DB 抓一次 ID 對照表
         let dbStudentsMap = {}; 
         
         try {
@@ -9282,7 +9282,6 @@ async function startGradingWithSetup(actionType) {
             if(saveBtn) saveBtn.textContent = "正在建立...";
             
             try {
-                // 使用 upsert，防止手滑按兩次導致重複
                 const { data: newAssign, error: assignError } = await supabaseClient
                     .from('assignments')
                     .upsert({
@@ -9296,16 +9295,14 @@ async function startGradingWithSetup(actionType) {
 
                 if (assignError) throw assignError;
 
-                // 成功建立，鎖定 ID
                 window.currentAssignmentId = newAssign.id;
                 console.log("✅ 專案已建立，ID:", newAssign.id);
 
-                // 立即刷新 Dashboard，確保背景資料同步
-                loadDashboard();
+                // 🔥 這裡加個 await，確保 Dashboard 真係更新完先跳轉
+                if (typeof loadDashboard === 'function') await loadDashboard();
 
             } catch (err) {
-                console.error("建立專案失敗 (但不影響批改):", err);
-                // 即使失敗也繼續，讓老師先改再說
+                console.error("建立專案失敗:", err);
             } finally {
                 if(saveBtn) saveBtn.textContent = "確定並開始";
             }
@@ -9343,13 +9340,11 @@ async function startGradingWithSetup(actionType) {
         window.currentAssignmentId = null;
     }
 
-    // 同步 UI 到 Page 2
     const p2Names = document.getElementById('student-names');
     if(p2Names) p2Names.value = rawStudentList;
     
     if(document.getElementById('student-class')) document.getElementById('student-class').value = sourceClass;
 
-    // 渲染
     if (typeof renderDropdownFromMemory === 'function') {
         renderDropdownFromMemory();
     } else {
