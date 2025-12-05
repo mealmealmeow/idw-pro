@@ -3442,38 +3442,43 @@ scroll-margin-top: 180px; /* 手機版 Header 疊起來比較高 */
 <!-- [Pro-v10.0] 登入牆 (The Login Gate) -->
 <!-- 注意：移除 pop-overlay class，改用專屬 ID 以免被通用點擊關閉邏輯影響 -->
 <div id="login-gate-overlay" class="pop-overlay active" style="z-index: 2147483647; background: #455a54;"> 
-  <div class="pop-modal" style="max-width: 480px; padding: 40px; border-radius: 24px; box-shadow: 0 30px 60px rgba(0,0,0,0.5);">
+  <div class="pop-modal gate-card" style="padding: 30px 30px 40px 30px;">
     
-    <!-- ☕️ Logo & Title -->
-    <div style="font-size: 3rem; margin-bottom: 10px;">☕</div>
-    <h2 style="color: #455a54; margin: 0 0 10px 0; font-size: 1.8rem; letter-spacing: 2px;">我不想努力了 <span style="font-weight:300;">Pro</span></h2>
-    <p style="color: #888; font-size: 0.95rem; margin-bottom: 30px; letter-spacing: 1px;">願您的週末，有一杯熱咖啡的時間。</p>
+    <div style="font-size: 2.5rem; margin-bottom: 5px;">☕️</div>
+    <h2 style="color: #3d5c4f; font-size: 1.5rem; margin: 5px 0 10px 0;">我不想努力了 Pro</h2>
+    <p style="color: #666; font-size: 0.9rem; margin-bottom: 20px;">願您的週末，有一杯熱咖啡的時間。</p>
     
-    <!-- 📧 輸入區 -->
-    <div style="text-align: left; margin-bottom: 5px; font-size: 0.9rem; color: #666; font-weight: bold;">電郵地址 (Email)</div>
-    <input type="text" id="login-email" class="pop-input" placeholder="name@school.edu.hk" autocomplete="email" style="margin-bottom: 20px;">
-    
-    <div style="text-align: left; margin-bottom: 5px; font-size: 0.9rem; color: #666; font-weight: bold;">密碼 (Password)</div>
-    <input type="password" id="login-password" class="pop-input" placeholder="••••••••" autocomplete="current-password" style="margin-bottom: 10px;">
+    <div class="gate-input-group">
+        <label style="display:block; color:#888; font-size:0.85rem; margin-bottom:5px; text-align: left;">電郵地址 (Email)</label>
+        <input type="text" id="gate-email" class="pop-input" style="margin-bottom:15px; width: 100%;">
+        
+        <label style="display:block; color:#888; font-size:0.85rem; margin-bottom:5px; text-align: left;">密碼 (Password)</label>
+        <input type="password" id="gate-password" class="pop-input" style="margin-bottom:5px; width: 100%;">
+        
+        <div style="text-align: right; margin-bottom: 25px;">
+             <a href="javascript:void(0)" onclick="openForgotModal()" style="color:#999; font-size: 0.8rem; text-decoration:underline;">忘記密碼？</a>
+        </div>
+        
+        <button class="pop-btn pop-btn-confirm" 
+                style="width:100%; max-width:100%; margin: 0 auto; display: block; text-align: center; padding:12px; font-size:1.1rem; box-shadow: 0 10px 20px rgba(242, 192, 55, 0.3);" 
+                onclick="handleGateAuth()">
+             進入你的愜意工作咖啡廳 🥐
+        </button>
 
-    <!-- 忘記密碼 -->
-    <div style="text-align: right; margin-bottom: 30px;">
-      <a href="javascript:void(0)" onclick="handleForgotPassword()" style="color: #999; font-size: 0.85rem; text-decoration: underline;">忘記密碼 ?</a>
+        <div style="margin-top: 20px; text-align: center;">
+            <a href="https://forms.gle/你的GoogleFormID" target="_blank" 
+               style="color: #5A8F7B; font-weight: bold; text-decoration: none; border-bottom: 1px dashed #5A8F7B; font-size: 0.9rem; transition: all 0.2s;" 
+               onmouseover="this.style.color='#3d5c4f'; this.style.borderBottomStyle='solid'" 
+               onmouseout="this.style.color='#5A8F7B'; this.style.borderBottomStyle='dashed'">
+                尚未持有通行證？申請成為咖啡廳常客🤍
+            </a>
+        </div>
     </div>
 
-    <!-- 🚀 登入按鈕 (唯一行動) -->
-    <button class="pop-btn" style="width: 100%; max-width: none; background: #F2C037; color: #fff; font-size: 1.1rem; padding: 14px; box-shadow: 0 10px 20px rgba(242, 192, 55, 0.3);" onclick="handlePasswordAuth('login')">
-        進入你的寫意工作咖啡廳 🥐
-    </button>
-
-    <!-- 底部資訊 -->
-    <div style="margin-top: 30px; font-size: 0.85rem; color: #aaa; line-height: 1.6;">
-        <div style="margin-bottom: 10px; border-bottom: 1px dashed #eee; padding-bottom: 10px;">
-            尚未持有通行證？<a href="#" style="color:#5A8F7B; text-decoration: none; pointer-events: none;">申請成為咖啡廳常客 🤍</a>
-        </div>
-        <div>
-            只需單次批改？ <a href="https://i-dun-work-anymore.vercel.app/" target="_blank" style="color:#888; font-weight: bold;">🌱 前往輕量版 (Lite) 試用</a>
-        </div>
+    <div style="margin-top: 25px; font-size: 0.85rem; background: rgba(90,143,123,0.08); padding: 10px 15px; border-radius: 99px;">
+        <a href="http://idw-lite.vercel.app" target="_blank" style="color:#555; text-decoration:none;">
+            只需單次批改？ <span style="color:#8d775f; font-weight:bold;">🌱 前往輕量版 (Lite) 試用</span>
+        </a>
     </div>
 
   </div>
