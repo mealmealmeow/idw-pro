@@ -7710,13 +7710,15 @@ function restoreFromLocalBackup() {
 let isDashboardRendering = false; // 加入鎖定旗標
 
 // [Pro-v8.6-Safe-Dashboard] 安全讀取版 (分開查詢，在前端組裝，避免 SQL 卡死)
+// [Pro-v9.9.9] Dashboard 讀取 (無鎖版，強制讀取)
 async function loadDashboard() {
     const focusList = document.getElementById('focus-task-list');
     const classContainer = document.getElementById('class-accordion-container');
+    
+    // 如果連容器都搵唔到 (例如未 Load HTML)，就走
     if(!focusList) return; 
 
-    // 1. 顯示讀取中
-    focusList.style.display = 'block';
+    // 1. 顯示讀取中 (增加用戶反饋)
     focusList.innerHTML = '<div class="dashboard-loading"><div class="spinner"></div> 正在同步雲端數據...</div>';
     if(classContainer) classContainer.innerHTML = '';
 
@@ -7726,12 +7728,13 @@ async function loadDashboard() {
     }
 
     try {
-        console.log("📊 開始讀取 Dashboard (v8.6 Safe Mode)...");
+        console.log("📊 正在強制刷新 Dashboard...");
 
-        // --- Step A: 讀取所有作業 (不關聯任何表) ---
+        // --- Step A: 讀取所有作業 ---
+        // 唔好用 Cache，直接問 DB 攞最新
         const { data: assignments, error: assignError } = await supabaseClient
             .from('assignments')
-            .select('id, title, created_at, class_id') // 只讀最基本的
+            .select('id, title, created_at, class_id') 
             .eq('user_id', currentUser.id)
             .order('created_at', { ascending: false });
 
@@ -7742,7 +7745,7 @@ async function loadDashboard() {
             return;
         }
 
-        // --- Step B: 讀取所有班級 (建立 ID 對照表) ---
+        // --- Step B: 讀取所有班級 ---
         const { data: classesData } = await supabaseClient
             .from('classes')
             .select('id, class_name, academic_year')
@@ -7753,11 +7756,9 @@ async function loadDashboard() {
             classesData.forEach(c => { classMap[c.id] = c; });
         }
 
-        // --- Step C: 統計已批改數量 (Results) ---
-        // 找出相關的 assignment IDs
+        // --- Step C: 統計已批改數量 ---
         const assignmentIds = assignments.map(a => a.id);
         
-        // 查詢 results 表，只拿 assignment_id 來計數
         const { data: resultsData } = await supabaseClient
             .from('results')
             .select('assignment_id')
@@ -7770,10 +7771,8 @@ async function loadDashboard() {
             });
         }
 
-        // --- Step D: 統計班級總人數 (Students) ---
-        // 找出相關的 class IDs
+        // --- Step D: 統計班級總人數 ---
         const uniqueClassIds = [...new Set(assignments.map(a => a.class_id))];
-        
         const { data: studentsData } = await supabaseClient
             .from('students')
             .select('class_id')
@@ -7786,16 +7785,11 @@ async function loadDashboard() {
             });
         }
 
-        // --- Step E: 數據組裝 (前端 Merge) ---
+        // --- Step E: 數據組裝 ---
         const processedProjects = assignments.map(a => {
-            // 1. 找班級資料 (找不到就顯示未知，唔會 error)
             const cls = classMap[a.class_id] || { class_name: '(未知/已刪)', academic_year: '' };
-            
-            // 2. 找計數
             const graded = gradedCounts[a.id] || 0;
             const total = classStudentCounts[a.class_id] || 0;
-            
-            // 3. 計算進度
             const progress = total > 0 ? Math.round((graded / total) * 100) : 0;
             const isCompleted = (total > 0 && graded >= total);
 
@@ -7816,10 +7810,12 @@ async function loadDashboard() {
         });
 
         // --- Step F: 渲染 ---
+        // Focus List: 顯示未完成的 (最新的在前面)
         const focusItems = processedProjects.filter(p => !p.isCompleted).slice(0, 5);
         focusList.innerHTML = ''; 
         renderFocusList(focusItems, focusList);
 
+        // Archives: 按學年分組
         const grouped = groupByYearAndClass(processedProjects);
         if(classContainer) {
             classContainer.innerHTML = ''; 
@@ -7827,7 +7823,7 @@ async function loadDashboard() {
         }
         
         updateWelcomeMessage();
-        console.log("✅ Dashboard 載入完成！");
+        console.log("✅ Dashboard 強制刷新完成！");
 
     } catch (error) {
         console.error("Dashboard Load Error:", error);
@@ -9202,7 +9198,7 @@ function toggleAllSetupStudents(checked) {
     });
 }
 
-// [Pro-v7.3.1-InstantCreate] 啟動批改 (修正版：立即建立雲端存檔並刷新 Dashboard)
+// [Pro-v9.9.5] 啟動批改 (雙重刷新 Dashboard 版)
 async function startGradingWithSetup(actionType) {
     const modeRadio = document.querySelector('input[name="setup-mode"]:checked');
     const mode = modeRadio ? modeRadio.value : 'manual';
@@ -9241,7 +9237,7 @@ async function startGradingWithSetup(actionType) {
         window.currentProjectType = 'cloud';
         window.currentClassId = select.value;
 
-        // 1. 構建學生名單
+        // 1. 構建學生名單 ID 對照表
         let dbStudentsMap = {}; 
         
         try {
@@ -9292,6 +9288,7 @@ async function startGradingWithSetup(actionType) {
             if(saveBtn) saveBtn.textContent = "正在建立...";
             
             try {
+                // 使用 upsert，防止手滑按兩次導致重複
                 const { data: newAssign, error: assignError } = await supabaseClient
                     .from('assignments')
                     .upsert({
@@ -9305,14 +9302,18 @@ async function startGradingWithSetup(actionType) {
 
                 if (assignError) throw assignError;
 
+                // 成功建立，鎖定 ID
                 window.currentAssignmentId = newAssign.id;
                 console.log("✅ 專案已建立，ID:", newAssign.id);
 
-                // 🔥 這裡加個 await，確保 Dashboard 真係更新完先跳轉
-                if (typeof loadDashboard === 'function') await loadDashboard();
+                // 🔥 [重點] 這裡做雙重刷新，確保 Homepage 100% 更新
+                if (typeof loadDashboard === 'function') {
+                    await loadDashboard(); // 第一次立即刷新
+                    setTimeout(() => loadDashboard(), 800); // 0.8秒後再刷新一次 (防止 DB 延遲)
+                }
 
             } catch (err) {
-                console.error("建立專案失敗:", err);
+                console.error("建立專案失敗 (但不影響批改):", err);
             } finally {
                 if(saveBtn) saveBtn.textContent = "確定並開始";
             }
@@ -9350,6 +9351,7 @@ async function startGradingWithSetup(actionType) {
         window.currentAssignmentId = null;
     }
 
+    // 同步 UI 到 Page 2
     const p2Names = document.getElementById('student-names');
     if(p2Names) p2Names.value = rawStudentList;
     
