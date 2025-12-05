@@ -3290,56 +3290,50 @@ scroll-margin-top: 180px; /* 手機版 Header 疊起來比較高 */
 </div>
 
 
-<!-- ================================================= -->
-<!-- [Pro-v9.7] 班級綜合報告彈窗 (Class Report Modal) -->
-<!-- ================================================= -->
+<!-- [Pro-v9.7.1] 班級綜合報告彈窗 (UI 優化版) -->
 <div id="pop-class-report-modal" class="pop-overlay">
   <div class="pop-modal pop-modal-large">
     <h3 id="report-class-title">班級綜合報告</h3>
-    <p class="pop-desc">請勾選需要合併的作業，並選擇匯出模式。</p>
+    <p class="pop-desc" style="margin-bottom: 10px;">請勾選作業，並選擇匯出模式。</p>
     
-    <!-- 隱藏欄位：存 Class ID -->
     <input type="hidden" id="report-class-id">
 
-    <!-- A. 作業列表區 (JS 會動態填入 Checkbox) -->
-    <div class="pop-scroll-area" id="report-project-list">
+    <!-- 1. 作業列表區 (霸佔主要空間) -->
+    <!-- min-height: 300px 確保列表夠長，睇得舒服 -->
+    <div class="pop-scroll-area" id="report-project-list" style="flex-grow: 1; min-height: 300px; margin-top:0;">
       <div style="text-align:center; color:#999; padding:20px;">
-        <div class="spinner"></div> 正在讀取作業列表...
+        <div class="spinner"></div> 讀取中...
       </div>
     </div>
 
-    <!-- B. 匯出模式選擇區 (Cozy Card Style) -->
-    <div style="background:#fffcf5; padding:20px; border-radius:12px; margin-bottom:20px; text-align:left; border:1px solid #e1d8c8; flex-shrink: 0; box-shadow: 0 4px 6px rgba(0,0,0,0.02);">
-        <div style="font-weight:bold; color:#5A8F7B; margin-bottom:12px; border-bottom:1px dashed #ccc; padding-bottom:5px;">
-            📊 請選擇報告類型：
+    <!-- 2. 匯出模式選擇區 (緊湊版) -->
+    <div style="flex-shrink: 0; padding-top: 15px; border-top: 1px solid #eee;">
+        <div style="font-weight:bold; color:#5A8F7B; margin-bottom:8px; text-align: left;">
+            📊 報告類型：
         </div>
         
-        <!-- 選項 1: 考試模式 -->
-        <label style="display:flex; align-items:flex-start; gap:12px; margin-bottom:15px; cursor:pointer; padding:8px; border-radius:8px; transition:background 0.2s;" onmouseover="this.style.background='rgba(90,143,123,0.05)'" onmouseout="this.style.background='transparent'">
-            <input type="radio" name="report-mode" value="exam" checked style="accent-color:#5A8F7B; margin-top:4px; transform:scale(1.2);">
-            <div>
-                <div style="font-weight:bold; color:#333;">📄 合併為單次考試 (Exam Mode)</div>
-                <div style="font-size:0.9rem; color:#666; margin-top:4px; line-height:1.4;">
-                    將勾選的作業視為<b>同一場考試的不同分題</b> (例如 Q1, Q2)。<br>
-                    <span style="color:#c86a5a;">系統會自動合併分數，每位學生只會有一個總分。</span>
+        <div style="display:flex; gap: 20px; flex-wrap: wrap;">
+            <!-- 選項 A -->
+            <label style="flex:1; display:flex; align-items:center; gap:10px; padding:12px; border:1px solid #ddd; border-radius:8px; cursor:pointer; background:#fdfbf7;">
+                <input type="radio" name="report-mode" value="exam" checked style="accent-color:#5A8F7B; transform:scale(1.2);">
+                <div>
+                    <div style="font-weight:bold; color:#333;">📄 合併單次考試</div>
+                    <div style="font-size:0.8rem; color:#888;">(分題合併為一總分)</div>
                 </div>
-            </div>
-        </label>
+            </label>
 
-        <!-- 選項 2: 趨勢模式 -->
-        <label style="display:flex; align-items:flex-start; gap:12px; cursor:pointer; padding:8px; border-radius:8px; transition:background 0.2s;" onmouseover="this.style.background='rgba(90,143,123,0.05)'" onmouseout="this.style.background='transparent'">
-            <input type="radio" name="report-mode" value="trend" style="accent-color:#5A8F7B; margin-top:4px; transform:scale(1.2);">
-            <div>
-                <div style="font-weight:bold; color:#333;">📈 歷程趨勢分析 (Trend Mode)</div>
-                <div style="font-size:0.9rem; color:#666; margin-top:4px; line-height:1.4;">
-                    將勾選的作業視為<b>不同時間的功課</b>。<br>
-                    <span style="color:#5A8F7B;">系統會並列顯示各次分數，並計算平均分及進步趨勢。</span>
+            <!-- 選項 B -->
+            <label style="flex:1; display:flex; align-items:center; gap:10px; padding:12px; border:1px solid #ddd; border-radius:8px; cursor:pointer; background:#fdfbf7;">
+                <input type="radio" name="report-mode" value="trend" style="accent-color:#5A8F7B; transform:scale(1.2);">
+                <div>
+                    <div style="font-weight:bold; color:#333;">📈 歷程趨勢分析</div>
+                    <div style="font-size:0.8rem; color:#888;">(多次分數並列走勢)</div>
                 </div>
-            </div>
-        </label>
+            </label>
+        </div>
     </div>
 
-    <!-- C. 底部按鈕 -->
+    <!-- 3. 底部按鈕 -->
     <div class="pop-footer">
       <button class="pop-btn pop-btn-cancel" onclick="document.getElementById('pop-class-report-modal').classList.remove('active')">取消</button>
       <button class="pop-btn pop-btn-confirm" onclick="generateCombinedExcel()">📥 生成 Excel</button>
@@ -9564,18 +9558,161 @@ async function generateCombinedExcel() {
     }
 }
 
-// 3. Excel 核心引擎 (暫時用 Alert 測試 Step 1 邏輯)
+// [Pro-v9.8] Excel 超級引擎 (Class Hub Engine)
 async function processExcelGeneration(classId, className, projectIds, mode) {
-    // 這裡只是測試介面是否接通，Step 2 會寫真的 Excel 代碼
-    const modeName = mode === 'exam' ? '📄 考試分題合併' : '📈 歷程趨勢分析';
-    
-    // 模擬延遲，讓你感覺到 "Processing"
-    await new Promise(r => setTimeout(r, 800));
-    
-    if(typeof showToast === 'function') showToast("邏輯接通！準備進入 Excel 生成階段...", "success");
-    
-    alert(`【測試成功】\n\n班級：${className}\n模式：${modeName}\n已選作業數：${projectIds.length}\n\n(介面與邏輯已連接，可以開始寫 Excel 引擎了！)`);
+    // 1. 準備數據 (一次過撈晒全班 + 相關成績)
+    if(typeof showToast === 'function') showToast("正在下載數據...", "info");
+
+    // A. 撈學生名單
+    const { data: students, error: stuErr } = await supabaseClient
+        .from('students')
+        .select('*')
+        .eq('class_id', classId)
+        .order('student_number', { ascending: true });
+    if (stuErr) throw stuErr;
+
+    // B. 撈選定的作業資料 (標題、日期)
+    const { data: assignments, error: assErr } = await supabaseClient
+        .from('assignments')
+        .select('*')
+        .in('id', projectIds)
+        .order('created_at', { ascending: true }); // 按時間排序
+    if (assErr) throw assErr;
+
+    // C. 撈所有成績 (Results)
+    const { data: results, error: resErr } = await supabaseClient
+        .from('results')
+        .select('*')
+        .in('assignment_id', projectIds);
+    if (resErr) throw resErr;
+
+    // 2. 數據組裝 (Map Student -> Results)
+    const studentMap = {};
+    students.forEach(s => {
+        studentMap[s.id] = {
+            info: s,
+            results: {} // assignment_id -> resultObj
+        };
+    });
+    results.forEach(r => {
+        if (studentMap[r.student_id]) {
+            studentMap[r.student_id].results[r.assignment_id] = r;
+        }
+    });
+
+    // 3. 開始建立 Excel
+    if (!checkXlsxLibrary()) return;
+    const wb = XLSX.utils.book_new();
+
+    // ==========================================
+    // Sheet 1: 總表 (Master Sheet) - 根據模式分流
+    // ==========================================
+    let masterData = [];
+
+    if (mode === 'exam') {
+        // --- 模式 A: 考試單次合併 (Exam Mode) ---
+        // 邏輯：假設學生只會答其中一題。如果答多題，取最高分或顯示異常。
+        // 欄位：學號, 姓名, 選答題目, 總分, 內容, 表達... (來自該題)
+        
+        masterData = students.map(s => {
+            const sResults = studentMap[s.id].results;
+            // 找出該生有分數的 Assignment
+            const doneAssignIds = Object.keys(sResults);
+            
+            let row = { '學號': s.student_number, '姓名': s.name };
+            
+            if (doneAssignIds.length === 0) {
+                row['狀態'] = '缺席 / 未交';
+                row['總分'] = '';
+            } else {
+                // 取第一個找到的成績 (通常考試只做一份)
+                const targetId = doneAssignIds[0]; 
+                const targetAssign = assignments.find(a => a.id === targetId);
+                const r = sResults[targetId];
+                
+                row['選答題目'] = targetAssign ? targetAssign.title : '未知';
+                row['總分'] = r.total_score;
+                row['內容'] = r.content_score;
+                row['表達'] = r.expression_score;
+                row['結構'] = r.structure_score;
+                row['標點'] = r.punctuation_score;
+                row['錯別字'] = r.typo_score;
+                
+                if (doneAssignIds.length > 1) {
+                    row['備註'] = '⚠️ 系統偵測到多於一份作答紀錄';
+                }
+            }
+            return row;
+        });
+
+    } else {
+        // --- 模式 B: 歷程趨勢 (Trend Mode) ---
+        // 邏輯：列出所有作業分數，並計算平均
+        // 欄位：學號, 姓名, 作業1, 作業2, ..., 平均分
+        
+        masterData = students.map(s => {
+            let row = { '學號': s.student_number, '姓名': s.name };
+            let totalScore = 0;
+            let count = 0;
+
+            assignments.forEach(a => {
+                const r = studentMap[s.id].results[a.id];
+                if (r) {
+                    row[a.title] = r.total_score;
+                    totalScore += (parseFloat(r.total_score) || 0);
+                    count++;
+                } else {
+                    row[a.title] = '--';
+                }
+            });
+
+            row['平均分'] = count > 0 ? (totalScore / count).toFixed(1) : '';
+            return row;
+        });
+    }
+
+    // 寫入 Sheet 1
+    const wsMaster = XLSX.utils.json_to_sheet(masterData);
+    XLSX.utils.book_append_sheet(wb, wsMaster, "總表概覽");
+
+    // ==========================================
+    // Sheet 2~N: 各作業詳細分頁 (Detailed Sheets)
+    // ==========================================
+    assignments.forEach(a => {
+        // 只篩選有做呢份功課嘅學生
+        const rows = [];
+        students.forEach(s => {
+            const r = studentMap[s.id].results[a.id];
+            if (r) {
+                rows.push({
+                    '學號': s.student_number,
+                    '姓名': s.name,
+                    '總分': r.total_score,
+                    '內容': r.content_score,
+                    '表達': r.expression_score,
+                    '結構': r.structure_score,
+                    '標點': r.punctuation_score,
+                    '錯別字': r.typo_score,
+                    '評語 (學生版)': r.comment_data?.pureStudentComment || '',
+                    '完整評語': r.comment_data?.pureFullComment || ''
+                });
+            }
+        });
+
+        if (rows.length > 0) {
+            // Sheet Name 最多 31 字，要截短
+            const safeSheetName = a.title.replace(/[\\/?*\[\]]/g, '').substring(0, 30);
+            const wsDetail = XLSX.utils.json_to_sheet(rows);
+            XLSX.utils.book_append_sheet(wb, wsDetail, safeSheetName);
+        }
+    });
+
+    // 4. 下載檔案
+    const modeLabel = mode === 'exam' ? '考試分析' : '歷程分析';
+    const filename = `${className}_${modeLabel}_${getDateTimeString()}.xlsx`;
+    XLSX.writeFile(wb, filename);
 }
+
 </script> <!-- 呢個係原本全個檔案唯一的結尾，保留佢 -->
 
 
