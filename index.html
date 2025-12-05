@@ -7761,7 +7761,7 @@ async function openAssignment(assignmentId) {
     if (assignmentId === 'local_backup') { restoreFromLocalBackup(); return; }
     if (!currentUser) { showToast("請先登入以開啟此雲端專案", "warning"); return; }
     
-    showToast("正在載入雲端作業...", "info");
+   
     
     try {
         // 1. 讀取 Assignment (包含 settings)
