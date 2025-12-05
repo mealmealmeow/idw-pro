@@ -4775,32 +4775,123 @@ function concretizeExample(id, rawExample) {
   return lines.slice(0, 2);
 }
 
-// [Pro-v9.9.3] 學生姓名解析器 (源頭強力清潔版)
+// ============================================================
+// [Pro-v9.9.4] 學生名單與狀態渲染系統 (嚴格狀態版)
+// ============================================================
+
+// 1. 姓名解析器 (負責清潔)
 function parseStudentName(rawName) {
     if (!rawName) return { number: null, name: '', originalName: '' };
 
-    // 🔥 1. 第一步：暴力移除所有狀態 Icon (無論在頭定尾)
-    // 包含：綠剔、白波、磁碟、各種空格
+    // 暴力清洗：移除所有已知 Icon 和前後空格
     let cleanRaw = rawName.replace(/[✅⚪💾]/g, '').trim();
 
-    // 2. 第二步：標準解析 (分離學號與姓名)
-    // 支援格式： "01 陳大文", "1. 陳大文", "01-陳大文"
+    // 解析學號
     const match = cleanRaw.match(/^(\d+)[-\s._]*(.*)$/);
-    
     if (match) {
         return {
             number: parseInt(match[1], 10),
-            name: match[2].trim(), // 這是乾淨的姓名
-            originalName: cleanRaw // 這是去除了 Icon 的原始字串 (用於對照)
+            name: match[2].trim(),
+            originalName: cleanRaw
         };
     }
-    
-    // 只有姓名，沒有學號
     return {
         number: null,
         name: cleanRaw,
         originalName: cleanRaw
     };
+}
+
+// 2. 下拉選單渲染器 (負責上色)
+function updateStudentDropdown() {
+  const namesText = document.getElementById('student-names').value;
+  const studentSelect = document.getElementById('student-select');
+  
+  // A. 解析與排序
+  let parsedNames = namesText.split('\n')
+      .map(name => parseStudentName(name))
+      .filter(p => p.name);
+
+  sortStudents(parsedNames);
+
+  // B. 同步全域變數 (防止指針丟失)
+  // 這裡做一個防禦性編程：如果 oldRecords 裡面找不到，就當新學生處理
+  const oldRecords = [...allStudentRecords];
+  allStudentRecords = parsedNames.map(p => {
+    const existing = oldRecords.find(r => r.originalName === p.originalName);
+    // 如果有舊紀錄就用舊的，否則初始化為 null (新學生)
+    return existing || { ...p, data: null, dbId: null };
+  });
+
+  // C. 渲染 HTML 選項
+  const currentSelected = studentSelect.value;
+  studentSelect.innerHTML = parsedNames.length === 0 ? '<option value="">請先在上方輸入學生名單</option>' : '';
+  
+  let newSelectionExists = false;
+
+  parsedNames.forEach(p => {
+    // 從最新的 allStudentRecords 拿狀態
+    const record = allStudentRecords.find(r => r.originalName === p.originalName);
+    const option = document.createElement('option');
+    option.value = p.originalName;
+    
+    // --- 🔥 狀態判斷邏輯 (嚴格版) ---
+    let icon = '⚪'; // 預設：白波
+    let statusColor = ''; 
+    let isBold = false;
+
+    // 只有當 record.data 真的存在，且有內容時，才改狀態
+    if (record && record.data) {
+        // 檢查是否有實質內容 (分數或評語)
+        const hasScore = record.data.scores && (record.data.scores.total !== '' && record.data.scores.total !== undefined);
+        const hasComment = record.data.pureStudentComment && record.data.pureStudentComment.trim() !== '';
+        
+        if (hasScore || hasComment) {
+            if (record.dbId) {
+                icon = '✅'; 
+                statusColor = '#2e7d32'; // 綠色
+                isBold = true;
+            } else {
+                icon = '💾';
+                statusColor = '#f57f17'; // 橙色
+            }
+        }
+    }
+    // -----------------------------
+
+    // 顯示名稱 (補零)
+    let displayName = p.name;
+    if (p.number !== null) {
+        const paddedNum = p.number.toString().padStart(2, '0');
+        displayName = `${paddedNum} ${p.name}`;
+    }
+    
+    // 組合
+    option.textContent = `${icon} ${displayName}`;
+    
+    // 樣式應用
+    if (statusColor) option.style.color = statusColor;
+    if (isBold) option.style.fontWeight = 'bold';
+    
+    studentSelect.appendChild(option);
+    
+    if (p.originalName === currentSelected) {
+        newSelectionExists = true;
+    }
+  });
+
+  // D. 保持選取狀態
+  if (newSelectionExists) {
+      studentSelect.value = currentSelected;
+  } else if (studentSelect.options.length > 0) {
+      studentSelect.selectedIndex = 0;
+      loadStudentData(studentSelect.value);
+  }
+  
+  // E. 順手更新其他 UI
+  updateAllOutputs();
+  renderStudentOverviewTable();
+  updateHeaderInfo();
 }
 
 // [Pro-v9.9.3] 更新學生選單 (簡化版 - 依賴源頭清潔)
