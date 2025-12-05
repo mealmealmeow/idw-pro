@@ -551,11 +551,22 @@
 
   /* ===== section 區塊 ===== */
 
-  .section-box { 
-    padding: 2rem; 
-    border-bottom: 1px solid rgba(225,216,200,0.6); 
-    background-color: rgba(252,250,246,0.88);
-  }
+/* ===== section 區塊 (加入 scroll-margin-top) ===== */
+.section-box {
+padding: 2rem;
+border-bottom: 1px solid rgba(225,216,200,0.6);
+background-color: rgba(252,250,246,0.88);
+
+/* 🔥 核心修正：告訴瀏覽器 Scroll 到這裡時，要預留幾多頂部空間 */
+scroll-margin-top: 160px;
+}
+
+/* 手機版 Header 可能會變形，這裡預留更多空間 */
+@media (max-width: 768px) {
+.section-box {
+scroll-margin-top: 180px; /* 手機版 Header 疊起來比較高 */
+}
+}
 
   .section-box:nth-child(odd) {
     background: linear-gradient(135deg, rgba(255,255,255,0.9), rgba(251,246,238,0.9));
@@ -3861,22 +3872,20 @@ function loadFontSize() { try { const savedScale = localStorage.getItem(FONT_SCA
 
 /* ---------------- 頁面切換與通用功能 ---------------- */
 
+// [Pro-v9.5.2] Scroll Fix: 使用原生 scrollIntoView 配合 CSS scroll-margin-top
 function scrollToSection(event, targetId) {
-  event.preventDefault();
-  const targetElement = document.getElementById(targetId);
-  if (!targetElement) return;
+if (event) event.preventDefault();
+const targetElement = document.getElementById(targetId);
+if (!targetElement) return;
 
-  const stickyBar = document.querySelector('.sticky-top-bar');
-  const stickyBarHeight = stickyBar ? stickyBar.offsetHeight : 0;
-  
-  const elementPosition = targetElement.getBoundingClientRect().top;
-  const offsetPosition = elementPosition + window.pageYOffset - stickyBarHeight - 15; 
-
-  window.scrollTo({
-      top: offsetPosition,
-      behavior: 'smooth'
-  });
+// 直接叫瀏覽器捲動過去，它會自動讀取 CSS 的 scroll-margin-top
+targetElement.scrollIntoView({
+behavior: 'smooth',
+block: 'start'
+});
 }
+
+  
 
 // [Pro-v7.3.2-AutoRefresh] 修復：每次切換回首頁時，強制刷新 Dashboard
 function showPage(pageId, focusElementId = null) {
