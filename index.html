@@ -80,26 +80,26 @@
 }
 
 /* ========================================= */
-/* === [Pro-v9.6] 彈窗系統 (終極穩定版) === */
+/* === [Pro-v9.5 Reboot] 彈窗系統 (自然流) === */
 /* ========================================= */
 
-/* 1. 底紙 (Overlay) - 負責捲動與安全邊距 */
+/* 1. 底紙 (Overlay) - 滾動容器 */
 .pop-overlay {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
   width: 100%; height: 100%;
   
-  background: rgba(47, 79, 79, 0.75); /* Cozy Green */
-  backdrop-filter: blur(8px);
+  /* 深綠色背景 */
+  background: rgba(47, 79, 79, 0.75); 
+  backdrop-filter: blur(5px);
   z-index: 2147483647;
   
-  /* 🔥 讓 Overlay 變成可捲動容器 */
+  /* 🔥 關鍵：啟動原生捲動 */
   overflow-y: auto; 
-  display: block; /* 使用 Block 佈局，避免 Flex 衝突 */
+  display: block; /* 確保它是 Block Level */
   
-  /* 上下預留足夠空間，確保 Scroll 到最底一定見到按鈕 */
-  padding: 50px 20px 150px 20px; 
-  box-sizing: border-box;
+  /* 確保內容不會貼邊 */
+  padding: 0 15px; 
 }
 
 .pop-overlay.active {
@@ -107,107 +107,93 @@
   pointer-events: auto;
 }
 
-/* 2. 彈窗本體 (Base Modal) - 小窗基礎 */
+/* 2. 彈窗本體 (Base Modal) - 卡片 */
 .pop-modal {
   background: #ffffff;
-  border-radius: 20px;
-  box-shadow: 0 25px 60px rgba(0,0,0,0.3);
+  border-radius: 16px;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.3);
   padding: 30px;
   
-  width: 90%;
-  max-width: 440px; /* 預設小窗寬度 */
+  /* 尺寸與定位 */
+  width: 100%;
+  max-width: 460px; /* 小窗預設 */
   
-  /* 定位：在 Block 容器中水平置中 */
-  margin: 0 auto; 
+  /* 🔥 核心：用 Margin 來置中，上下留白 */
+  margin: 60px auto 100px auto; 
+  
   position: relative;
-  
   text-align: center;
   color: #4a4a4a;
-  transform: scale(0.95);
-  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
   
-  /* 確保內容撐開 */
-  height: auto;
-}
-
-/* 3. 特大彈窗 (Max Pop) - 覆蓋基礎設定 */
-.pop-modal.pop-modal-large {
-  width: 95%;
-  max-width: 900px;
-  
-  /* 🔥 關鍵：只設定 min-height，讓它自然長高 */
-  min-height: 400px;
-  height: auto !important; 
+  /* 移除所有高度限制，讓它自然生長 */
+  height: auto !important;
+  min-height: auto !important;
   max-height: none !important;
   
-  display: flex;
-  flex-direction: column;
+  /* 移除 Transform 動畫，避免字體模糊或定位錯亂 */
+  transform: none !important; 
 }
 
-/* 顯示時的動畫 */
-.pop-overlay.active .pop-modal {
-  transform: scale(1);
+/* 3. 特大彈窗 (Max Pop) */
+.pop-modal.pop-modal-large {
+  max-width: 900px; /* 變闊 */
+  text-align: left; /* 內容靠左 */
 }
 
 /* 4. 內部元件 */
 .pop-icon {
   font-size: 36px;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
   display: block;
+  text-align: center;
 }
 
 .pop-modal h3 {
-  margin: 0 0 10px 0;
-  font-size: 1.4rem;
+  margin: 0 0 15px 0;
+  font-size: 1.5rem;
   color: #333;
   font-weight: 700;
+  text-align: center;
 }
 
 .pop-desc {
   font-size: 0.95rem;
   color: #666;
-  margin-bottom: 15px;
-  line-height: 1.5;
+  margin-bottom: 20px;
+  line-height: 1.6;
+  text-align: center;
 }
 
-/* 5. 列表捲動區 (List Area) */
+/* 5. 列表區 (不再負責捲動，只負責裝飾) */
 .pop-scroll-area {
-  text-align: left;
   background: #fdfbf7;
   border-radius: 12px;
   padding: 15px;
-  
-  /* 給名單一個合理的高度上限 (螢幕一半)，名單內自己捲動 */
-  /* 如果螢幕太細，外面的 Overlay 也可以捲動 */
-  height: auto;
-  max-height: 50vh; 
-  overflow-y: auto;
-  
-  margin: 15px 0;
   border: 1px solid #e1d8c8;
-  box-shadow: inset 0 2px 6px rgba(0,0,0,0.03);
+  margin: 15px 0;
+  
+  /* 移除所有 Scroll 設定 */
+  overflow: visible;
+  height: auto;
 }
 
-/* 6. 輸入框修復 */
+/* 6. 輸入框樣式 */
 .pop-input, 
 .input-area-wrapper textarea {
   width: 100%;
   box-sizing: border-box;
-  padding: 12px 15px;
+  padding: 12px;
   border: 2px solid #e0e0e0;
-  border-radius: 12px;
+  border-radius: 8px;
   font-size: 16px;
   outline: none;
   font-family: inherit;
   margin-bottom: 10px;
-  background-color: #fff;
-  
-  height: auto; 
-  min-height: 50px; 
+  background: #fff;
 }
 
 .input-area-wrapper textarea {
-  min-height: 120px;
+  min-height: 100px; /* 確保輸入框夠高 */
   resize: vertical;
 }
 
@@ -217,12 +203,22 @@
   background-color: #fffdf8;
 }
 
-/* 手機適配 */
+/* 7. 底部按鈕區 */
+.pop-footer {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  margin-top: 30px;
+  padding-top: 10px;
+  border-top: 1px solid #eee; /* 加條線分隔 */
+}
+
+/* 手機微調 */
 @media (max-width: 600px) {
-  .pop-overlay { padding: 20px 10px 120px 10px; }
-  .pop-modal { padding: 20px; }
-  .pop-modal.pop-modal-large { width: 100%; border-radius: 16px; }
-  .pop-icon { display: none; }
+  .pop-modal {
+    margin: 20px auto 80px auto; /* 手機版上下邊距細啲 */
+    padding: 20px;
+  }
 }
 
 .pop-btn {
@@ -265,37 +261,6 @@
   .pop-icon {
     display: none; /* 螢幕矮時隱藏 icon 省位 */
   }
-}
-
-/* 4. 輸入框樣式修復 (包含一般輸入框 和 批量輸入的大框) */
-.pop-input, 
-.input-area-wrapper textarea {
-  width: 100%;
-  box-sizing: border-box;
-  padding: 12px 15px;
-  border: 2px solid #e0e0e0; /* 實線，解決虛線樣衰問題 */
-  border-radius: 12px;
-  font-size: 16px;
-  outline: none;
-  font-family: inherit;
-  margin-bottom: 10px;
-  background-color: #fff;
-  
-  /* 🔥 強制設定高度，防止變形 */
-  height: auto; 
-  min-height: 50px; 
-}
-
-/* 特別針對那個大 Textarea */
-.input-area-wrapper textarea {
-  min-height: 120px; /* 預設高少少 */
-  resize: vertical;  /* 容許用戶拉大 */
-}
-
-.pop-input:focus,
-.input-area-wrapper textarea:focus {
-  border-color: #F2C037; /* Pop Art 黃色 Focus */
-  background-color: #fffdf8;
 }
 
 
