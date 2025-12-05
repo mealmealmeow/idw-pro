@@ -126,41 +126,61 @@
   overflow: hidden; /* 確保圓角包住內容 */
 }
 
-/* 🟢 Type B: 巨型畫布 (Max Pop) - 修正版 */
+/* 🟢 Type B: 巨型畫布 (Max Pop) - 終極鎖定版 */
 .pop-modal.pop-modal-large {
-  max-width: 95vw;  /* 佔螢幕寬度 95%，夠闊！ */
-  width: 95vw;      /* 強制設定寬度 */
-  height: 90vh;     /* 佔高 90% */
-  max-height: 90vh; /* 鎖死高度，防止撐爆螢幕 */
-  padding: 20px;    /* 稍微減少 padding，留更多位俾內容 */
+  /* 1. 尺寸鎖定：使用 dvh (動態視窗高度) 解決手機網址列問題 */
+  width: 95vw;
+  max-width: 1000px;
+  height: 90vh;        /* 電腦版高度 */
+  height: 90dvh;       /* 手機版動態高度 (關鍵！) */
+  max-height: 90dvh;   /* 絕對不能超過螢幕 */
   
-  /* 確保 Flex 佈局生效，讓中間捲動，頭尾固定 */
+  /* 2. 佈局鎖定：Flex Column (垂直排列) */
   display: flex;
   flex-direction: column;
+  padding: 20px;
+  
+  /* 3. 溢出保護：防止圓角被內容切斷 */
+  overflow: hidden; 
 }
 
-/* 確保 Header 和 Footer 不會被壓縮 */
-.pop-modal h3, 
-.pop-footer {
-  flex-shrink: 0; /* 關鍵：禁止壓縮，確保按鈕永遠可見 */
+/* 確保頭尾永遠顯示，不會被擠壓 */
+.pop-modal.pop-modal-large h3,
+.pop-modal.pop-modal-large .pop-footer,
+.pop-modal.pop-modal-large .input-area-wrapper { 
+  flex-shrink: 0; 
 }
 
-/* 捲動區域修正 */
+/* 捲動區域 (中間的餡料) */
 .pop-scroll-area {
   text-align: left;
   background: #fdfbf7;
   border-radius: 12px;
   padding: 15px;
   
-  /* 🔥 核心：佔滿剩餘空間，但溢出時捲動 */
-  flex-grow: 1; 
-  flex-shrink: 1; 
+  /* 🔥 核心修正：
+     flex-grow: 1 -> 自動佔滿剩餘空間
+     overflow-y: auto -> 只有這裡會出 Scroll Bar
+     min-height: 0 -> 防止 Flex 子元素無視高度限制 (Firefox/Chrome Bug fix)
+  */
+  flex-grow: 1;
   overflow-y: auto;
-  min-height: 0; /* Firefox/Flex bug fix */
+  min-height: 0; 
   
   margin: 15px 0;
   border: 1px solid #e1d8c8;
   box-shadow: inset 0 2px 6px rgba(0,0,0,0.03);
+}
+
+/* 手機版微調 */
+@media (max-width: 600px) {
+  .pop-modal.pop-modal-large {
+    width: 100vw;    /* 手機全寬 */
+    height: 100dvh;  /* 手機全高，更像一個獨立頁面 */
+    max-height: 100dvh;
+    border-radius: 0; /* 全螢幕時不需要圓角 */
+    padding: 15px;
+  }
 }
 
 /* 手機版特別處理 */
@@ -574,19 +594,22 @@
 
   /* ===== section 區塊 ===== */
 
-  .section-box { 
-    padding: 2rem; 
-    border-bottom: 1px solid rgba(225,216,200,0.6); 
-    background-color: rgba(252,250,246,0.88);
-  }
-
-  .section-box:nth-child(odd) {
-    background: linear-gradient(135deg, rgba(255,255,255,0.9), rgba(251,246,238,0.9));
-  }
+  /* ===== section 區塊 (加入 scroll-margin-top) ===== */
+.section-box { 
+  padding: 2rem; 
+  border-bottom: 1px solid rgba(225,216,200,0.6); 
+  background-color: rgba(252,250,246,0.88);
   
-  .section-box:last-child {
-    border-bottom: none;
+  /* 🔥 核心修正：告訴瀏覽器 Scroll 到這裡時，要預留幾多頂部空間 */
+  scroll-margin-top: 160px; 
+}
+
+/* 手機版 Header 可能會變形，這裡預留更多空間 */
+@media (max-width: 768px) {
+  .section-box {
+    scroll-margin-top: 180px; /* 手機版 Header 疊起來比較高 */
   }
+}
 
   .input-group { 
     margin-bottom: 1.25rem; 
@@ -3136,8 +3159,8 @@
       </label>
     </div>
 
-    <!-- ✅ 批量文字輸入區 (不再摺疊，直接顯示) -->
-    <div style="margin-bottom:15px; text-align:left; border:1px solid #eee; padding:10px; border-radius:8px; background:#fafafa;">
+    <!-- ✅ 批量文字輸入區 (加入 input-area-wrapper class) -->
+    <div class="input-area-wrapper" style="margin-bottom:15px; text-align:left; border:1px solid #eee; padding:10px; border-radius:8px; background:#fafafa;">
         <label style="font-size:0.85rem; font-weight:bold; color:#5A8F7B; display:block; margin-bottom:5px;">
             📝 批量貼上 (每行一位，例如：01 陳大文)
         </label>
@@ -3884,24 +3907,16 @@ function loadFontSize() { try { const savedScale = localStorage.getItem(FONT_SCA
 
 /* ---------------- 頁面切換與通用功能 ---------------- */
 
-// [Pro-v9.5] 修正版 Scroll (加大 Offset，防止標題被遮)
+// [Pro-v9.5.2] Scroll Fix: 使用原生 scrollIntoView 配合 CSS scroll-margin-top
 function scrollToSection(event, targetId) {
-  if (event) event.preventDefault(); // 容許 event 為 null (手動呼叫時)
+  if (event) event.preventDefault();
   const targetElement = document.getElementById(targetId);
   if (!targetElement) return;
 
-  const stickyBar = document.querySelector('.sticky-top-bar');
-  const stickyBarHeight = stickyBar ? stickyBar.offsetHeight : 0;
-  
-   // 🔥 加大到 100px，確保標題和上方有一段距離
-  const extraBuffer = 100; 
-  
-  const elementPosition = targetElement.getBoundingClientRect().top;
-  const offsetPosition = elementPosition + window.pageYOffset - stickyBarHeight - extraBuffer; 
-
-  window.scrollTo({
-      top: offsetPosition,
-      behavior: 'smooth'
+  // 直接叫瀏覽器捲動過去，它會自動讀取 CSS 的 scroll-margin-top
+  targetElement.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start'
   });
 }
 
@@ -5360,51 +5375,88 @@ function renderStudentOverviewTable() {
 // [Pro-v8.9] 顯示學生歷史圖表 (讀取該學生所有作業成績)
 let _historyChart = null;
 
-// [Pro-v9.5] 學生歷程 (啟用大窗模式 + 修正排序)
+// [Pro-v9.5.2] 學生歷程 (隱藏 Legend)
 async function showStudentHistory(studentId, studentName) {
     if (!studentId) return;
     
     const modal = document.getElementById('pop-student-history-modal');
-    
-    // 🔥 加入 .pop-modal-large class
     const modalContent = modal.querySelector('.pop-modal');
     if (modalContent) modalContent.classList.add('pop-modal-large');
 
     document.getElementById('history-student-name').textContent = `${studentName} 的成長足跡 👣`;
     modal.classList.add('active');
     
-    // ... (以下原有邏輯保持不變，不用動) ...
-    // 清空舊畫布
     const chartContainer = document.querySelector('#pop-student-history-modal .pop-modal > div[style*="height"]');
     chartContainer.innerHTML = '<canvas id="studentHistoryChart"></canvas>';
-    
-    // ... (略過中間數據讀取代碼，保持原樣) ...
-    
-    // 只是為了方便你 copy，我這裡不重複中間一大段 fetch 邏輯，
-    // 請確保你保留了 Phase 10 的 sort 邏輯。
-    // 如果怕錯，可以只在原本函數的最前面加上 classList.add('pop-modal-large') 這一行即可。
-    
-    // ⬇️ 這是重新呼叫原本邏輯 (請確保你的 showStudentHistory 內有這一段)
+
     try {
-        const { data, error } = await supabaseClient.from('results').select('total_score, assignments!inner(title, created_at)').eq('student_id', studentId);
-        if(error) throw error;
-        if(!data || !data.length) { alert("暫無數據"); modal.classList.remove('active'); return; }
-        
-        data.sort((a,b) => new Date(a.assignments.created_at) - new Date(b.assignments.created_at)); // Phase 10 logic
-        
-        // ... Chart rendering logic ...
-        // (保持你的 Chart 代碼不變)
-        const labels = data.map(d => `${d.assignments.title} (${new Date(d.assignments.created_at).getMonth()+1}/${new Date(d.assignments.created_at).getDate()})`);
+        const { data, error } = await supabaseClient
+            .from('results')
+            .select(`total_score, assignments!inner ( title, created_at )`)
+            .eq('student_id', studentId);
+
+        if (error) throw error;
+
+        if (!data || data.length === 0) {
+            alert("這位同學暫時還沒有歷程數據喔。");
+            modal.classList.remove('active');
+            return;
+        }
+
+        // Phase 10 Sort Logic
+        data.sort((a, b) => new Date(a.assignments.created_at) - new Date(b.assignments.created_at));
+
+        const labels = data.map(d => {
+            const dateObj = new Date(d.assignments.created_at);
+            return `${d.assignments.title} (${dateObj.getMonth() + 1}/${dateObj.getDate()})`;
+        });
         const scores = data.map(d => d.total_score);
+
         const ctx = document.getElementById('studentHistoryChart');
-        if (window._historyChart) window._historyChart.destroy();
-        window._historyChart = new Chart(ctx, {
+        if (_historyChart) _historyChart.destroy(); 
+
+        _historyChart = new Chart(ctx, {
             type: 'line',
-            data: { labels: labels, datasets: [{ label: '分數', data: scores, borderColor: '#5A8F7B', tension: 0.4, fill: true, backgroundColor: 'rgba(90,143,123,0.1)' }] },
-            options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, suggestedMax: 100 } } }
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: '分數', // 這個 Label 會被隱藏
+                    data: scores,
+                    borderColor: '#5A8F7B',
+                    backgroundColor: 'rgba(90, 143, 123, 0.15)',
+                    borderWidth: 3,
+                    pointBackgroundColor: '#fff',
+                    pointBorderColor: '#5A8F7B',
+                    pointRadius: 5,
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true, suggestedMax: 100, grid: { color: '#f0f0f0' } },
+                    x: { grid: { display: false } }
+                },
+                plugins: {
+                    // 🔥 隱藏 Legend (點擊消失的問題解決)
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(90, 143, 123, 0.9)',
+                        padding: 10,
+                        cornerRadius: 8,
+                        displayColors: false
+                    }
+                }
+            }
         });
 
-    } catch(e) { console.error(e); modal.classList.remove('active'); alert("讀取失敗"); }
+    } catch (err) {
+        console.error("History Error:", err);
+        alert("讀取歷程時發生了一點小問題，請稍後再試。");
+        modal.classList.remove('active');
+    }
 }
 
 function jumpToStudentFromOverview(originalName) {
