@@ -79,28 +79,26 @@
   margin: 0 2px;
 }
 
-/* 1. 底紙 (Overlay) */
-/* 1. 底紙 (Overlay) - 解鎖版 */
+/* 1. 底紙 (Overlay) - 安全捲動版 */
 .pop-overlay {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
   width: 100%; height: 100%;
-  background: rgba(47, 79, 79, 0.75); /* 深綠色背景 */
+  
+  background: rgba(47, 79, 79, 0.75); /* Cozy Green */
   backdrop-filter: blur(8px);
   z-index: 2147483647;
   
-  /* 🔥 關鍵修正：讓 Overlay 變成可捲動的容器 */
+  /* 🔥 關鍵設定 1：讓 Overlay 本身變成可捲動的容器 */
   overflow-y: auto; 
-  padding: 40px 20px; /* 上下留白，讓彈窗有呼吸空間 */
   
-  /* 讓彈窗置中，但如果太長就靠上 */
+  /* 🔥 關鍵設定 2：Flex Column + Margin Auto 是最安全的置中與延伸方式 */
   display: flex;
-  align-items: flex-start; /* 改為靠上對齊，配合 padding 變置中 */
-  justify-content: center;
+  flex-direction: column;
+  align-items: center; /* 水平置中 */
   
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.25s ease;
+  /* 🔥 關鍵設定 3：底部留 150px 空間！確保按鈕一定見到，唔會貼底 */
+  padding: 40px 10px 150px 10px; 
 }
 
 .pop-overlay.active {
@@ -108,7 +106,7 @@
   pointer-events: auto;
 }
 
-/* 2. 彈窗本體 - 大窗 (Max Pop) - 自然生長版 */
+/* 2. 彈窗本體 (Max Pop) - 無限延伸版 */
 .pop-modal.pop-modal-large {
   width: 95vw;
   max-width: 900px;
@@ -117,28 +115,31 @@
   height: auto; 
   max-height: none; 
   
-  margin: auto; /* 配合 Flex 讓它在不夠高時置中 */
-  position: relative;
+  /* 配合 Overlay 的 Flex，Margin Auto 會自動垂直置中 (當內容少時) */
+  /* 當內容多時，它會自然向下延伸 */
+  margin: auto; 
+  flex-shrink: 0; /* 禁止被壓縮 */
+  
   background: #fff;
   border-radius: 20px;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 25px 60px rgba(0,0,0,0.3);
   padding: 30px;
-  
-  /* 移除 Flex Column 鎖定，回歸自然流 */
   display: block; 
+  position: relative;
 }
 
-/* 內容捲動區 (因為彈窗本身會長高，這裡不需要 internal scroll) */
+/* 3. 內容列表區 - 移除捲動限制 */
 .pop-scroll-area {
   background: #fdfbf7;
   border-radius: 12px;
   padding: 15px;
   border: 1px solid #e1d8c8;
   
-  /* 移除 flex 設定 */
+  /* 🔥 移除 max-height 和 overflow */
+  /* 讓名單直接撐長個彈窗，用外面的 Overlay Scroll bar 黎睇 */
   height: auto;
-  max-height: 500px; /* 仍然給名單一個上限，免得太誇張 */
-  overflow-y: auto;  /* 名單太長時，這裡會出 Scroll bar */
+  max-height: none; 
+  overflow: visible; 
   
   margin: 15px 0;
 }
@@ -146,13 +147,12 @@
 /* 手機版微調 */
 @media (max-width: 600px) {
   .pop-overlay {
-    padding: 10px; /* 手機邊距細啲 */
-    align-items: flex-start; 
+    padding: 20px 10px 120px 10px; /* 手機版底部留白 */
   }
   .pop-modal.pop-modal-large {
     width: 100%;
-    border-radius: 12px;
     padding: 20px 15px;
+    border-radius: 16px;
   }
 }
 
