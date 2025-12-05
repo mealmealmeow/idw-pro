@@ -724,48 +724,76 @@ scroll-margin-top: 180px; /* 手機版 Header 疊起來比較高 */
     padding-bottom: 0;
   }
 
-  /* ===== 評語 checkbox 卡片 ===== */
+ /* ===== [v10.2-Step1] 評語 Checkbox (Cozy Touch 版) ===== */
 
   .check-item { 
     border: 1px solid rgba(225,216,200,0.9); 
-    border-radius: var(--radius-md); 
-    padding: 1rem 1rem 0.8rem; 
-    margin-bottom: 0.9rem; 
-    background: #fffdf9; 
-    box-shadow: 0 8px 18px rgba(0,0,0,0.04); 
-    transition: box-shadow var(--transition-fast), transform var(--transition-fast),
-                background-color var(--transition-fast), border-color var(--transition-fast);
+    border-radius: 12px; /* 圓角再溫潤一點 */
+    margin-bottom: 0.8rem; 
+    background: #ffffff; 
+    box-shadow: 0 2px 5px rgba(0,0,0,0.03); /* 陰影輕量化 */
+    transition: all 0.2s ease;
     cursor: pointer;
+    overflow: hidden; /* 確保內部 hover 唔會溢出 */
+    position: relative; /* 為了定位 */
   }
 
+  /* 滑鼠經過時：輕微浮起 + 邊框變色 */
   .check-item:hover {
     transform: translateY(-2px);
-    box-shadow: 0 12px 26px rgba(0,0,0,0.08);
-    border-color: rgba(90,143,123,0.45);
-    background-color: #ffffff;
+    box-shadow: 0 8px 15px rgba(90, 143, 123, 0.1);
+    border-color: var(--accent-color);
+  }
+
+  /* 選中時的狀態 (需配合 JS 添加 class，暫時靠 checkbox 聯動) */
+  .check-item:has(input:checked) {
+    background-color: #f4fcf9; /* 極淡的綠色背景，表示已選 */
+    border-color: var(--accent-color);
   }
 
   .check-item-header { 
     display: flex; 
     align-items: center; 
-    gap: 0.4rem;
+    width: 100%;
+    /* 關鍵：移除這裏的 gap，改用 padding 控制 */
   }
 
+  /* 隱藏原生 Checkbox (或是保留但縮小)，這裡我們保留但改樣式 */
   .check-item-header input[type="checkbox"] { 
-    margin-right: 0.4rem; 
-    width: 1.1rem; 
-    height: 1.1rem; 
+    margin-left: 12px; /* 左邊留空 */
+    width: 1.2rem; 
+    height: 1.2rem; 
     flex-shrink: 0; 
     accent-color: var(--accent-color); 
     border-radius: 4px;
-    pointer-events: none; /* Checkbox is controlled by parent click */
+    cursor: pointer;
   }
 
+  /* 🔥 核心止痛：將 Label 撐大填滿整個 Header */
   .check-item-header label { 
     flex: 1; 
     font-size: 1.05rem; 
     font-weight: 500; 
-    cursor: inherit;
+    cursor: pointer;
+    padding: 14px 12px; /* 上下左右都有肉，容易撳 */
+    display: block; /* 變成區塊 */
+    user-select: none; /* 防止連點時選取文字 */
+    color: #5b5044;
+  }
+
+  /* 互動模組 (下拉選單) 稍微內縮 */
+  .interactive-module { 
+    display: none; 
+    background-color: #fbfbfb; 
+    border-top: 1px dashed rgba(225,216,200,0.8); 
+    padding: 12px; 
+    margin: 0; /* 貼齊邊緣 */
+  }
+
+  .editable-comment { 
+    display: none; 
+    padding: 12px;
+    background-color: #fff;
   }
 
   .check-item.is-problem label { 
@@ -3512,7 +3540,7 @@ scroll-margin-top: 180px; /* 手機版 Header 疊起來比較高 */
 <!-- [Pro-v9.9.7] 登入牆 (強制置頂版) -->
 <!-- ================================================= -->
 <div id="login-gate" class="login-gate">
-  <div class="pop-modal gate-card" style="padding: 30px 30px 40px 30px;">
+  <div class="pop-modal gate-card" style="display: none">
     
     <div style="font-size: 2.5rem; margin-bottom: 5px;">☕️</div>
     <h2 style="color: #3d5c4f; font-size: 1.5rem; margin: 5px 0 10px 0;">我不想努力了 Pro</h2>
