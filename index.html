@@ -487,69 +487,156 @@
 
   /* ===== 上方導航 tabs ===== */
 
-  .page-nav { 
-    display: flex; 
-    background-color: var(--nav-bg); 
-    border-bottom: 1px solid var(--border-color); 
-    flex-wrap:wrap; 
-  }
+ /* ========================================= */
+/* === [v10.3] 全新雙層導航樣式 (Header) === */
+/* ========================================= */
 
-  .nav-btn { 
-    flex: 1 0 auto; 
-    padding: 0.9rem 1rem; 
-    text-align: center; 
-    font-size: 1.02rem; 
-    cursor: pointer; 
-    border: none; 
-    background: transparent; 
-    color: #6c776f; 
-    transition: background-color var(--transition-normal), color var(--transition-normal),
-                box-shadow var(--transition-normal), transform var(--transition-fast); 
-    border-bottom: 3px solid transparent; 
-    font-family: inherit;
-    min-width: 150px;
-    position: relative;
-    white-space: nowrap;
-  }
+/* 外框容器 */
+.page-nav-wrapper {
+  background-color: var(--secondary-bg);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+}
 
-  .nav-btn::after {
-    content: "";
+/* 第一層：Main Nav (咖啡廳、工作枱...) */
+.main-nav {
+  display: flex;
+  justify-content: center; /* 居中 */
+  gap: 1rem;
+  padding: 0 1rem;
+  background: #fff;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+/* Main Nav 按鈕 */
+.nav-btn {
+  padding: 1rem 1.5rem;
+  font-size: 1.05rem;
+  font-weight: 500;
+  color: #888;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.nav-btn:hover { color: var(--accent-color); }
+
+.nav-btn.active {
+  color: var(--accent-color);
+  font-weight: bold;
+}
+
+/* Active 底線指示器 */
+.nav-btn.active::after {
+  content: "";
+  position: absolute;
+  bottom: 0; left: 10%; right: 10%;
+  height: 3px;
+  background-color: var(--accent-color);
+  border-radius: 3px 3px 0 0;
+}
+
+/* 第二層：Sub Nav (基本設定、批改...) */
+.sub-nav-container {
+  background-color: #fafafa; /* 淺灰底色區分 */
+  padding: 0.5rem 1rem;
+  display: flex;
+  justify-content: center;
+  min-height: 46px; /* 預留高度防止跳動 */
+}
+
+/* 當 Main Tab 是 Home 時，隱藏 Sub Nav */
+.sub-nav-container:empty { display: none; }
+
+.sub-nav-group {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.sub-nav-btn {
+  padding: 0.4rem 1rem;
+  font-size: 0.9rem;
+  color: #666;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.sub-nav-btn:hover {
+  background-color: #eef2f0;
+  color: #333;
+}
+
+.sub-nav-btn.active {
+  background-color: var(--accent-color);
+  color: #fff;
+  box-shadow: 0 2px 5px rgba(90,143,123,0.3);
+}
+
+/* 手機版漢堡按鈕 (預設隱藏) */
+.mobile-menu-btn { display: none; }
+
+/* === Mobile RWD (手機版導航) === */
+@media (max-width: 768px) {
+  .page-nav-wrapper {
+    display: none; /* 手機版預設隱藏 */
+    position: fixed;
+    top: 60px; left: 0; right: 0; bottom: 0;
+    background: rgba(255,255,255,0.98);
+    z-index: 2000;
+    flex-direction: column;
+    padding-top: 20px;
+    backdrop-filter: blur(10px);
+  }
+  
+  .page-nav-wrapper.mobile-active { display: flex; }
+
+  .main-nav { flex-direction: column; border: none; }
+  .nav-btn { padding: 15px; font-size: 1.2rem; text-align: left; border-bottom: 1px solid #eee; }
+  
+  .sub-nav-container { flex-direction: column; background: transparent; }
+  .sub-nav-group { flex-direction: column; gap: 0; }
+  .sub-nav-btn { padding: 12px 20px; text-align: left; border-radius: 0; border-left: 3px solid transparent; }
+  .sub-nav-btn.active { background: transparent; color: var(--accent-color); border-left-color: var(--accent-color); box-shadow: none; }
+
+  /* 漢堡按鈕樣式 */
+  .mobile-menu-btn {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
     position: absolute;
-    inset: auto 15% -3px;
-    height: 0;
-    border-radius: 999px;
-    background: rgba(90,143,123,0.45);
-    opacity: 0;
-    transition: opacity var(--transition-fast), height var(--transition-fast);
+    top: 20px; right: 20px;
+    z-index: 2001;
+    background: transparent; border: none; cursor: pointer;
   }
+  .mobile-menu-btn span { width: 25px; height: 3px; background: #333; border-radius: 2px; }
+}
 
-  .nav-btn:hover {
-    background-color: rgba(255,255,255,0.7);
-    color: var(--title-color);
-  }
+/* ========================================= */
+/* === 頁面內容切換 (這部分必須保留！) === */
+/* ========================================= */
 
-  .nav-btn.active { 
-    background: linear-gradient(135deg, var(--nav-active-bg), #6caa91); 
-    color: var(--nav-active-color); 
-    border-bottom-color: #e7dccc;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.18);
-  }
+.page-content { 
+  display: none; 
+  /* 稍微調整背景，配合新風格 */
+  background: radial-gradient(circle at top, #fdfbf7 0, #fbf8f3 45%, #f3f4f6 100%);
+  min-height: 80vh;
+}
 
-  .nav-btn.active::after {
-    height: 4px;
-    opacity: 1;
-  }
-
-  .page-content { 
-    display: none; 
-    background: radial-gradient(circle at top, #fdfbf7 0, #fbf8f3 45%, #f7f3eb 100%);
-  }
-
-  .page-content.active { 
-    display: block; 
-  }
-
-  /* ===== section 區塊 ===== */
+.page-content.active { 
+  display: block; 
+}
 
 /* ===== section 區塊 (加入 scroll-margin-top) ===== */
 .section-box {
@@ -2582,18 +2669,44 @@ scroll-margin-top: 180px; /* 手機版 Header 疊起來比較高 */
           <button class="font-control-btn" onclick="adjustFontSize('increase')" title="放大字體">A+</button>
         </div>
       </header>
-      <nav class="page-nav">
-        <!-- 在 nav 內加入這行 -->
-<button id="nav-page-home" class="nav-btn" onclick="showPage('page-home')">🏠 首頁</button>
-        <button id="nav-page1" class="nav-btn active" onclick="showPage('page1')">基本設定</button>
-        <button id="nav-page2" class="nav-btn" onclick="showPage('page2')">批改頁</button>
-        <button id="nav-page3" class="nav-btn" onclick="showPage('page3')">評語總覽與修訂</button>
-        <button id="nav-page4" class="nav-btn" onclick="showPage('page4')">學生總覽</button>
-        <button id="nav-page5" class="nav-btn" onclick="showPage('page5')">評語分析</button>
-        <button id="nav-page6" class="nav-btn" onclick="showPage('page6')">AI 評語庫生成</button>
-        <button id="nav-page7" class="nav-btn" onclick="showPage('page7')">AI 生成回饋</button>
-        <button id="nav-page8" class="nav-btn" onclick="showPage('page8')">班級管理</button>
-      </nav>
+     <!-- [v10.3] 全新雙層導航結構 -->
+<nav class="page-nav-wrapper">
+  <!-- 第一層：4 大入口 (Main Tabs) -->
+  <div class="main-nav">
+    <button class="nav-btn active" onclick="switchMainTab('home')" data-target="home">☕️ 咖啡廳</button>
+    <button class="nav-btn" onclick="switchMainTab('workspace')" data-target="workspace">💻 工作枱</button>
+    <button class="nav-btn" onclick="switchMainTab('ailab')" data-target="ailab">✨ AI 烘焙室</button>
+    <button class="nav-btn" onclick="switchMainTab('archives')" data-target="archives">📑 檔案室</button>
+  </div>
+
+  <!-- 第二層：次級導航 (Sub Tabs) - 根據 Main Tab 切換顯示 -->
+  <div id="sub-nav-container" class="sub-nav-container">
+    <!-- Workspace Sub-nav -->
+    <div id="sub-nav-workspace" class="sub-nav-group" style="display: none;">
+        <button id="nav-page1" class="sub-nav-btn" onclick="showPage('page1')">基本設定</button>
+        <button id="nav-page2" class="sub-nav-btn" onclick="showPage('page2')">批改介面</button>
+    </div>
+    
+    <!-- AI Lab Sub-nav -->
+    <div id="sub-nav-ailab" class="sub-nav-group" style="display: none;">
+        <button id="nav-page6" class="sub-nav-btn" onclick="showPage('page6')">生成評語庫</button>
+        <button id="nav-page7" class="sub-nav-btn" onclick="showPage('page7')">生成回饋</button>
+    </div>
+
+    <!-- Archives Sub-nav -->
+    <div id="sub-nav-archives" class="sub-nav-group" style="display: none;">
+        <button id="nav-page8" class="sub-nav-btn" onclick="showPage('page8')">班級管理</button>
+        <button id="nav-page4" class="sub-nav-btn" onclick="showPage('page4')">學生總覽</button>
+        <button id="nav-page3" class="sub-nav-btn" onclick="showPage('page3')">評語庫管理</button>
+        <button id="nav-page5" class="sub-nav-btn" onclick="showPage('page5')">數據分析</button>
+    </div>
+  </div>
+</nav>
+
+<!-- 手機版漢堡按鈕 (Mobile Only) -->
+<button id="mobile-menu-btn" class="mobile-menu-btn" onclick="toggleMobileMenu()">
+    <span></span><span></span><span></span>
+</button>
 
       <!-- 舊的快捷導覽列已被移除 -->
     </div>
@@ -4200,74 +4313,80 @@ block: 'start'
 
   
 
-// [Pro-v7.3.2-AutoRefresh] 修復：每次切換回首頁時，強制刷新 Dashboard
+// [v10.3] 兼容雙層導航的 showPage
 function showPage(pageId, focusElementId = null) {
-  // 1. 隱藏所有頁面
+  // 1. 隱藏所有頁面內容
   document.querySelectorAll('.page-content').forEach(p => p.classList.remove('active'));
   
   // 2. 顯示目標頁面
   const page = document.getElementById(pageId);
   if(page) page.classList.add('active');
 
-  // 3. 更新導覽按鈕狀態
-  document.querySelectorAll('.nav-btn').forEach(n => n.classList.remove('active'));
-  const nav = document.getElementById('nav-' + pageId);
-  if(nav) nav.classList.add('active');
-  
-  // 4. 懸浮導覽列只在 Page 2 顯示
+  // 3. 更新導航狀態 (雙層聯動)
+  // 先移除所有 Active
+  document.querySelectorAll('.sub-nav-btn').forEach(n => n.classList.remove('active'));
+  document.querySelectorAll('.main-nav .nav-btn').forEach(n => n.classList.remove('active'));
+
+  const subBtn = document.getElementById('nav-' + pageId); // 搵 Sub Nav 按鈕
+  const subContainer = document.getElementById('sub-nav-container');
+
+  if (pageId === 'page-home') {
+      // 如果係主頁
+      const homeBtn = document.querySelector('.main-nav .nav-btn[data-target="home"]');
+      if(homeBtn) homeBtn.classList.add('active');
+      if(subContainer) subContainer.style.display = 'none'; // 收埋第二層
+  } 
+  else if (subBtn) {
+      // 如果係內頁
+      subBtn.classList.add('active');
+      
+      // 反向激活對應的 Main Tab
+      const parentGroup = subBtn.closest('.sub-nav-group');
+      if (parentGroup) {
+          // 顯示該組 Sub Nav
+          document.querySelectorAll('.sub-nav-group').forEach(g => g.style.display = 'none');
+          parentGroup.style.display = 'flex';
+          if(subContainer) subContainer.style.display = 'flex';
+
+          // 激活 Main Tab
+          const groupId = parentGroup.id.replace('sub-nav-', '');
+          const mainBtn = document.querySelector(`.main-nav .nav-btn[data-target="${groupId}"]`);
+          if(mainBtn) mainBtn.classList.add('active');
+      }
+  }
+
+  // 4. 懸浮導覽列 (只在 Page 2 顯示)
   const floatingNav = document.getElementById('floating-nav');
   if (floatingNav) {
       floatingNav.classList.toggle('visible', pageId === 'page2');
   }
 
-  // 🔥 [核心修復] 針對不同頁面的自動刷新邏輯
+  // 5. 頁面自動刷新邏輯 (保留原有功能)
   if (pageId === 'page-home') {
-      // 每次回到首頁，都重新讀取一次 Dashboard，確保看到剛剛建立的作業
-      // 加入少許延遲，讓轉頁動畫順暢點
-      setTimeout(() => {
-          if (typeof loadDashboard === 'function') loadDashboard();
-      }, 50);
+      setTimeout(() => { if (typeof loadDashboard === 'function') loadDashboard(); }, 50);
   }
   else if (pageId === 'page2') {
     const studentSelect = document.getElementById('student-select');
-    if (studentSelect && studentSelect.value) {
-        // 如果批改頁已經有選人，確保資料是最新的 (防止不同步)
-        loadStudentData(studentSelect.value); 
-    }
+    if (studentSelect && studentSelect.value) loadStudentData(studentSelect.value); 
   } 
-  else if (pageId === 'page3') {
-    buildOverviewPage();
-  } else if (pageId === 'page4') {
-    renderStudentOverviewTable(); 
-  } else if (pageId === 'page5') {
-    renderAnalysisPage();
-  } else if (pageId === 'page7') {
-    // AI 頁面提示更新
-    const records = allStudentRecords.filter(r => r.data);
-    const promptTextarea = document.getElementById('ai-feedback-prompt-preview');
-    if (promptTextarea) {
-        promptTextarea.placeholder = records.length === 0 
-          ? "請先在「學生總覽」頁面儲存至少一位學生的評語數據，才能生成分析與 Prompt。"
-          : "點擊「生成回饋 Prompt」按鈕後，這裏會顯示給 AI 的完整指令...";
-    }
-  }
-  else if (pageId === 'page8') {
-    // 班級管理頁自動刷新
-    if (typeof loadAllClasses === 'function') loadAllClasses();
-  }
+  else if (pageId === 'page3') { if (typeof buildOverviewPage === 'function') buildOverviewPage(); } 
+  else if (pageId === 'page4') { if (typeof renderStudentOverviewTable === 'function') renderStudentOverviewTable(); } 
+  else if (pageId === 'page5') { if (typeof renderAnalysisPage === 'function') renderAnalysisPage(); }
+  else if (pageId === 'page8') { if (typeof loadAllClasses === 'function') loadAllClasses(); }
 
-  // 5. 自動聚焦 (如果有指定元素)
+  // 6. 自動聚焦
   if (focusElementId) {
     setTimeout(() => {
       const targetElement = document.getElementById(focusElementId);
       if (targetElement) {
-          scrollToSection(new Event('dummy'), focusElementId); 
-          if(document.activeElement !== targetElement) {
-              targetElement.focus({ preventScroll: true });
-          }
+          targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          if(document.activeElement !== targetElement) targetElement.focus({ preventScroll: true });
       }
     }, 150);
   }
+  
+  // 關閉手機 Menu
+  document.querySelector('.page-nav-wrapper').classList.remove('mobile-active');
 }
 function initFloatingNavObserver() {
     const sections = document.querySelectorAll('#page2 .section-box');
@@ -4595,6 +4714,81 @@ triggerAutoSave();
   });
   initSwipeGestures();
 }
+
+/* ===== [v10.3] 雙層導航邏輯 ===== */
+
+// 1. 切換主頁籤 (Main Tab)
+function switchMainTab(target) {
+    // A. 更新 Main Nav 狀態
+    document.querySelectorAll('.main-nav .nav-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.target === target);
+    });
+
+    // B. 顯示對應的 Sub Nav Group
+    document.querySelectorAll('.sub-nav-group').forEach(grp => {
+        grp.style.display = 'none';
+    });
+    
+    // C. 根據目標決定去邊度
+    if (target === 'home') {
+        showPage('page-home'); // 直接去 Dashboard
+        document.getElementById('sub-nav-container').style.display = 'none'; // 收埋第二層
+    } else {
+        document.getElementById('sub-nav-container').style.display = 'flex'; // 顯示第二層
+        const subGroup = document.getElementById('sub-nav-' + target);
+        if (subGroup) {
+            subGroup.style.display = 'flex';
+            // 自動點擊該組的第一個按鈕 (Default Page)
+            const firstBtn = subGroup.querySelector('.sub-nav-btn');
+            if (firstBtn) firstBtn.click();
+        }
+    }
+    
+    // 關閉手機選單 (如果開住)
+    document.querySelector('.page-nav-wrapper').classList.remove('mobile-active');
+}
+
+// 2. 擴充 showPage (兼容新導航)
+// 請將這段邏輯整合進原本的 showPage 函數，或者將原本 showPage 替換為此版本
+// 建議：手動修改原本 showPage，加入 Sub-nav 的 active 狀態更新
+
+/* 
+修改指引：
+在原本 showPage(pageId) 裡面，搵到 "更新導航按鈕狀態" 嗰幾行，改成：
+*/
+/*
+  // 更新 Sub Nav 按鈕狀態
+  document.querySelectorAll('.sub-nav-btn').forEach(n => n.classList.remove('active'));
+  const subBtn = document.getElementById('nav-' + pageId);
+  if(subBtn) {
+      subBtn.classList.add('active');
+      
+      // 反向激活 Main Tab (例如我在 Page 2，Workplace Tab 應該要著燈)
+      const parentGroup = subBtn.closest('.sub-nav-group');
+      if (parentGroup) {
+          const groupId = parentGroup.id.replace('sub-nav-', '');
+          document.querySelectorAll('.main-nav .nav-btn').forEach(btn => {
+              btn.classList.toggle('active', btn.dataset.target === groupId);
+          });
+          // 確保該組 Sub Nav 係顯示嘅
+          document.querySelectorAll('.sub-nav-group').forEach(g => g.style.display = 'none');
+          parentGroup.style.display = 'flex';
+          document.getElementById('sub-nav-container').style.display = 'flex';
+      }
+  } else if (pageId === 'page-home') {
+      // 確保 Home Tab 著燈
+      document.querySelectorAll('.main-nav .nav-btn').forEach(btn => {
+          btn.classList.toggle('active', btn.dataset.target === 'home');
+      });
+      document.getElementById('sub-nav-container').style.display = 'none';
+  }
+*/
+
+// 3. 手機版漢堡選單切換
+function toggleMobileMenu() {
+    document.querySelector('.page-nav-wrapper').classList.toggle('mobile-active');
+}
+
 /* === 手機 Swipe 手勢偵測功能 (增強版：顯示名 + 自動滾動) === */
 function initSwipeGestures() {
   const targetArea = document.getElementById('page2'); // 只在批改頁生效
