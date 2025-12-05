@@ -5830,48 +5830,60 @@ function renderStudentOverviewTable() {
 // [Pro-v8.9] 顯示學生歷史圖表 (讀取該學生所有作業成績)
 let _historyChart = null;
 
+// [Pro-v9.5.2] 學生歷程 (隱藏 Legend)
 async function showStudentHistory(studentId, studentName) {
     if (!studentId) return;
     
-    // 1. 打開 Modal 並顯示 Loading
     const modal = document.getElementById('pop-student-history-modal');
-    document.getElementById('history-student-name').textContent = `${studentName} 的成長歷程`;
+    const modalContent = modal.querySelector('.pop-modal');
+    if (modalContent) modalContent.classList.add('pop-modal-large');
+
+    document.getElementById('history-student-name').textContent = `${studentName} 的成長足跡 👣`;
     modal.classList.add('active');
     
-    // 2. 讀取數據 (從 results 表 join assignments 表)
+    const chartContainer = document.querySelector('#pop-student-history-modal .pop-modal > div[style*="height"]');
+    chartContainer.innerHTML = '<canvas id="studentHistoryChart"></canvas>';
+
     try {
         const { data, error } = await supabaseClient
             .from('results')
-            .select(`
-                total_score,
-                assignments!inner ( title, created_at )
-            `)
-            .eq('student_id', studentId)
-            .order('created_at', { foreignTable: 'assignments', ascending: true }); // 按時間排序
+            .select(`total_score, assignments!inner ( title, created_at )`)
+            .eq('student_id', studentId);
 
         if (error) throw error;
 
-        // 3. 準備圖表數據
-        const labels = data.map(d => d.assignments.title);
+        if (!data || data.length === 0) {
+            alert("這位同學暫時還沒有歷程數據喔。");
+            modal.classList.remove('active');
+            return;
+        }
+
+        // Phase 10 Sort Logic
+        data.sort((a, b) => new Date(a.assignments.created_at) - new Date(b.assignments.created_at));
+
+        const labels = data.map(d => {
+            const dateObj = new Date(d.assignments.created_at);
+            return `${d.assignments.title} (${dateObj.getMonth() + 1}/${dateObj.getDate()})`;
+        });
         const scores = data.map(d => d.total_score);
 
-        // 4. 繪製圖表
         const ctx = document.getElementById('studentHistoryChart');
-        if (_historyChart) _historyChart.destroy(); // 銷毀舊圖表
+        if (_historyChart) _historyChart.destroy(); 
 
         _historyChart = new Chart(ctx, {
             type: 'line',
             data: {
                 labels: labels,
                 datasets: [{
-                    label: '總分走勢',
+                    label: '分數', // 這個 Label 會被隱藏
                     data: scores,
                     borderColor: '#5A8F7B',
-                    backgroundColor: 'rgba(90, 143, 123, 0.1)',
+                    backgroundColor: 'rgba(90, 143, 123, 0.15)',
                     borderWidth: 3,
-                    pointBackgroundColor: '#F2C037',
+                    pointBackgroundColor: '#fff',
+                    pointBorderColor: '#5A8F7B',
                     pointRadius: 5,
-                    tension: 0.3, // 平滑曲線
+                    tension: 0.4,
                     fill: true
                 }]
             },
@@ -5879,17 +5891,25 @@ async function showStudentHistory(studentId, studentName) {
                 responsive: true,
                 maintainAspectRatio: false,
                 scales: {
-                    y: { beginAtZero: true, suggestedMax: 100 }
+                    y: { beginAtZero: true, suggestedMax: 100, grid: { color: '#f0f0f0' } },
+                    x: { grid: { display: false } }
                 },
                 plugins: {
-                    legend: { display: false }
+                    // 🔥 隱藏 Legend (點擊消失的問題解決)
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(90, 143, 123, 0.9)',
+                        padding: 10,
+                        cornerRadius: 8,
+                        displayColors: false
+                    }
                 }
             }
         });
 
     } catch (err) {
         console.error("History Error:", err);
-        alert("無法讀取歷史數據：" + err.message);
+        alert("讀取歷程時發生了一點小問題，請稍後再試。");
         modal.classList.remove('active');
     }
 }
