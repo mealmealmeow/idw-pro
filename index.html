@@ -8911,23 +8911,23 @@ async function createNewClass() {
 
         if (error) throw error;
 
-        // 5. 🔥 強制刷新動作 (關鍵修正)
-        // 手動解鎖，防止因為之前的 Loading 狀態卡住
+        // 5. 🔥 強制刷新動作
         if (typeof _isClassesLoading !== 'undefined') _isClassesLoading = false;
         
-        // A. 刷新 Page 8 列表
+        // A. 刷新 Page 8 列表 (自己)
         await loadAllClasses(); 
         
-        // B. 刷新 Page 1 下拉選單 (傳入 true 強制重讀) <-- 解決你話 Page 1 見唔到新班級嘅問題
+        // B. 🔥 刷新 Page 1 下拉選單 (重點！傳入 true)
+        // 呢度會清空 Page 1 舊 list，再攞最新嘅，所以一定會見到新班級
         await loadPage1ClassDropdown(true); 
 
-        // C. 刷新 Dashboard (雖然 Dashboard 唔直接顯示班級，但會更新統計數據)
+        // C. 刷新 Dashboard
         if (typeof loadDashboard === 'function') loadDashboard();
 
         // 自動打開管理名單
         manageStudents(data.id, data.class_name);
         
-        if (typeof showToast === 'function') showToast("🎉 班級已建立，請輸入學生名單", "success");
+        if (typeof showToast === 'function') showToast("🎉 班級已建立", "success");
 
     } catch (error) {
         console.error(error);
@@ -8935,7 +8935,7 @@ async function createNewClass() {
     }
 }
 
-// [Pro-v6.3] 刪除班級 (自訂 UI)
+// [Pro-v7.5] 刪除班級 (加入 Page 1 聯動更新)
 async function deleteClass(classId, className) {
     const confirmDelete = await showCustomModal({
         icon: '⚠️',
@@ -8956,7 +8956,12 @@ async function deleteClass(classId, className) {
         if (error) throw error;
         
         if (typeof showToast === 'function') showToast(`已刪除班級：${className}`, "success");
-        loadAllClasses(); 
+        
+        // A. 刷新 Page 8 列表 (自己)
+        await loadAllClasses(); 
+        
+        // B. 🔥 刷新 Page 1 下拉選單 (重點！刪完要去通知 Page 1 移除個選項)
+        await loadPage1ClassDropdown(true); 
 
     } catch (error) {
         console.error(error);
@@ -8996,7 +9001,7 @@ function toggleSetupMode() {
     }
 }
 
-// [Pro-v9.4-FunctionalFix] 下拉選單 (支援強制刷新)
+// [Pro-v9.9-Fix] 下拉選單 (強制清空重讀版)
 async function loadPage1ClassDropdown(forceRefresh = false) {
     const select = document.getElementById('setup-class-select');
     if (!select) return;
@@ -9006,10 +9011,11 @@ async function loadPage1ClassDropdown(forceRefresh = false) {
         return;
     }
     
-    // 🔥 修正重點：如果唔係強制刷新 (forceRefresh == false)，而且已經有資料，先至跳過
-    // 咁樣當我哋想強制更新時，傳入 true 就可以無視呢個檢查
+    // 🔥 邏輯修正：如果不強制刷新，且已經有資料 (長度 > 1)，先至 Return
+    // 即係話：forceRefresh = true 時，下面呢句會被無視，直接執行落去
     if (!forceRefresh && select.options.length > 1) return; 
 
+    // 🔥 關鍵動作：即刻清空舊資料，防止舊班級殘留
     select.innerHTML = '<option>讀取中...</option>';
 
     try {
@@ -9022,11 +9028,13 @@ async function loadPage1ClassDropdown(forceRefresh = false) {
 
         if (error) throw error;
 
+        // 如果連 DB 都冇資料
         if (!classes || classes.length === 0) {
             select.innerHTML = '<option value="">(暫無班級)</option>';
             return;
         }
 
+        // 重新建立選項
         select.innerHTML = '<option value="">-- 請選擇班級 --</option>';
         classes.forEach(c => {
             const opt = document.createElement('option');
@@ -9035,10 +9043,12 @@ async function loadPage1ClassDropdown(forceRefresh = false) {
             opt.dataset.className = c.class_name; 
             select.appendChild(opt);
         });
+        
+        console.log("✅ Page 1 班級名單已更新 (數量: " + classes.length + ")");
 
     } catch (err) {
-        console.error(err);
-        select.innerHTML = '<option value="">讀取失敗</option>';
+        console.error("Page 1 讀取失敗:", err);
+        select.innerHTML = '<option value="">讀取失敗，請重試</option>';
     }
 }
 
