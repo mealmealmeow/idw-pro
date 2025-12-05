@@ -2583,7 +2583,7 @@ scroll-margin-top: 180px; /* 手機版 Header 疊起來比較高 */
       <label class="mode-card">
         <input type="radio" name="setup-mode" value="manual" onchange="toggleSetupMode()"> 
         <span style="font-size:1.8rem; margin-bottom:0.5rem;">✍️</span>
-        <span>手動輸入 (舊版)</span>
+        <span>自訂名單 / 評語 (AI & 匯入)</span>
       </label>
     </div>
 
@@ -2882,6 +2882,10 @@ scroll-margin-top: 180px; /* 手機版 Header 疊起來比較高 */
                     <button class="secondary-btn" onclick="exportCritiquesToJSON()">導出評語庫(JSON)</button>
                     <label class="secondary-btn" for="import-critique-json" style="cursor:pointer;">導入評語庫(JSON)</label>
                     <input type="file" id="import-critique-json" accept=".json" style="display:none;"/>
+                </div>
+                <!-- 新增：附加預設評語 (Append) -->
+                <div class="btn-group" style="margin-top: 1rem; border-top: 1px dashed #ddd; padding-top: 1rem;">
+                    <button class="action-btn" style="background:#7986cb;" onclick="appendPresetsMenu()">➕ 附加預設評語 (不覆蓋)</button>
                 </div>
                  <div class="btn-group" style="margin-top: 1rem;">
                     <button class="danger-btn" onclick="confirmUI('確定要重設為程式內建的預設評語嗎？這會覆蓋您當前的評語庫。', resetToDefaultCritiques)">重設為程式預設評語</button>
@@ -5825,6 +5829,7 @@ function generateAIPrompt() {
     document.getElementById('ai-prompt-preview').value = prompt.trim();
 }
 
+// [Pro-v9.5 Step 3] 應用 AI JSON (加入回程跳轉)
 function applyAIJson() {
     const jsonInput = document.getElementById('ai-json-input').value.trim();
     if (!jsonInput) {
@@ -5835,39 +5840,36 @@ function applyAIJson() {
     try {
         importedData = JSON.parse(jsonInput);
     } catch (e) {
-        alert(`JSON 格式錯誤，無法解析。請確保您複製了完整的 JSON 陣列內容（由 [ 開始，到 ] 結束）。\n\n錯誤訊息：${e.message}`);
+        alert(`JSON 格式錯誤。請確保您複製了完整的 JSON 陣列 (由 [ 開始，到 ] 結束)。`);
         return;
     }
     if (!Array.isArray(importedData)) {
         alert('導入失敗：內容不是一個有效的 JSON 陣列。');
         return;
     }
-    if (importedData.length === 0) {
-        alert('導入的資料為空陣列，評語庫未作更改。');
-        return;
-    }
-    const firstItem = importedData[0];
-    const requiredKeys = ['critique_id', 'category', 'type', 'title'];
-    const missingKeys = requiredKeys.filter(key => !(key in firstItem));
-    if (missingKeys.length > 0) {
-        alert(`導入失敗：JSON 物件中缺少必要的欄位：${missingKeys.join(', ')}。\n請檢查 AI 的回覆是否符合格式要求。`);
-        return;
-    }
-    confirmUI(`即將使用 ${importedData.length} 條新評語完全覆蓋現有的評語庫。此操作無法復原，確定要繼續嗎？`, () => {
-        applyCritiquesToDOM(importedData.map(c => ({
-            id: c.critique_id, category: c.category, type: c.type, title: c.title,
-            strengthSummary: c.strength_summary, problemCore: c.problem_core,
-            suggestion: c.suggestion, example: c.example, options: c.options,
-            optionsLabel: c.options_label
-        })));
-        buildOverviewPage();
-        buildChecklist();
-        updateAllOutputs();
-        showPage('page3'); 
-        isDataDirty = true;
-        updateUIBasedOnAuthState();
-        alert('評語庫已成功更新！請記得點擊「同步至雲端」以保存變更。');
-        document.getElementById('ai-json-input').value = ''; 
+    
+    // 執行寫入
+    applyCritiquesToDOM(importedData.map(c => ({
+        id: c.critique_id, category: c.category, type: c.type, title: c.title,
+        strengthSummary: c.strength_summary, problemCore: c.problem_core,
+        suggestion: c.suggestion, example: c.example, options: c.options,
+        optionsLabel: c.options_label
+    })));
+    
+    buildOverviewPage();
+    buildChecklist();
+    updateAllOutputs();
+    isDataDirty = true;
+    updateUIBasedOnAuthState();
+    
+    document.getElementById('ai-json-input').value = ''; 
+
+    // 🔥 核心改動：溫暖的成功提示 + 跳轉
+    if(typeof showToast === 'function') showToast("評語庫已更新！", "success");
+    
+    // 使用 confirmUI 提供跳轉選項
+    confirmUI('✅ AI 評語已成功載入！\n是否立即前往「批改頁」開始工作？', () => {
+        showPage('page2');
     });
 }
 
@@ -9260,7 +9262,77 @@ async function reloadCritiqueLibrary(genre) {
     console.log(`✅ 評語庫已切換至：${genre || '通用'}`);
 }
 
+// [Pro-v9.5 Step 3] 附加預設評語 (Append Logic)
+function appendPresetsMenu() {
+    // 重用 Generic Modal 顯示選項
+    const modal = document.getElementById('pop-generic-modal');
+    const inputContainer = document.getElementById('pop-generic-input-container');
+    const confirmBtn = document.getElementById('pop-generic-confirm');
+    
+    document.getElementById('pop-generic-icon').textContent = '➕';
+    document.getElementById('pop-generic-title').textContent = '附加預設評語';
+    document.getElementById('pop-generic-desc').textContent = '選擇要加入的類別 (將加到現有評語後，不會刪除舊資料)：';
+    
+    // 選項 HTML
+    inputContainer.style.display = 'block';
+    inputContainer.innerHTML = `
+        <div style="text-align:left; padding:10px;">
+            <label class="pop-list-item"><input type="checkbox" class="append-cb" value="narrative"> 📝 記敘文</label>
+            <label class="pop-list-item"><input type="checkbox" class="append-cb" value="lyrical"> ❤️ 抒情文</label>
+            <label class="pop-list-item"><input type="checkbox" class="append-cb" value="descriptive"> 🖼️ 描寫文</label>
+            <label class="pop-list-item"><input type="checkbox" class="append-cb" value="argumentative"> 🗣️ 議論文</label>
+            <label class="pop-list-item"><input type="checkbox" class="append-cb" value="common"> 🔧 通用評語</label>
+        </div>
+    `;
+    
+    modal.classList.add('active');
+    
+    confirmBtn.onclick = () => {
+        const selected = Array.from(inputContainer.querySelectorAll('.append-cb:checked')).map(cb => cb.value);
+        if (selected.length === 0) { modal.classList.remove('active'); return; }
+        
+        executeAppend(selected);
+        
+        // 還原 Modal
+        inputContainer.innerHTML = '<input type="text" id="pop-generic-input" class="pop-input">';
+        modal.classList.remove('active');
+    };
+}
 
+function executeAppend(genres) {
+    // 1. 收集現有評語
+    const currentData = collectExportData();
+    const existingIds = new Set(currentData.map(c => c.id));
+    
+    // 2. 收集要加入的罐頭
+    let addedCount = 0;
+    genres.forEach(g => {
+        if (cannedCritiques[g]) {
+            cannedCritiques[g].forEach(c => {
+                // 防止 ID 重複 (雖然罐頭 ID 固定，但為了安全)
+                if (!existingIds.has(c.id)) {
+                    currentData.push(c);
+                    existingIds.add(c.id);
+                    addedCount++;
+                }
+            });
+        }
+    });
+    
+    if (addedCount === 0) {
+        if(typeof showToast === 'function') showToast("所選評語已存在，無需加入。", "info");
+        return;
+    }
+
+    // 3. 寫回 DOM
+    applyCritiquesToDOM(currentData);
+    buildOverviewPage(); // 刷新 Page 3 列表
+    buildChecklist();    // 刷新 Page 2 列表
+    isDataDirty = true;
+    updateUIBasedOnAuthState();
+    
+    if(typeof showToast === 'function') showToast(`成功加入 ${addedCount} 條評語！`, "success");
+}
 </script> <!-- 呢個係原本全個檔案唯一的結尾，保留佢 -->
 
 
