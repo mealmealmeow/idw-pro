@@ -126,54 +126,60 @@
   overflow: hidden; /* 確保圓角包住內容 */
 }
 
-/* 🟢 Type B: 巨型畫布 (Max Pop) - 結構修正版 */
+/* 🟢 Type B: 巨型畫布 (Max Pop) - 強制高度版 */
 .pop-modal.pop-modal-large {
   width: 95vw;
   max-width: 1000px;
   
-  /* 🔥 關鍵：限制最大高度，並預留邊距給系統 Bar */
-  height: auto;
-  max-height: 90vh;
-  max-height: 90dvh; /* 支援手機動態高度 */
+  /* 🔥 關鍵修正：不再用 auto，強制設定高度 */
+  height: 85vh;       /* 電腦版高度 */
+  height: 85dvh;      /* 手機版動態高度 */
+  max-height: 900px;  /* 唔好太高 */
   
   display: flex;
   flex-direction: column;
   padding: 20px;
-  overflow: hidden; /* 防止子元素撐爆圓角 */
+  overflow: hidden; 
+  background: #fff;
 }
 
-/* 讓 Header, 輸入框, Footer 都保持原狀，不准被壓縮 */
+/* 鎖死頭尾，不准壓縮 */
 .pop-modal.pop-modal-large h3,
 .pop-modal.pop-modal-large .pop-footer,
-.pop-modal.pop-modal-large .input-area-wrapper, /* 這是輸入框 */
-.pop-modal.pop-modal-large .btn-toolbar {       /* 這是匯入按鈕列 */
+.pop-modal.pop-modal-large .input-area-wrapper, 
+.pop-modal.pop-modal-large .btn-toolbar {       
   flex-shrink: 0; 
 }
 
-/* 只有中間的名單列表可以捲動 */
+/* 中間捲動區 */
 .pop-scroll-area {
   text-align: left;
   background: #fdfbf7;
   border-radius: 12px;
   padding: 15px;
   
-  /* 🔥 核心：自動佔滿剩餘空間，但溢出時捲動 */
-  flex-grow: 1; 
+  /* 🔥 核心：佔據所有剩餘空間 */
+  flex: 1 1 auto; 
   overflow-y: auto;
   
-  /* ⚠️ 重要：設定最小高度，防止在內容擁擠時消失 */
-  min-height: 100px; 
+  /* 即使內容很少，也保留一點高度；內容太多時，這裡會出 Scroll bar */
+  min-height: 0; 
   
-  margin: 10px 0; /* 減少 margin 慳位 */
+  margin: 10px 0;
   border: 1px solid #e1d8c8;
   box-shadow: inset 0 2px 6px rgba(0,0,0,0.03);
 }
 
-/* 手機版：輸入框太高的話，強制縮細少少 */
-@media (max-height: 800px) {
-  .pop-modal.pop-modal-large .pop-input {
-    rows: 2 !important; /* 強制變矮 */
-    height: auto !important;
+/* 針對極矮視窗 (如橫向手機/分屏) 的特別處理 */
+@media (max-height: 600px) {
+  .pop-modal.pop-modal-large {
+    height: 95vh; /* 用盡高度 */
+    padding: 10px;
+  }
+  /* 縮細輸入框 */
+  .pop-modal.pop-modal-large textarea {
+    height: 60px !important;
+    min-height: 0 !important;
   }
 }
 
@@ -7616,12 +7622,11 @@ function closeLoginModal() {
   if(modal) modal.classList.remove('active');
 }
 
-// [Pro-v9.5.3] 登入/註冊 (修復狀態同步問題)
+// [Pro-v9.5.4] 登入/註冊 (暴力刷新版)
 async function handlePasswordAuth(action) {
   const email = document.getElementById('login-email').value.trim();
   const password = document.getElementById('login-password').value.trim();
-  const authStatus = document.getElementById('auth-status');
-
+  
   // 鎖定按鈕
   const targetBtn = event.target; 
   const originalText = targetBtn.innerText;
@@ -7661,22 +7666,32 @@ async function handlePasswordAuth(action) {
 
     if (error) throw error;
 
-    // 3. 成功處理 (關鍵修正)
+    // 3. 成功處理
     if (data.user) {
+         // 🔥 第一件事：更新全域變數
+         currentUser = data.user;
+
+         // 🔥 第二件事：暴力更新 Header (不經過判斷邏輯)
+         const authStatus = document.getElementById('auth-status');
+         if(authStatus) {
+             authStatus.textContent = `已登入: ${data.user.email}`;
+             authStatus.style.backgroundColor = "rgba(90, 143, 123, 0.2)";
+         }
+         // 隱藏登入按鈕，顯示登出按鈕
+         if(document.getElementById('login-btn')) document.getElementById('login-btn').style.display = 'none';
+         if(document.getElementById('logout-btn')) document.getElementById('logout-btn').style.display = 'inline-flex';
+         if(document.getElementById('sync-btn')) document.getElementById('sync-btn').style.display = 'inline-flex';
+
+         // 顯示成功 Toast
          if (typeof showToast === 'function') showToast("歡迎回來，老師。☕", "success");
          
-         // 🔥 強制手動更新全域變數，不等 Listener
-         currentUser = data.user;
-         
-         // 🔥 立即刷新 UI (Header 狀態)
-         updateUIBasedOnAuthState();
-         
-         // 🔥 重新載入數據
-         loadDataFromCloud();
-         if (typeof loadDashboard === 'function') loadDashboard();
-         if (typeof loadPage1ClassDropdown === 'function') loadPage1ClassDropdown(true);
-
+         // 關閉 Modal
          closeLoginModal();
+
+         // 🔥 第三件事：重新載入數據 (Await 確保次序)
+         await loadDataFromCloud();
+         if (typeof loadDashboard === 'function') await loadDashboard();
+         if (typeof loadPage1ClassDropdown === 'function') await loadPage1ClassDropdown(true);
     }
 
   } catch (err) {
