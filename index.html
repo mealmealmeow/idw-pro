@@ -9769,22 +9769,30 @@ async function loadSiblingProjects(classId, currentProjectId) {
 }
 
 // 2. 執行切換
+// [Pro-v9.8.1] 執行切換 (優化提示節奏)
 async function switchProject(newProjectId) {
     if (!newProjectId) return;
 
-    // A. 自動儲存當前進度
-    const saveBtn = document.querySelector('#floating-nav a[onclick*="cloud"]');
-    if(saveBtn) saveBtn.textContent = "💾";
+    // A. 視覺鎖定 (話俾老師知做緊野)
+    const switcherSelect = document.getElementById('project-switcher');
+    if(switcherSelect) switcherSelect.disabled = true;
     
     try {
-        await saveCurrentStudentData('cloud'); // 同步
-        if(typeof showToast === 'function') showToast("已儲存舊進度，正在切換...", "info");
+        // 1. 儲存舊進度 (會彈出 "☁️ 雲端同步完成")
+        // 我們這裡不需額外 Toast，因為 saveCurrentStudentData 本身會彈
+        await saveCurrentStudentData('cloud'); 
         
-        // B. 載入新作業
+        // 🔥 關鍵改動：人為延遲 0.8 秒
+        // 讓老師有時間睇清楚 "同步完成" 既 Toast，先至轉畫面
+        await new Promise(r => setTimeout(r, 800));
+        
+        // 2. 載入新作業 (會彈出 "已載入：XXX")
         await openAssignment(newProjectId);
         
     } catch (e) {
         alert("切換失敗：" + e.message);
+    } finally {
+        if(switcherSelect) switcherSelect.disabled = false;
     }
 }
 
