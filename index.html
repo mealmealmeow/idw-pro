@@ -8443,10 +8443,20 @@ async function deleteProject() {
 // [Pro-v7.1] 全域變數：捕捉網址 Hash (防止 Supabase 清除後遺失)
 const _globalHash = window.location.hash;
 
-// [Pro-v9.9.9] 檢查用戶 (v10.1-Fix: 極速開門版)
+// [Pro-v10.2] 檢查用戶 (防閃跳最終版：先隱藏輸入框，確認未登入才顯示)
 async function checkUser() {
   const gate = document.getElementById('login-gate');
+  // 獲取登入牆內的輸入區域
+  const gateInputGroup = document.querySelector('.gate-input-group');
   
+  // 🔥 步驟 0：即刻隱藏輸入框 (只留 Icon)，防止「殘影」
+  // 咁樣就算 Check 緊，老師都只會見到杯咖啡，唔會見到個 Form 彈出嚟又消失
+  if (gateInputGroup) {
+      gateInputGroup.style.transition = 'opacity 0.5s ease';
+      gateInputGroup.style.opacity = '0';
+      gateInputGroup.style.visibility = 'hidden'; 
+  }
+
   // 1. 檢查 Session
   const { data: { session }, error } = await supabaseClient.auth.getSession();
   
@@ -8456,11 +8466,10 @@ async function checkUser() {
   if (currentUser) {
       console.log("✅ 歡迎回來:", currentUser.email);
       
-      // 2. 🔥 關鍵改動：即刻開門！唔好等數據！
+      // 2. 有登入 -> 開門 (輸入框從未出現過，所以好順)
       if (gate) gate.classList.add('unlocked');
 
-      // 3. 後台靜靜雞刷新數據 (用戶已經入咗去，唔覺慢)
-      // 使用 Promise.all 並行處理，進一步加速
+      // 3. 後台靜靜雞刷新數據
       try {
           await Promise.all([
               loadDataFromCloud(),
@@ -8469,7 +8478,7 @@ async function checkUser() {
               (typeof loadAllClasses === 'function') ? loadAllClasses() : Promise.resolve()
           ]);
       } catch (e) {
-          console.warn("背景數據更新有少少問題，但不影響使用:", e);
+          console.warn("背景數據更新:", e);
       }
 
       // 4. 處理邀請連結
@@ -8485,7 +8494,17 @@ async function checkUser() {
       }
   } else {
       console.log("🔒 未登入，請先打卡。");
+      
+      // 5. 確定未登入 -> 先至顯示輸入框
       if (gate) gate.classList.remove('unlocked');
+      
+      if (gateInputGroup) {
+          // 加少少延遲，令佢 fade in 出嚟，感覺高級啲
+          setTimeout(() => {
+              gateInputGroup.style.visibility = 'visible';
+              gateInputGroup.style.opacity = '1';
+          }, 100);
+      }
   }
 }
 
@@ -10148,42 +10167,73 @@ function openRegisterModal() {
     }
 }
 
-// [Pro-v10.1] 忘記密碼 (加強檢查版)
+// [Pro-v10.2] 忘記密碼 (溫暖文案版)
 async function openForgotModal() {
     const emailInput = document.getElementById('gate-email');
     if(!emailInput) return;
     
     const email = emailInput.value.trim();
     if (!email) {
-        alert("請先在上方輸入您的電郵地址，方便我們寄送重設連結給您。");
+        // 使用自定義 Modal 提示，比 alert 更溫柔 (如果失敗會 fallback 去 alert)
+        if (typeof showCustomModal === 'function') {
+            showCustomModal({
+                icon: '📮',
+                title: '請輸入電郵',
+                desc: '請先在上方輸入您的電郵地址，\n我們才能把重設連結寄給您。',
+                confirmText: '好的'
+            });
+        } else {
+            alert("請先在上方輸入您的電郵地址。");
+        }
         emailInput.focus();
         return;
     }
     
-    if(!confirm(`確定要發送重設密碼郵件到：\n${email}\n\n(請檢查垃圾郵件箱)`)) return;
+    // 確認發送
+    const confirmSend = await new Promise(resolve => {
+        if (typeof showCustomModal === 'function') {
+            showCustomModal({
+                icon: '🔑',
+                title: '重設密碼',
+                desc: `我們將發送一封重設郵件到：\n${email}\n\n確定嗎？`,
+                confirmText: '發送吧',
+                cancelText: '取消'
+            }).then(resolve);
+        } else {
+            resolve(confirm(`確定要發送重設密碼郵件到：${email} 嗎？`));
+        }
+    });
+
+    if(!confirmSend) return;
 
     // 視覺反饋
     const link = document.querySelector('a[onclick="openForgotModal()"]');
     const originalText = link ? link.textContent : '忘記密碼？';
-    if(link) link.textContent = "發送中...";
+    if(link) link.textContent = "正在準備郵件... 🕊️";
 
     try {
         console.log("正在發送重設郵件至:", email);
-        console.log("Redirect URL:", window.location.href);
 
         const { data, error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-            redirectTo: window.location.href, // 確保重設後會跳返嚟呢一頁
+            redirectTo: window.location.href,
         });
 
         if (error) {
-            // 特別處理 Rate Limit 錯誤
-            if (error.message.includes("Rate limit")) {
-                throw new Error("發送太頻繁，請稍後再試 (約 1 分鐘後)。");
-            }
+            if (error.message.includes("Rate limit")) throw new Error("發送太頻繁了，請休息一分鐘再試。");
             throw error;
         }
 
-        alert(`✅ 郵件已發送！\n\n請前往 Email (${email}) 查收。\n(如收不到，請檢查 Spam/Junk Folder)`);
+        // 成功提示 (溫暖版)
+        if (typeof showCustomModal === 'function') {
+            showCustomModal({
+                icon: '✅',
+                title: '郵件已飛奔而出',
+                desc: `請前往 ${email} 查收。\n\n(如果找不到，它可能躲在垃圾郵件箱裡了 🗑️)`,
+                confirmText: '我去看看'
+            });
+        } else {
+            alert(`✅ 郵件已發送！\n請查收 ${email}。`);
+        }
 
     } catch (err) {
         console.error("Forgot Password Error:", err);
