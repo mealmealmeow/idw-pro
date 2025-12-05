@@ -126,70 +126,54 @@
   overflow: hidden; /* 確保圓角包住內容 */
 }
 
-/* 🟢 Type B: 巨型畫布 (Max Pop) - 終極鎖定版 */
+/* 🟢 Type B: 巨型畫布 (Max Pop) - 結構修正版 */
 .pop-modal.pop-modal-large {
-  /* 1. 尺寸鎖定：使用 dvh (動態視窗高度) 解決手機網址列問題 */
   width: 95vw;
   max-width: 1000px;
-  height: 90vh;        /* 電腦版高度 */
-  height: 90dvh;       /* 手機版動態高度 (關鍵！) */
-  max-height: 90dvh;   /* 絕對不能超過螢幕 */
   
-  /* 2. 佈局鎖定：Flex Column (垂直排列) */
+  /* 🔥 關鍵：限制最大高度，並預留邊距給系統 Bar */
+  height: auto;
+  max-height: 90vh;
+  max-height: 90dvh; /* 支援手機動態高度 */
+  
   display: flex;
   flex-direction: column;
   padding: 20px;
-  
-  /* 3. 溢出保護：防止圓角被內容切斷 */
-  overflow: hidden; 
+  overflow: hidden; /* 防止子元素撐爆圓角 */
 }
 
-/* 確保頭尾永遠顯示，不會被擠壓 */
+/* 讓 Header, 輸入框, Footer 都保持原狀，不准被壓縮 */
 .pop-modal.pop-modal-large h3,
 .pop-modal.pop-modal-large .pop-footer,
-.pop-modal.pop-modal-large .input-area-wrapper { 
+.pop-modal.pop-modal-large .input-area-wrapper, /* 這是輸入框 */
+.pop-modal.pop-modal-large .btn-toolbar {       /* 這是匯入按鈕列 */
   flex-shrink: 0; 
 }
 
-/* 捲動區域 (中間的餡料) */
+/* 只有中間的名單列表可以捲動 */
 .pop-scroll-area {
   text-align: left;
   background: #fdfbf7;
   border-radius: 12px;
   padding: 15px;
   
-  /* 🔥 核心修正：
-     flex-grow: 1 -> 自動佔滿剩餘空間
-     overflow-y: auto -> 只有這裡會出 Scroll Bar
-     min-height: 0 -> 防止 Flex 子元素無視高度限制 (Firefox/Chrome Bug fix)
-  */
-  flex-grow: 1;
+  /* 🔥 核心：自動佔滿剩餘空間，但溢出時捲動 */
+  flex-grow: 1; 
   overflow-y: auto;
-  min-height: 0; 
   
-  margin: 15px 0;
+  /* ⚠️ 重要：設定最小高度，防止在內容擁擠時消失 */
+  min-height: 100px; 
+  
+  margin: 10px 0; /* 減少 margin 慳位 */
   border: 1px solid #e1d8c8;
   box-shadow: inset 0 2px 6px rgba(0,0,0,0.03);
 }
 
-/* 手機版微調 */
-@media (max-width: 600px) {
-  .pop-modal.pop-modal-large {
-    width: 100vw;    /* 手機全寬 */
-    height: 100dvh;  /* 手機全高，更像一個獨立頁面 */
-    max-height: 100dvh;
-    border-radius: 0; /* 全螢幕時不需要圓角 */
-    padding: 15px;
-  }
-}
-
-/* 手機版特別處理 */
-@media (max-width: 600px) {
-  .pop-modal.pop-modal-large {
-    width: 98vw;    /* 手機版再闊啲 */
-    height: 95vh;   /* 用盡高度 */
-    max-height: 95vh;
-    padding: 12px;  /* 減少邊距 */
+/* 手機版：輸入框太高的話，強制縮細少少 */
+@media (max-height: 800px) {
+  .pop-modal.pop-modal-large .pop-input {
+    rows: 2 !important; /* 強制變矮 */
+    height: auto !important;
   }
 }
 
@@ -3147,7 +3131,7 @@
     <input type="hidden" id="manage-class-id">
 
     <!-- 工具列：下載範本 與 匯入 -->
-    <div style="display:flex; gap:10px; margin-bottom:15px; justify-content:center; flex-wrap:wrap;">
+    <div class="btn-toolbar" style="display:flex; gap:10px; margin-bottom:15px; justify-content:center; flex-wrap:wrap;">
       <!-- ✅ 這是 Page 8 專用的下載按鈕 -->
       <button class="btn light-btn" onclick="downloadMasterListTemplate()" style="font-size:0.85rem;">
         📥 下載 Excel 範本
@@ -7632,83 +7616,76 @@ function closeLoginModal() {
   if(modal) modal.classList.remove('active');
 }
 
-// [Pro-v2.1] 白名單邏輯實裝
+// [Pro-v9.5.3] 登入/註冊 (修復狀態同步問題)
 async function handlePasswordAuth(action) {
   const email = document.getElementById('login-email').value.trim();
   const password = document.getElementById('login-password').value.trim();
   const authStatus = document.getElementById('auth-status');
 
-  // 找出按鈕 (兼用於顯示 loading)
-  const btn = document.querySelector('#pop-login-modal .pop-btn-confirm'); // 這是登入按鈕
-  // 為了精準控制，我們重新獲取觸發事件的按鈕 (註冊或登入)
+  // 鎖定按鈕
   const targetBtn = event.target; 
   const originalText = targetBtn.innerText;
+  targetBtn.innerText = "連線中...";
+  targetBtn.disabled = true;
 
   if (!email || !password) {
     alert("請輸入 Email 及 密碼");
+    targetBtn.innerText = originalText;
+    targetBtn.disabled = false;
     return;
   }
 
-  // 鎖定 UI
-  targetBtn.innerText = "檢查中...";
-  targetBtn.disabled = true;
-  if(authStatus) authStatus.textContent = "處理中...";
-
   try {
-    // === 步驟 1: 如果是「註冊」，先檢查白名單 ===
+    // 1. 白名單檢查 (Signup Only)
     if (action === 'signup') {
-        const { data: whiteData, error: whiteError } = await supabaseClient
-            .from('whitelist')
-            .select('email')
-            .eq('email', email)
-            .maybeSingle(); // 查詢是否有一筆資料
-
-        if (whiteError) {
-            console.error("白名單檢查錯誤:", whiteError);
-            throw new Error("系統連線錯誤，無法驗證權限。");
-        }
-
+        const { data: whiteData } = await supabaseClient.from('whitelist').select('email').eq('email', email).maybeSingle();
         if (!whiteData) {
-            alert("⛔ 抱歉，此 Email 不在邀請名單內，無法註冊。\n\n目前僅開放受邀的測試人員使用。");
-            // 解鎖並離開
+            alert("⛔ 抱歉，此 Email 不在邀請名單內。");
             targetBtn.innerText = originalText;
             targetBtn.disabled = false;
-            if(authStatus) authStatus.textContent = "未連接";
             return; 
         }
     }
 
-    // === 步驟 2: 通過檢查，執行原本的 Supabase 驗證 ===
-    if (action === 'signup') {
-      const { data, error } = await supabaseClient.auth.signUp({ email, password });
-      if (error) throw error;
-      
-      if (data.user) {
-         if (typeof showToast === 'function') showToast("註冊成功！", "success");
-         else alert("註冊成功！");
-         closeLoginModal();
-         // 註冊成功後通常會自動登入，updateUI 會由監聽器處理
-      }
-    } else {
-      // --- 登入 ---
-      const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-      if (error) throw error;
+    // 2. 執行登入/註冊
+    let error = null;
+    let data = null;
 
-      if (typeof showToast === 'function') showToast("登入成功！", "success");
-      else alert("登入成功！");
-      closeLoginModal();
+    if (action === 'signup') {
+      const res = await supabaseClient.auth.signUp({ email, password });
+      error = res.error; data = res.data;
+    } else {
+      const res = await supabaseClient.auth.signInWithPassword({ email, password });
+      error = res.error; data = res.data;
+    }
+
+    if (error) throw error;
+
+    // 3. 成功處理 (關鍵修正)
+    if (data.user) {
+         if (typeof showToast === 'function') showToast("歡迎回來，老師。☕", "success");
+         
+         // 🔥 強制手動更新全域變數，不等 Listener
+         currentUser = data.user;
+         
+         // 🔥 立即刷新 UI (Header 狀態)
+         updateUIBasedOnAuthState();
+         
+         // 🔥 重新載入數據
+         loadDataFromCloud();
+         if (typeof loadDashboard === 'function') loadDashboard();
+         if (typeof loadPage1ClassDropdown === 'function') loadPage1ClassDropdown(true);
+
+         closeLoginModal();
     }
 
   } catch (err) {
     console.error(err);
-    alert("操作失敗：" + err.message);
-    if(authStatus) authStatus.textContent = "操作失敗";
+    alert("登入失敗：" + err.message);
   } finally {
-    // 無論成功失敗，最後解鎖按鈕
-    if(targetBtn) {
-        targetBtn.innerText = originalText;
-        targetBtn.disabled = false;
-    }
+    // 解鎖按鈕
+    targetBtn.innerText = originalText;
+    targetBtn.disabled = false;
   }
 }
 
