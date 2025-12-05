@@ -7579,86 +7579,88 @@ function closeLoginModal() {
   if(modal) modal.classList.remove('active');
 }
 
-// [Pro-v2.1] 白名單邏輯實裝
+
+// [Pro-v9.5.4] 登入/註冊 (暴力刷新版)
 async function handlePasswordAuth(action) {
   const email = document.getElementById('login-email').value.trim();
   const password = document.getElementById('login-password').value.trim();
-  const authStatus = document.getElementById('auth-status');
-
-  // 找出按鈕 (兼用於顯示 loading)
-  const btn = document.querySelector('#pop-login-modal .pop-btn-confirm'); // 這是登入按鈕
-  // 為了精準控制，我們重新獲取觸發事件的按鈕 (註冊或登入)
+  
+  // 鎖定按鈕
   const targetBtn = event.target; 
   const originalText = targetBtn.innerText;
+  targetBtn.innerText = "連線中...";
+  targetBtn.disabled = true;
 
   if (!email || !password) {
     alert("請輸入 Email 及 密碼");
+    targetBtn.innerText = originalText;
+    targetBtn.disabled = false;
     return;
   }
 
-  // 鎖定 UI
-  targetBtn.innerText = "檢查中...";
-  targetBtn.disabled = true;
-  if(authStatus) authStatus.textContent = "處理中...";
-
   try {
-    // === 步驟 1: 如果是「註冊」，先檢查白名單 ===
+    // 1. 白名單檢查 (Signup Only)
     if (action === 'signup') {
-        const { data: whiteData, error: whiteError } = await supabaseClient
-            .from('whitelist')
-            .select('email')
-            .eq('email', email)
-            .maybeSingle(); // 查詢是否有一筆資料
-
-        if (whiteError) {
-            console.error("白名單檢查錯誤:", whiteError);
-            throw new Error("系統連線錯誤，無法驗證權限。");
-        }
-
+        const { data: whiteData } = await supabaseClient.from('whitelist').select('email').eq('email', email).maybeSingle();
         if (!whiteData) {
-            alert("⛔ 抱歉，此 Email 不在邀請名單內，無法註冊。\n\n目前僅開放受邀的測試人員使用。");
-            // 解鎖並離開
+            alert("⛔ 抱歉，此 Email 不在邀請名單內。");
             targetBtn.innerText = originalText;
             targetBtn.disabled = false;
-            if(authStatus) authStatus.textContent = "未連接";
             return; 
         }
     }
 
-    // === 步驟 2: 通過檢查，執行原本的 Supabase 驗證 ===
-    if (action === 'signup') {
-      const { data, error } = await supabaseClient.auth.signUp({ email, password });
-      if (error) throw error;
-      
-      if (data.user) {
-         if (typeof showToast === 'function') showToast("註冊成功！", "success");
-         else alert("註冊成功！");
-         closeLoginModal();
-         // 註冊成功後通常會自動登入，updateUI 會由監聽器處理
-      }
-    } else {
-      // --- 登入 ---
-      const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-      if (error) throw error;
+    // 2. 執行登入/註冊
+    let error = null;
+    let data = null;
 
-      if (typeof showToast === 'function') showToast("登入成功！", "success");
-      else alert("登入成功！");
-      closeLoginModal();
+    if (action === 'signup') {
+      const res = await supabaseClient.auth.signUp({ email, password });
+      error = res.error; data = res.data;
+    } else {
+      const res = await supabaseClient.auth.signInWithPassword({ email, password });
+      error = res.error; data = res.data;
+    }
+
+    if (error) throw error;
+
+    // 3. 成功處理
+    if (data.user) {
+         // 🔥 第一件事：更新全域變數
+         currentUser = data.user;
+
+         // 🔥 第二件事：暴力更新 Header (不經過判斷邏輯)
+         const authStatus = document.getElementById('auth-status');
+         if(authStatus) {
+             authStatus.textContent = `已登入: ${data.user.email}`;
+             authStatus.style.backgroundColor = "rgba(90, 143, 123, 0.2)";
+         }
+         // 隱藏登入按鈕，顯示登出按鈕
+         if(document.getElementById('login-btn')) document.getElementById('login-btn').style.display = 'none';
+         if(document.getElementById('logout-btn')) document.getElementById('logout-btn').style.display = 'inline-flex';
+         if(document.getElementById('sync-btn')) document.getElementById('sync-btn').style.display = 'inline-flex';
+
+         // 顯示成功 Toast
+         if (typeof showToast === 'function') showToast("歡迎回來，老師。☕", "success");
+         
+         // 關閉 Modal
+         closeLoginModal();
+
+         // 🔥 第三件事：重新載入數據 (Await 確保次序)
+         await loadDataFromCloud();
+         if (typeof loadDashboard === 'function') await loadDashboard();
+         if (typeof loadPage1ClassDropdown === 'function') await loadPage1ClassDropdown(true);
     }
 
   } catch (err) {
     console.error(err);
-    alert("操作失敗：" + err.message);
-    if(authStatus) authStatus.textContent = "操作失敗";
+    alert("登入失敗：" + err.message);
   } finally {
-    // 無論成功失敗，最後解鎖按鈕
-    if(targetBtn) {
-        targetBtn.innerText = originalText;
-        targetBtn.disabled = false;
-    }
+    // 解鎖按鈕
+    targetBtn.innerText = originalText;
+    targetBtn.disabled = false;
   }
 }
-
 // 4. 處理忘記密碼
 async function handleForgotPassword() {
   const email = document.getElementById('login-email').value.trim();
