@@ -80,27 +80,25 @@
 }
 
 /* ========================================= */
-/* === [Pro-v9.5] 彈窗系統 (全套修復版) === */
+/* === [Pro-v9.6] 彈窗系統 (終極穩定版) === */
 /* ========================================= */
 
-/* 1. 底紙 (Overlay) - 網頁流佈局 */
+/* 1. 底紙 (Overlay) - 負責捲動與安全邊距 */
 .pop-overlay {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
   width: 100%; height: 100%;
   
-  background: rgba(47, 79, 79, 0.75); /* 深綠色背景 */
+  background: rgba(47, 79, 79, 0.75); /* Cozy Green */
   backdrop-filter: blur(8px);
   z-index: 2147483647;
   
-  /* 🔥 關鍵：容許 Overlay 本身捲動 */
+  /* 🔥 讓 Overlay 變成可捲動容器 */
   overflow-y: auto; 
-  
-  /* 使用 Block 佈局，避免 Flex 置中切斷頭尾 */
-  display: block; 
+  display: block; /* 使用 Block 佈局，避免 Flex 衝突 */
   
   /* 上下預留足夠空間，確保 Scroll 到最底一定見到按鈕 */
-  padding: 50px 20px 100px 20px; 
+  padding: 50px 20px 150px 20px; 
   box-sizing: border-box;
 }
 
@@ -109,49 +107,39 @@
   pointer-events: auto;
 }
 
-/* 2. 彈窗本體 (Base Modal) - 基礎樣式 (救回白底！) */
+/* 2. 彈窗本體 (Base Modal) - 小窗基礎 */
 .pop-modal {
-  background: #ffffff; /* 🔥 關鍵：白底回來了 */
+  background: #ffffff;
   border-radius: 20px;
   box-shadow: 0 25px 60px rgba(0,0,0,0.3);
   padding: 30px;
   
-  /* 尺寸設定 */
   width: 90%;
-  max-width: 440px; /* 預設是小窗 */
+  max-width: 440px; /* 預設小窗寬度 */
   
-  /* 定位設定 */
+  /* 定位：在 Block 容器中水平置中 */
+  margin: 0 auto; 
   position: relative;
-  margin: auto; /* 在 Flex 容器中自動置中 */
-  flex-shrink: 0; /* 防止被壓縮 */
   
   text-align: center;
   color: #4a4a4a;
   transform: scale(0.95);
   transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  
+  /* 確保內容撐開 */
+  height: auto;
 }
 
-/* 2. 彈窗本體 (Max Pop) - 自然高度 */
+/* 3. 特大彈窗 (Max Pop) - 覆蓋基礎設定 */
 .pop-modal.pop-modal-large {
-  /* 寬度設定 */
   width: 95%;
   max-width: 900px;
   
-  /* 🔥 高度設定：Auto！讓內容自然撐開，唔好鎖死 */
-  height: auto !important; 
+  /* 🔥 關鍵：只設定 min-height，讓它自然長高 */
   min-height: 400px;
+  height: auto !important; 
   max-height: none !important;
   
-  /* 定位：利用 Margin 自動置中 (水平) */
-  margin: 0 auto; 
-  position: relative;
-  
-  background: #fff;
-  border-radius: 20px;
-  box-shadow: 0 25px 60px rgba(0,0,0,0.3);
-  padding: 30px;
-  
-  /* 內部佈局 */
   display: flex;
   flex-direction: column;
 }
@@ -182,20 +170,51 @@
   line-height: 1.5;
 }
 
-/* 3. 中間名單區 - 限制高度 */
+/* 5. 列表捲動區 (List Area) */
 .pop-scroll-area {
+  text-align: left;
   background: #fdfbf7;
   border-radius: 12px;
   padding: 15px;
-  border: 1px solid #e1d8c8;
   
   /* 給名單一個合理的高度上限 (螢幕一半)，名單內自己捲動 */
-  /* 這樣即使名單好長，彈窗都唔會無限長 */
+  /* 如果螢幕太細，外面的 Overlay 也可以捲動 */
   height: auto;
   max-height: 50vh; 
   overflow-y: auto;
   
   margin: 15px 0;
+  border: 1px solid #e1d8c8;
+  box-shadow: inset 0 2px 6px rgba(0,0,0,0.03);
+}
+
+/* 6. 輸入框修復 */
+.pop-input, 
+.input-area-wrapper textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 15px;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  font-size: 16px;
+  outline: none;
+  font-family: inherit;
+  margin-bottom: 10px;
+  background-color: #fff;
+  
+  height: auto; 
+  min-height: 50px; 
+}
+
+.input-area-wrapper textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.pop-input:focus,
+.input-area-wrapper textarea:focus {
+  border-color: #F2C037;
+  background-color: #fffdf8;
 }
 
 /* 手機適配 */
@@ -203,6 +222,7 @@
   .pop-overlay { padding: 20px 10px 120px 10px; }
   .pop-modal { padding: 20px; }
   .pop-modal.pop-modal-large { width: 100%; border-radius: 16px; }
+  .pop-icon { display: none; }
 }
 
 .pop-btn {
@@ -272,7 +292,11 @@
   resize: vertical;  /* 容許用戶拉大 */
 }
 
-
+.pop-input:focus,
+.input-area-wrapper textarea:focus {
+  border-color: #F2C037; /* Pop Art 黃色 Focus */
+  background-color: #fffdf8;
+}
 
 
   /* --- 文青風色彩與字體定義 --- */
