@@ -2701,18 +2701,14 @@
                 </div>
             </div>
 
-            <!-- [Pro-v6.0] 雙模儲存按鈕 -->
+           <!-- [Pro-v9.4-FunctionalFix] 單一同步按鈕 -->
 <div class="btn-group" style="justify-content: center; gap: 15px;">
-    <!-- 按鈕 1：只存本地 -->
-    <button class="secondary-btn" onclick="saveCurrentStudentData('local')" title="只儲存於瀏覽器，不需網絡">
-        💾 暫存草稿
-    </button>
-    
-    <!-- 按鈕 2：同步上雲 -->
+    <!-- 只保留同步按鈕 -->
     <button class="action-btn" onclick="saveCurrentStudentData('cloud')" title="儲存並同步至雲端資料庫">
         ☁️ 同步上雲
     </button>
     
+    <!-- 清空按鈕 -->
     <button class="action-btn clear-all" onclick="confirmUI('確定清空當前所有輸入？', () => clearAllCore())">
         清空
     </button>
@@ -8289,7 +8285,7 @@ async function loadAllClasses() {
     }
 }
 
-// [Pro-v6.11] 新增班級 (自動跳轉管理名單)
+// [Pro-v9.4-FunctionalFix] 新增班級 (修正 Page 1 同步問題)
 async function createNewClass() {
     if (!currentUser) {
         showCustomModal({ icon:'🔒', title:'請先登入', desc:'班級管理需要雲端同步功能。', confirmText:'去登入' })
@@ -8324,7 +8320,7 @@ async function createNewClass() {
     if (!className) return;
 
     try {
-        // 4. 寫入 Database 並獲取回傳資料 (select)
+        // 4. 寫入 Database
         const { data, error } = await supabaseClient
             .from('classes')
             .insert([{ 
@@ -8332,15 +8328,18 @@ async function createNewClass() {
                 academic_year: inputYear.trim(),
                 class_name: className.trim()
             }])
-            .select() // 🔥 關鍵：要拿回 ID
+            .select()
             .single();
 
         if (error) throw error;
 
-        // 5. 成功後，先刷新列表，然後直接打開管理名單
-        await loadAllClasses(); 
+        // 5. 成功後的動作
+        await loadAllClasses(); // 刷新 Page 8 列表
         
-        // 🔥 自動打開管理名單，不用老師再點
+        // 🔥 核心修正：強制刷新 Page 1 的下拉選單
+        await loadPage1ClassDropdown(true); 
+
+        // 自動打開管理名單
         manageStudents(data.id, data.class_name);
         
         if (typeof showToast === 'function') showToast("班級已建立，請輸入學生名單", "success");
@@ -8350,6 +8349,7 @@ async function createNewClass() {
         showCustomModal({ icon:'❌', title:'建立失敗', desc: error.message });
     }
 }
+
 // [Pro-v6.3] 刪除班級 (自訂 UI)
 async function deleteClass(classId, className) {
     const confirmDelete = await showCustomModal({
@@ -8411,7 +8411,7 @@ function toggleSetupMode() {
     }
 }
 
-// [Pro-v2.3] 下拉選單 (支援強制刷新)
+// [Pro-v9.4-FunctionalFix] 下拉選單 (支援強制刷新)
 async function loadPage1ClassDropdown(forceRefresh = false) {
     const select = document.getElementById('setup-class-select');
     if (!select) return;
@@ -8421,7 +8421,7 @@ async function loadPage1ClassDropdown(forceRefresh = false) {
         return;
     }
     
-    // 如果不是強制刷新，且已經有資料，就跳過 (節省資源)
+    // 🔥 修正重點：如果不是強制刷新 (forceRefresh == false)，且已有資料，才跳過
     if (!forceRefresh && select.options.length > 1) return; 
 
     select.innerHTML = '<option>讀取中...</option>';
@@ -8436,8 +8436,8 @@ async function loadPage1ClassDropdown(forceRefresh = false) {
 
         if (error) throw error;
 
-        if (classes.length === 0) {
-            select.innerHTML = '<option value="">(暫無班級，請去班級管理建立)</option>';
+        if (!classes || classes.length === 0) {
+            select.innerHTML = '<option value="">(暫無班級)</option>';
             return;
         }
 
