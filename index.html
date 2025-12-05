@@ -4775,87 +4775,100 @@ function concretizeExample(id, rawExample) {
   return lines.slice(0, 2);
 }
 
+// [Pro-v9.9.3] 學生姓名解析器 (源頭強力清潔版)
 function parseStudentName(rawName) {
-    const match = rawName.trim().match(/^(\d+)[-\s._]*(.*)$/);
+    if (!rawName) return { number: null, name: '', originalName: '' };
+
+    // 🔥 1. 第一步：暴力移除所有狀態 Icon (無論在頭定尾)
+    // 包含：綠剔、白波、磁碟、各種空格
+    let cleanRaw = rawName.replace(/[✅⚪💾]/g, '').trim();
+
+    // 2. 第二步：標準解析 (分離學號與姓名)
+    // 支援格式： "01 陳大文", "1. 陳大文", "01-陳大文"
+    const match = cleanRaw.match(/^(\d+)[-\s._]*(.*)$/);
+    
     if (match) {
         return {
             number: parseInt(match[1], 10),
-            name: match[2].trim(),
-            originalName: rawName.trim()
+            name: match[2].trim(), // 這是乾淨的姓名
+            originalName: cleanRaw // 這是去除了 Icon 的原始字串 (用於對照)
         };
     }
+    
+    // 只有姓名，沒有學號
     return {
         number: null,
-        name: rawName.trim(),
-        originalName: rawName.trim()
+        name: cleanRaw,
+        originalName: cleanRaw
     };
 }
 
-// [Pro-v9.9.1] 更新學生選單 (加入狀態紅綠燈)
+// [Pro-v9.9.3] 更新學生選單 (簡化版 - 依賴源頭清潔)
 function updateStudentDropdown() {
   const namesText = document.getElementById('student-names').value;
   const studentSelect = document.getElementById('student-select');
   
-  // 1. 解析名單
+  // 1. 解析名單 (現在 parseStudentName 會自動殺死 Icon)
   let parsedNames = namesText.split('\n')
       .map(name => parseStudentName(name))
       .filter(p => p.name);
 
-  // 使用共用排序
+  // 排序
   sortStudents(parsedNames);
 
-  // 2. 更新全域變數 (保留現有數據)
+  // 2. 同步全域變數 (保留 Data)
   const oldRecords = [...allStudentRecords];
   allStudentRecords = parsedNames.map(p => {
+    // 用 "乾淨的名字" 去找舊紀錄
     const existingRecord = oldRecords.find(r => r.originalName === p.originalName);
     return existingRecord || { ...p, data: null, dbId: existingRecord?.dbId || null };
   });
 
-  // 3. 渲染選單 (Status Logic)
+  // 3. 渲染 UI
   const currentSelected = studentSelect.value;
   studentSelect.innerHTML = parsedNames.length === 0 ? '<option value="">請先在上方輸入學生名單</option>' : '';
   
   let newSelectionExists = false;
-  
-  // 統計進度
-  let doneCount = 0;
 
   parsedNames.forEach(p => {
     const record = allStudentRecords.find(r => r.originalName === p.originalName);
     const option = document.createElement('option');
-    option.value = p.originalName;
+    option.value = p.originalName; // 這是乾淨的 Value
     
-    // --- 狀態判斷核心 ---
-    let icon = '⚪'; // 預設：未改 (白波)
-    let statusClass = '';
+    // --- 狀態判斷 ---
+    let icon = '⚪'; // 預設白波
+    let statusColor = '';
+    let isBold = false;
 
     if (record && record.data) {
-        // 如果有數據 (檢查是否有分數或評語)
         const hasScore = record.data.scores && record.data.scores.total;
         const hasComment = record.data.pureStudentComment;
         
         if (hasScore || hasComment) {
             if (record.dbId) {
-                icon = '✅'; // 已上雲 (綠剔)
-                option.style.color = '#2e7d32'; // 電腦版顯示綠字
-                option.style.fontWeight = 'bold';
+                icon = '✅'; 
+                statusColor = '#2e7d32'; // 綠色
+                isBold = true;
             } else {
-                icon = '💾'; // 本地暫存 (磁碟)
-                option.style.color = '#f57f17'; // 電腦版顯示橙字
+                icon = '💾';
+                statusColor = '#f57f17'; // 橙色
             }
-            doneCount++;
         }
     }
-    // ------------------
 
-    // 補零顯示學號
+    // 補零顯示
     let displayName = p.name;
     if (p.number !== null) {
         const paddedNum = p.number.toString().padStart(2, '0');
         displayName = `${paddedNum} ${p.name}`;
     }
     
+    // 組合：Icon + 乾淨名字
     option.textContent = `${icon} ${displayName}`;
+    
+    // 樣式
+    if(statusColor) option.style.color = statusColor;
+    if(isBold) option.style.fontWeight = 'bold';
     
     studentSelect.appendChild(option);
     
@@ -4864,19 +4877,13 @@ function updateStudentDropdown() {
     }
   });
 
-  // 4. 更新選單標題 (顯示進度)
-  // 如果支援的話，可以在 select label 顯示進度，或者這裡做一個 Log
-  // console.log(`進度：${doneCount} / ${parsedNames.length}`);
-
   if (newSelectionExists) {
       studentSelect.value = currentSelected;
   } else if (studentSelect.options.length > 0) {
-      // 預設選第一個
       studentSelect.selectedIndex = 0;
       loadStudentData(studentSelect.value);
   }
   
-  // 觸發其他 UI 更新
   updateAllOutputs();
   renderStudentOverviewTable();
   updateHeaderInfo();
