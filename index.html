@@ -3507,48 +3507,42 @@ scroll-margin-top: 180px; /* 手機版 Header 疊起來比較高 */
   </div>
 </div>
 
-<!-- ✅✅✅ 貼上結束 ✅✅✅ -->
-<!-- ================================================= -->
-<!-- [Pro-v9.9.7] 登入牆 (強制置頂版) -->
-<!-- ================================================= -->
-<!-- 修改前： <div id="login-gate" class="login-gate"> (或其他版本) -->
-<!-- 修改後 (請 Copy 呢行取代)： -->
-<div id="login-gate" class="login-gate" style="display: none; transition: none !important; opacity: 1; visibility: visible;">
+<!-- [Pro-v10.7] 重置版登入牆 HTML (預設隱藏，修復版面) -->
+<div id="login-gate" class="login-gate" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(47, 79, 79, 0.95); backdrop-filter: blur(10px); z-index: 99999; justify-content: center; align-items: center;">
+  <div class="pop-modal gate-card" style="background: rgba(255, 255, 255, 0.95); box-shadow: 0 40px 100px rgba(0,0,0,0.5); border-radius: 24px; padding: 40px; width: 100%; max-width: 480px; display: flex; flex-direction: column; align-items: center;">
     
-    <div style="font-size: 2.5rem; margin-bottom: 5px;">☕️</div>
-    <h2 style="color: #3d5c4f; font-size: 1.5rem; margin: 5px 0 10px 0;">我不想努力了 Pro</h2>
-    <p style="color: #666; font-size: 0.9rem; margin-bottom: 20px;">願您的週末，有一杯熱咖啡的時間。</p>
+    <div style="font-size: 3rem; margin-bottom: 10px;">☕️</div>
+    <h2 style="color: #3d5c4f; font-size: 1.6rem; margin: 5px 0 10px 0; font-weight: bold;">我不想努力了 Pro</h2>
+    <p style="color: #666; font-size: 0.95rem; margin-bottom: 25px;">願您的週末，有一杯熱咖啡的時間。</p>
     
-    <div class="gate-input-group">
-        <label style="display:block; color:#888; font-size:0.85rem; margin-bottom:5px; text-align: left;">電郵地址 (Email)</label>
-        <input type="text" id="gate-email" class="pop-input" style="margin-bottom:15px; width: 100%;">
+    <div class="gate-input-group" style="width: 100%; text-align: left;">
+        <label style="display:block; color:#888; font-size:0.85rem; margin-bottom:5px; font-weight: bold;">電郵地址 (Email)</label>
+        <input type="text" id="gate-email" class="pop-input" style="width: 100%; margin-bottom: 15px; box-sizing: border-box;" placeholder="name@example.com">
         
-        <label style="display:block; color:#888; font-size:0.85rem; margin-bottom:5px; text-align: left;">密碼 (Password)</label>
-        <input type="password" id="gate-password" class="pop-input" style="margin-bottom:5px; width: 100%;">
+        <label style="display:block; color:#888; font-size:0.85rem; margin-bottom:5px; font-weight: bold;">密碼 (Password)</label>
+        <input type="password" id="gate-password" class="pop-input" style="width: 100%; margin-bottom: 5px; box-sizing: border-box;" placeholder="••••••••">
         
         <div style="text-align: right; margin-bottom: 25px;">
-             <a href="javascript:void(0)" onclick="openForgotModal()" style="color:#999; font-size: 0.8rem; text-decoration:underline;">忘記密碼？</a>
+             <a href="javascript:void(0)" onclick="openForgotModal()" style="color:#888; font-size: 0.8rem; text-decoration:underline;">忘記密碼？</a>
         </div>
         
         <button class="pop-btn pop-btn-confirm" 
-                style="width:100%; max-width:100%; margin: 0 auto; display: block; text-align: center; padding:12px; font-size:1.1rem; box-shadow: 0 10px 20px rgba(242, 192, 55, 0.3);" 
+                style="width:100%; padding:12px; font-size:1.1rem; background: #F2C037; color: #fff; border: none; border-radius: 99px; cursor: pointer; box-shadow: 0 4px 15px rgba(242, 192, 55, 0.4);" 
                 onclick="handleGateAuth()">
              進入你的愜意工作咖啡廳 🥐
         </button>
 
         <div style="margin-top: 20px; text-align: center;">
             <a href="https://forms.gle/你的GoogleFormID" target="_blank" 
-               style="color: #5A8F7B; font-weight: bold; text-decoration: none; border-bottom: 1px dashed #5A8F7B; font-size: 0.9rem; transition: all 0.2s;" 
-               onmouseover="this.style.color='#3d5c4f'; this.style.borderBottomStyle='solid'" 
-               onmouseout="this.style.color='#5A8F7B'; this.style.borderBottomStyle='dashed'">
+               style="color: #5A8F7B; font-size: 0.9rem; text-decoration: none; border-bottom: 1px dashed #5A8F7B;">
                 尚未持有通行證？申請成為咖啡廳常客🤍
             </a>
         </div>
     </div>
 
-    <div style="margin-top: 25px; font-size: 0.85rem; background: rgba(90,143,123,0.08); padding: 10px 15px; border-radius: 99px;">
+    <div style="margin-top: 30px; font-size: 0.85rem; background: rgba(90,143,123,0.1); padding: 8px 15px; border-radius: 99px;">
         <a href="http://idw-lite.vercel.app" target="_blank" style="color:#555; text-decoration:none;">
-            只需單次批改？ <span style="color:#8d775f; font-weight:bold;">🌱 前往輕量版 (Lite) 試用</span>
+            只需單次批改？ <span style="color:#3d5c4f; font-weight:bold;">🌱 前往輕量版 (Lite) 試用</span>
         </a>
     </div>
 
@@ -3676,7 +3670,7 @@ function updateHeaderInfo() {
 
 
 
-// 修正版登出 (v10.6: 登出即時彈牆，無動畫)
+// 修正版登出 (v10.7-Fix: Flex 佈局)
 async function handleLogout() {
   if (!confirm("確定要登出嗎？所有未同步的變更將會遺失。")) return;
 
@@ -3705,13 +3699,12 @@ async function handleLogout() {
     
     if (typeof loadDashboard === 'function') loadDashboard();
     
-    // 🔥 核心修復：登出後，強制硬切顯示 (Instant Show)
+    // 🔥 核心修復：登出後使用 Flex 顯示，保持置中
     const gate = document.getElementById('login-gate');
     if (gate) {
-        gate.style.display = 'flex';
+        gate.style.display = 'flex'; 
         gate.classList.remove('unlocked');
         
-        // 重置輸入框
         if(document.getElementById('gate-email')) document.getElementById('gate-email').value = '';
         if(document.getElementById('gate-password')) document.getElementById('gate-password').value = '';
     }
@@ -8442,7 +8435,7 @@ async function deleteProject() {
 // [Pro-v7.1] 全域變數：捕捉網址 Hash (防止 Supabase 清除後遺失)
 const _globalHash = window.location.hash;
 
-// [Pro-v10.6] 檢查用戶 (硬切版：無動畫，無 Fade-in)
+// [Pro-v10.7] 檢查用戶 (Layout Fix: 使用 Flex 顯示)
 async function checkUser() {
   const gate = document.getElementById('login-gate');
   
@@ -8455,8 +8448,7 @@ async function checkUser() {
   if (currentUser) {
       console.log("✅ 歡迎回來:", currentUser.email);
       
-      // 2. 已登入：保持 display: none (HTML 預設)，確保絕對無殘影
-      // 雙重保險：
+      // 2. 已登入：隱藏
       if (gate) gate.style.display = 'none';
 
       // 3. 數據同步
@@ -8481,12 +8473,12 @@ async function checkUser() {
           }, 1000);
       }
   } else {
-      console.log("🔒 未登入，立即顯示登入牆。");
+      console.log("🔒 未登入，顯示登入牆。");
       
-      // 5. 未登入：硬切顯示 (Instant Show)
+      // 5. 未登入：使用 Flex 顯示 (關鍵！否則會散開)
       if (gate) {
-          gate.style.display = 'flex';
-          gate.classList.remove('unlocked'); // 確保 CSS 唔會搞事
+          gate.style.display = 'flex'; 
+          gate.classList.remove('unlocked');
       }
   }
 }
@@ -10094,7 +10086,7 @@ async function switchProject(newProjectId) {
 }
 
 
-// [Pro-v10.6] 登入牆按鈕 (登入成功即刻隱藏)
+// [Pro-v10.7] 登入牆按鈕 (登入成功隱藏)
 async function handleGateAuth() {
     const email = document.getElementById('gate-email').value.trim();
     const password = document.getElementById('gate-password').value.trim();
@@ -10118,7 +10110,7 @@ async function handleGateAuth() {
             
             if (typeof showToast === 'function') showToast("歡迎回來，老師。", "success");
             
-            // 🔥 關鍵：立即隱藏 (Instant Hide)
+            // 🔥 關鍵：立即隱藏
             const gate = document.getElementById('login-gate');
             if(gate) gate.style.display = 'none';
 
@@ -10131,6 +10123,9 @@ async function handleGateAuth() {
         btn.disabled = false;
     }
 }
+
+
+
 // B. 打開註冊視窗 (借用原本的 Pop-up，浮在牆上面)
 function openRegisterModal() {
     // 這裡我們直接打開原本的登入/註冊 Modal，並切換狀態
