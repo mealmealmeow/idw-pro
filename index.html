@@ -280,64 +280,72 @@
 
 
   /* --- 文青風色彩與字體定義 --- */
- /* --- [v10.3] Cozy 視覺系統 (The Foundation) --- */
   :root {
-    /* 背景與層次 */
-    --primary-bg: #f3f4f6;       /* 全局背景：Cozy Grey */
-    --secondary-bg: #ffffff;     /* 卡片背景：純白 */
-    
-    /* 品牌色 */
-    --accent-color: #5A8F7B;     /* 抹茶綠 */
-    --accent-color-soft: #eaf4f0; /* 極淡抹茶 (Hover/Active) */
-    
-    /* 文字 */
-    --text-color: #374151;       /* 深灰 (比純黑更柔和) */
-    --text-light: #6b7280;       /* 次要文字 */
-    --title-color: #1f2937;      /* 標題黑 */
-    
-    /* 邊框與裝飾 */
-    --border-color: #e5e7eb;     /* 淺灰邊框 */
-    --radius-lg: 16px;           /* 大圓角 (卡片) */
-    --radius-md: 12px;           /* 中圓角 (按鈕) */
-    
-    /* 陰影 (Elevation) */
-    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.03);
+    --primary-bg: #f7f3eb;       /* 主背景色 - 溫潤米白偏灰 */
+    --secondary-bg: #fcfaf6;     /* 卡片背景 - 柔和奶油白 */
+    --text-color: #5b5044;       /* 主要文字 - 深啡灰 */
+    --border-color: #e1d8c8;     /* 邊框色 - 淺亞麻色 */
+    --accent-color: #5A8F7B;     /* 主題色/強調色 - 沉靜灰綠 */
+    --accent-color-soft: #cfe3d9;
+    --title-color: #3d5c4f;      /* 標題色 - 深灰綠 */
+    --header-bg: linear-gradient(120deg, #5A8F7B, #93b8a5); /* 頁首背景漸層 */
+    --nav-bg: #f1ece4;           /* 導航背景 - 亞麻色 */
+    --nav-active-bg: #5A8F7B;    /* 導航啟用背景 - 主題色 */
+    --nav-active-color: #fff;    /* 導航啟用文字 - 白色 */
+    --problem-color: #c86a5a;    /* 問題/待改進 - 柔和磚紅 */
+    --excellent-color: #7a9e78;  /* 優點/佳作 - 沉穩橄欖綠 */
+    --copy-success-bg: #5f9f80;  /* 複製成功 - 稍亮綠色 */
+    --modal-bg: rgba(0,0,0,0.28);
+    --modal-card-bg: #fffdf8;
+    --shadow-color: rgba(52, 43, 32, 0.10); /* 陰影顏色 */
+    --btn-brown-bg: #a18b73;     /* 啡色按鈕背景 */
+    --btn-brown-hover: #8f7a63;
+    --dashed-box-bg: #f9fbff;    /* 虛線框背景色 */
+    --empty-state-bg: #f7f2ea;   /* 空狀態背景色 */
+    --empty-state-text: #93897a; /* 空狀態文字顏色 */
+    --missing-bg: #fff0f0;       /* 未填寫學生背景色 - 淡粉紅 */
+    --missing-text: #c86a5a;     /* 未填寫學生文字顏色 */
+    --danger-bg-soft: #fef2f2;
+    --danger-border-soft: #fecaca;
 
-    --transition-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    --radius-lg: 14px;
+    --radius-md: 10px;
+    --radius-sm: 6px;
+    --transition-fast: 0.18s ease-out;
+    --transition-normal: 0.25s ease-out;
+  }
+  
+  html { 
+    scroll-behavior: smooth; 
+    font-size: 16px;
   }
 
   body {
-    font-family: 'LXGW WenKai TC', sans-serif; /* 全局強制文楷體 */
-    background-color: var(--primary-bg);
+    font-family: 'LXGW WenKai TC', -apple-system, BlinkMacSystemFont, "Segoe UI",
+                 system-ui, sans-serif;
+    line-height: 1.7;
+    letter-spacing: 0.04em;
+    background: radial-gradient(circle at top left, #faf3e4, #f5f3ef 55%, #f1f5f4);
     color: var(--text-color);
     margin: 0;
     padding: 0;
-    line-height: 1.6;
-    -webkit-font-smoothing: antialiased; /* 字體平滑 */
+    font-size: 1rem;
   }
 
-  /* 主容器卡片化 */
+  /* ===== 容器 & Header ===== */
+
   .main-container { 
-    max-width: 1100px; /* 稍微收窄，閱讀感更好 */
-    margin: 2rem auto; 
+    max-width: 1200px;
+    margin: 2rem auto 2.5rem; 
     background-color: var(--secondary-bg); 
-    border-radius: 24px; /* 更大的圓角 */
-    box-shadow: var(--shadow-lg);
-    border: 1px solid rgba(255,255,255,0.8);
+    box-shadow: 0 18px 45px var(--shadow-color); 
+    border-radius: 20px; 
     overflow: hidden;
-    min-height: 85vh; /* 確保有份量感 */
+    border: 1px solid rgba(255,255,255,0.7);
+    backdrop-filter: blur(10px);
+    position: relative; /* 新增，為懸浮導覽提供相對定位（雖然目前用fixed） */
   }
-  
-  /* 手機版適配 */
-  @media (max-width: 600px) {
-    .main-container {
-        margin: 0;
-        border-radius: 0;
-        box-shadow: none;
-    }
-  }
+
   .sticky-top-bar {
     position: sticky;
     top: 0;
