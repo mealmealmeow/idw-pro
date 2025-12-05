@@ -2415,6 +2415,37 @@ scroll-margin-top: 180px; /* 手機版 Header 疊起來比較高 */
   margin-top: 4px;
 }
 
+/* 登入牆專用樣式 */
+.login-gate {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  
+  /* 深綠色背景 + 強力模糊 (營造沉浸感) */
+  background: rgba(47, 79, 79, 0.92); 
+  backdrop-filter: blur(12px); 
+  
+  z-index: 2147483647; /* 確保在最上層 */
+  
+  /* Flex 置中 */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  
+  /* 過場動畫 */
+  transition: opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1), visibility 0.8s;
+  opacity: 1;
+  visibility: visible;
+}
+
+/* 開門動畫 (Fade Out) */
+.login-gate.unlocked {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+
 </style>
 </head>
 <body>
@@ -3351,7 +3382,7 @@ scroll-margin-top: 180px; /* 手機版 Header 疊起來比較高 */
 <!-- 自定義登入 Modal (Email + 密碼 + 忘記密碼版) -->
 <div id="pop-login-modal" class="pop-overlay">
   <div class="pop-modal">
-    <div class="pop-icon">☕️</div>
+    <div class="pop-icon">🔐</div>
     <h3>帳戶登入</h3>
     <p class="pop-desc">
       請使用 Email 及密碼登入。<br>
@@ -3428,6 +3459,48 @@ scroll-margin-top: 180px; /* 手機版 Header 疊起來比較高 */
 </div>
 
 <!-- ✅✅✅ 貼上結束 ✅✅✅ -->
+<!-- ================================================= -->
+<!-- [Pro-v9.9.6] 登入牆 (The Cozy Gate) -->
+<!-- ================================================= -->
+<div id="login-gate" class="login-gate">
+  <!-- 卡片本體 -->
+  <div class="pop-modal" style="max-width: 400px; margin: auto; display: block; border: none; box-shadow: 0 25px 50px rgba(0,0,0,0.25);">
+    
+    <!-- ☕️ 溫暖 Icon -->
+    <div style="font-size: 3.5rem; margin-bottom: 10px;">☕️</div>
+    
+    <h2 style="margin: 0 0 5px 0; color:#3d5c4f; font-weight: 700; letter-spacing: 1px;">我不想努力了 Pro</h2>
+    <p style="color:#8c867a; font-size: 0.9rem; margin-bottom: 25px;">
+        願您的週末，有一杯熱咖啡的時間。
+    </p>
+    
+    <!-- 登入輸入區 -->
+    <div style="text-align:left;">
+        <label style="font-size:0.8rem; color:#888; margin-left:4px;">電郵地址 (Email)</label>
+        <input type="text" id="gate-email" class="pop-input" style="margin-bottom:12px;">
+        
+        <label style="font-size:0.8rem; color:#888; margin-left:4px;">密碼 (Password)</label>
+        <input type="password" id="gate-password" class="pop-input" style="margin-bottom:20px;">
+        
+        <!-- 主按鈕 -->
+        <button class="pop-btn pop-btn-confirm" style="width:100%; max-width:100%; padding:12px; font-size:1.1rem; box-shadow: 0 8px 20px rgba(242, 192, 55, 0.25);" onclick="handleGateAuth()">
+            進入 Pro 版
+        </button>
+    </div>
+
+    <!-- 輔助功能區 (分開兩行) -->
+    <div style="margin-top: 25px; padding-top: 15px; border-top: 1px dashed #e1d8c8; font-size: 0.9rem; display: flex; justify-content: space-between;">
+        <a href="javascript:void(0)" onclick="openRegisterModal()" style="color:#5A8F7B; font-weight:bold; text-decoration:none;">📝 申請註冊</a>
+        <a href="javascript:void(0)" onclick="openForgotModal()" style="color:#888; text-decoration:underline;">忘記密碼？</a>
+    </div>
+
+    <!-- 免費版分流 -->
+    <div style="margin-top: 15px; font-size: 0.85rem; background: #fdfbf7; padding: 8px; border-radius: 8px;">
+        只是想簡單改文？<br>
+        <a href="http://idw-free.vercel.app" target="_blank" style="color:#8d775f; font-weight:bold; text-decoration:underline;">前往免費版 (Lite) 👉</a>
+    </div>
+  </div>
+</div>
 
 <script>
 
@@ -8268,28 +8341,28 @@ async function deleteProject() {
 // [Pro-v7.1] 全域變數：捕捉網址 Hash (防止 Supabase 清除後遺失)
 const _globalHash = window.location.hash;
 
-// [Pro-v9.9.5] 檢查用戶 (門衛版 - The Gatekeeper)
+// [Pro-v9.9.6] 檢查用戶 (門衛邏輯)
 async function checkUser() {
   const gate = document.getElementById('login-gate');
   
-  // 檢查 Supabase Session
+  // 1. 檢查 Session
   const { data: { session }, error } = await supabaseClient.auth.getSession();
   
   currentUser = session ? session.user : null;
   updateUIBasedOnAuthState();
 
   if (currentUser) {
-      console.log("✅ 驗證通過，開門。");
+      console.log("✅ 歡迎回來:", currentUser.email);
       
-      // 🔥 核心動作：開門 (Fade Out)
+      // 2. 有登入 -> 開門 (滑開遮罩)
       if (gate) gate.classList.add('unlocked');
 
-      // 載入數據
+      // 3. 載入數據
       loadDataFromCloud();
       if (typeof loadDashboard === 'function') loadDashboard();
       if (typeof loadPage1ClassDropdown === 'function') loadPage1ClassDropdown();
       
-      // 處理邀請 (保留原有邏輯)
+      // 4. 處理邀請連結 (如果有的話)
       if (_globalHash && _globalHash.includes('type=invite')) {
           setTimeout(() => {
               const pwdModal = document.getElementById('pop-reset-password-modal');
@@ -8301,12 +8374,9 @@ async function checkUser() {
           }, 1000);
       }
   } else {
-      console.log("🔒 未登入，關門。");
+      console.log("🔒 未登入，請先打卡。");
       // 確保門是關的
       if (gate) gate.classList.remove('unlocked');
-      
-      // 背景稍微載入 Dashboard (雖然睇唔到，但預載定)
-      if (typeof loadDashboard === 'function') loadDashboard();
   }
 }
 
@@ -9903,130 +9973,83 @@ async function switchProject(newProjectId) {
     }
 }
 
+
+// [Pro-v9.9.6] 登入牆按鈕功能
+
+// A. 登入按鈕 (直接在牆上登入)
+async function handleGateAuth() {
+    const email = document.getElementById('gate-email').value.trim();
+    const password = document.getElementById('gate-password').value.trim();
+    const btn = event.target;
+    const orgText = btn.innerText;
+
+    if (!email || !password) {
+        alert("請輸入電郵和密碼 ☕");
+        return;
+    }
+
+    btn.innerText = "驗證中...";
+    btn.disabled = true;
+
+    try {
+        const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+
+        if (data.user) {
+            // 登入成功
+            currentUser = data.user;
+            
+            // 視覺回饋：開門
+            document.getElementById('login-gate').classList.add('unlocked');
+            if (typeof showToast === 'function') showToast("歡迎回來，老師。", "success");
+            
+            // 觸發數據載入
+            checkUser(); 
+        }
+    } catch (e) {
+        alert("登入失敗：" + e.message);
+        btn.innerText = orgText;
+        btn.disabled = false;
+    }
+}
+
+// B. 打開註冊視窗 (借用原本的 Pop-up，浮在牆上面)
+function openRegisterModal() {
+    // 這裡我們直接打開原本的登入/註冊 Modal，並切換狀態
+    // 為了簡單，我們可以直接打開，老師在那裡按 "註冊"
+    const modal = document.getElementById('pop-login-modal');
+    if(modal) {
+        // 清空欄位
+        document.getElementById('login-email').value = "";
+        document.getElementById('login-password').value = "";
+        modal.classList.add('active');
+        // 提示用戶
+        if(typeof showToast === 'function') showToast("請填寫資料並點擊「註冊」", "info");
+    }
+}
+
+// C. 打開忘記密碼 (處理邏輯)
+function openForgotModal() {
+    const email = document.getElementById('gate-email').value.trim();
+    if (!email) {
+        alert("請先在上方輸入您的電郵地址，方便我們寄送重設連結給您。");
+        document.getElementById('gate-email').focus();
+        return;
+    }
+    
+    if(confirm(`確定要發送重設密碼郵件到：${email} 嗎？`)) {
+        // 呼叫原本的重設邏輯 (重用舊有代碼)
+        supabaseClient.auth.resetPasswordForEmail(email, {
+            redirectTo: window.location.href,
+        }).then(({ data, error }) => {
+            if (error) alert("發送失敗：" + error.message);
+            else alert("✅ 郵件已發送！請查收 Email。");
+        });
+    }
+}
 </script> <!-- 呢個係原本全個檔案唯一的結尾，保留佢 -->
 
-<!-- ================================================= -->
-<!-- [Pro-v9.9.5] 登入牆 (Login Gate Overlay) -->
-<!-- ================================================= -->
-<div id="login-gate" class="login-gate">
-  <div class="gate-card">
-    <div style="font-size: 3rem; margin-bottom: 1rem;">☕️</div>
-    <h1 style="color:#5A8F7B; margin:0 0 10px 0; letter-spacing:2px;">我不想努力了 Pro</h1>
-    <p style="color:#888; margin-bottom: 30px;">專為老師打造的・班級批改與數據樞紐</p>
-    
-    <!-- 登入輸入區 -->
-    <div style="text-align:left; width:100%; max-width:320px; margin:0 auto;">
-        <input type="text" id="gate-email" class="pop-input" placeholder="電郵地址 (Email)" style="margin-bottom:12px;">
-        <input type="password" id="gate-password" class="pop-input" placeholder="密碼 (Password)" style="margin-bottom:20px;">
-        
-        <button class="action-btn" style="width:100%; justify-content:center; padding:12px; font-size:1.1rem; margin-bottom:15px;" onclick="handleGateAuth()">
-            進入 Pro 版
-        </button>
-    </div>
 
-    <!-- 輔助連結 -->
-    <div style="font-size:0.9rem; color:#aaa; margin-top:20px; display:flex; flex-direction:column; gap:8px;">
-        <span>還沒有帳戶？ <a href="javascript:void(0)" onclick="switchToRegisterMode()" style="color:#5A8F7B; text-decoration:underline;">申請註冊 / 忘記密碼</a></span>
-        <span style="margin-top:10px; border-top:1px dashed #ddd; padding-top:10px;">
-            只想簡單批改？ <a href="https://idx-beta.vercel.app/" target="_blank" style="color:#8d775f; font-weight:bold;">前往免費版 (Lite) 👉</a>
-        </span>
-    </div>
-  </div>
-</div>
-
-<style>
-/* 登入牆樣式 (The Gate) */
-.login-gate {
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(247, 243, 235, 0.95); /* 米色不透明背景，遮住背後內容 */
-  backdrop-filter: blur(10px);
-  z-index: 2147483647; /* 最高層級 */
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  transition: opacity 0.6s ease, visibility 0.6s;
-}
-
-/* 當 JS 加上 .unlocked 時，這塊布會消失 */
-.login-gate.unlocked {
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-}
-
-.gate-card {
-  background: #fff;
-  padding: 50px 40px;
-  border-radius: 24px;
-  box-shadow: 0 30px 60px rgba(90, 143, 123, 0.15);
-  text-align: center;
-  width: 90%;
-  max-width: 420px;
-  border: 1px solid #fff;
-}
-
-</style>
-
-<!-- ================================================= -->
-<!-- [Pro-v9.9.5] 登入牆 (Login Gate - Cozy Style) -->
-<!-- ================================================= -->
-<div id="login-gate" class="login-gate">
-  <!-- 使用與 Pop-up 相同的卡片樣式 -->
-  <div class="pop-modal" style="max-width: 400px; margin: auto; display: block;">
-    
-    <!-- 鎖頭 Icon (或者你可以改用 ☕️) -->
-    <div style="font-size: 3rem; margin-bottom: 10px;">🔐</div>
-    
-    <h3 style="margin-bottom: 10px; color:#333;">我不想努力了 Pro</h3>
-    <p style="color:#666; font-size: 0.95rem; margin-bottom: 25px;">
-        請先登入以存取班級數據。
-    </p>
-    
-    <!-- 登入輸入區 -->
-    <div style="text-align:left;">
-        <input type="text" id="gate-email" class="pop-input" placeholder="電郵地址 (Email)" style="margin-bottom:15px;">
-        <input type="password" id="gate-password" class="pop-input" placeholder="密碼 (Password)" style="margin-bottom:25px;">
-        
-        <!-- 按鈕區：只保留「登入」，移除「取消」 -->
-        <button class="pop-btn pop-btn-confirm" style="width:100%; max-width:100%; padding:12px; font-size:1.1rem; box-shadow: 0 10px 20px rgba(242, 192, 55, 0.3);" onclick="handleGateAuth()">
-            登入 Pro 版
-        </button>
-    </div>
-
-    <!-- 輔助連結 -->
-    <div style="margin-top: 20px; font-size: 0.85rem; color: #999;">
-        <a href="javascript:void(0)" onclick="switchToRegisterMode()" style="color:#888; text-decoration: underline;">註冊新帳戶 / 忘記密碼？</a>
-        <br><br>
-        <a href="https://idx-beta.vercel.app/" target="_blank" style="color:#5A8F7B; font-weight:bold;">前往免費版 (Lite) 👉</a>
-    </div>
-  </div>
-</div>
-
-<style>
-/* 登入牆專用樣式 */
-.login-gate {
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  
-  /* 跟你的截圖一樣：深綠色背景 + 強力模糊 */
-  background: rgba(47, 79, 79, 0.9); 
-  backdrop-filter: blur(15px); /* 加強模糊，遮住後面內容 */
-  
-  z-index: 2147483647;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  transition: opacity 0.6s ease, visibility 0.6s;
-}
-
-/* 解鎖時的動畫 */
-.login-gate.unlocked {
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-}
-</style>
 
 </body>
 </html>
