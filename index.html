@@ -3231,8 +3231,7 @@ scroll-margin-top: 180px; /* 手機版 Header 疊起來比較高 */
 
     </main>
   </div>
-    </main>
-  </div>
+
 
   <!-- 自製確認對話框 -->
   <div id="modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-hidden="true">
@@ -3290,6 +3289,63 @@ scroll-margin-top: 180px; /* 手機版 Header 疊起來比較高 */
   </div>
 </div>
 
+
+<!-- ================================================= -->
+<!-- [Pro-v9.7] 班級綜合報告彈窗 (Class Report Modal) -->
+<!-- ================================================= -->
+<div id="pop-class-report-modal" class="pop-overlay">
+  <div class="pop-modal pop-modal-large">
+    <h3 id="report-class-title">班級綜合報告</h3>
+    <p class="pop-desc">請勾選需要合併的作業，並選擇匯出模式。</p>
+    
+    <!-- 隱藏欄位：存 Class ID -->
+    <input type="hidden" id="report-class-id">
+
+    <!-- A. 作業列表區 (JS 會動態填入 Checkbox) -->
+    <div class="pop-scroll-area" id="report-project-list">
+      <div style="text-align:center; color:#999; padding:20px;">
+        <div class="spinner"></div> 正在讀取作業列表...
+      </div>
+    </div>
+
+    <!-- B. 匯出模式選擇區 (Cozy Card Style) -->
+    <div style="background:#fffcf5; padding:20px; border-radius:12px; margin-bottom:20px; text-align:left; border:1px solid #e1d8c8; flex-shrink: 0; box-shadow: 0 4px 6px rgba(0,0,0,0.02);">
+        <div style="font-weight:bold; color:#5A8F7B; margin-bottom:12px; border-bottom:1px dashed #ccc; padding-bottom:5px;">
+            📊 請選擇報告類型：
+        </div>
+        
+        <!-- 選項 1: 考試模式 -->
+        <label style="display:flex; align-items:flex-start; gap:12px; margin-bottom:15px; cursor:pointer; padding:8px; border-radius:8px; transition:background 0.2s;" onmouseover="this.style.background='rgba(90,143,123,0.05)'" onmouseout="this.style.background='transparent'">
+            <input type="radio" name="report-mode" value="exam" checked style="accent-color:#5A8F7B; margin-top:4px; transform:scale(1.2);">
+            <div>
+                <div style="font-weight:bold; color:#333;">📄 合併為單次考試 (Exam Mode)</div>
+                <div style="font-size:0.9rem; color:#666; margin-top:4px; line-height:1.4;">
+                    將勾選的作業視為<b>同一場考試的不同分題</b> (例如 Q1, Q2)。<br>
+                    <span style="color:#c86a5a;">系統會自動合併分數，每位學生只會有一個總分。</span>
+                </div>
+            </div>
+        </label>
+
+        <!-- 選項 2: 趨勢模式 -->
+        <label style="display:flex; align-items:flex-start; gap:12px; cursor:pointer; padding:8px; border-radius:8px; transition:background 0.2s;" onmouseover="this.style.background='rgba(90,143,123,0.05)'" onmouseout="this.style.background='transparent'">
+            <input type="radio" name="report-mode" value="trend" style="accent-color:#5A8F7B; margin-top:4px; transform:scale(1.2);">
+            <div>
+                <div style="font-weight:bold; color:#333;">📈 歷程趨勢分析 (Trend Mode)</div>
+                <div style="font-size:0.9rem; color:#666; margin-top:4px; line-height:1.4;">
+                    將勾選的作業視為<b>不同時間的功課</b>。<br>
+                    <span style="color:#5A8F7B;">系統會並列顯示各次分數，並計算平均分及進步趨勢。</span>
+                </div>
+            </div>
+        </label>
+    </div>
+
+    <!-- C. 底部按鈕 -->
+    <div class="pop-footer">
+      <button class="pop-btn pop-btn-cancel" onclick="document.getElementById('pop-class-report-modal').classList.remove('active')">取消</button>
+      <button class="pop-btn pop-btn-confirm" onclick="generateCombinedExcel()">📥 生成 Excel</button>
+    </div>
+  </div>
+</div>
 
 <!-- 自定義登入 Modal (Email + 密碼 + 忘記密碼版) -->
 <div id="pop-login-modal" class="pop-overlay">
@@ -9401,6 +9457,119 @@ function executeAppend(genres) {
     updateUIBasedOnAuthState();
     
     if(typeof showToast === 'function') showToast(`成功加入 ${addedCount} 條評語！`, "success");
+}
+
+
+// ============================================================
+// [Pro-v9.7] 班級綜合報告邏輯 (Class Hub Export Logic)
+// ============================================================
+
+// 1. 打開報告視窗 & 載入作業列表
+async function openClassReportModal(classId, className) {
+    // 設定標題與隱藏 ID
+    document.getElementById('report-class-id').value = classId;
+    document.getElementById('report-class-title').textContent = `綜合報告：${className}`;
+    
+    const modal = document.getElementById('pop-class-report-modal');
+    const listContainer = document.getElementById('report-project-list');
+    
+    // 大窗模式設定 (確保樣式正確)
+    modal.querySelector('.pop-modal').classList.add('pop-modal-large');
+    modal.classList.add('active');
+    
+    // 顯示 Loading
+    listContainer.innerHTML = '<div style="text-align:center; padding:20px; color:#666;"><div class="spinner"></div> 正在讀取作業列表...</div>';
+
+    try {
+        // 讀取該班所有 Assignments
+        const { data: assignments, error } = await supabaseClient
+            .from('assignments')
+            .select('id, title, created_at')
+            .eq('class_id', classId)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        if (!assignments || assignments.length === 0) {
+            listContainer.innerHTML = '<div style="text-align:center; color:#999; padding:20px;">此班級暫無作業記錄。</div>';
+            return;
+        }
+
+        // 渲染列表 (Checkbox)
+        let html = '';
+        assignments.forEach(p => {
+            const dateObj = new Date(p.created_at);
+            const dateStr = `${dateObj.getFullYear()}/${dateObj.getMonth()+1}/${dateObj.getDate()}`;
+            
+            html += `
+                <label class="pop-list-item" style="display:flex; align-items:center; gap:12px; cursor:pointer; padding:12px;">
+                    <input type="checkbox" class="report-proj-cb" value="${p.id}" style="width:1.3rem; height:1.3rem; accent-color:#5A8F7B;">
+                    <div style="flex:1;">
+                        <div style="font-weight:bold; color:#333; font-size:1rem;">${escapeHtml(p.title)}</div>
+                        <div style="font-size:0.85rem; color:#888;">建立日期：${dateStr}</div>
+                    </div>
+                </label>
+            `;
+        });
+        listContainer.innerHTML = html;
+
+    } catch (err) {
+        console.error(err);
+        listContainer.innerHTML = `<div style="color:#c86a5a; text-align:center; padding:20px;">讀取失敗：${err.message}</div>`;
+    }
+}
+
+// 2. 按下「生成 Excel」按鈕的處理
+async function generateCombinedExcel() {
+    // A. 檢查有無剔選作業
+    const checkedBoxes = document.querySelectorAll('.report-proj-cb:checked');
+    const projectIds = Array.from(checkedBoxes).map(cb => cb.value);
+    
+    if (projectIds.length === 0) {
+        alert("請至少勾選一份作業！");
+        return;
+    }
+
+    // B. 獲取模式 (Exam vs Trend)
+    const modeRadio = document.querySelector('input[name="report-mode"]:checked');
+    const mode = modeRadio ? modeRadio.value : 'exam';
+    
+    const classId = document.getElementById('report-class-id').value;
+    const className = document.getElementById('report-class-title').textContent.replace('綜合報告：', '');
+
+    // C. 鎖定按鈕 (避免連按)
+    const btn = document.querySelector('#pop-class-report-modal .pop-btn-confirm');
+    const originalText = btn.textContent;
+    btn.textContent = "數據整合中...";
+    btn.disabled = true;
+
+    try {
+        // D. 呼叫核心引擎 (下一步會寫這個函數)
+        await processExcelGeneration(classId, className, projectIds, mode);
+        
+        // 完成後關閉
+        document.getElementById('pop-class-report-modal').classList.remove('active');
+        
+    } catch (err) {
+        console.error(err);
+        alert("生成失敗：" + err.message);
+    } finally {
+        btn.textContent = originalText;
+        btn.disabled = false;
+    }
+}
+
+// 3. Excel 核心引擎 (暫時用 Alert 測試 Step 1 邏輯)
+async function processExcelGeneration(classId, className, projectIds, mode) {
+    // 這裡只是測試介面是否接通，Step 2 會寫真的 Excel 代碼
+    const modeName = mode === 'exam' ? '📄 考試分題合併' : '📈 歷程趨勢分析';
+    
+    // 模擬延遲，讓你感覺到 "Processing"
+    await new Promise(r => setTimeout(r, 800));
+    
+    if(typeof showToast === 'function') showToast("邏輯接通！準備進入 Excel 生成階段...", "success");
+    
+    alert(`【測試成功】\n\n班級：${className}\n模式：${modeName}\n已選作業數：${projectIds.length}\n\n(介面與邏輯已連接，可以開始寫 Excel 引擎了！)`);
 }
 </script> <!-- 呢個係原本全個檔案唯一的結尾，保留佢 -->
 
