@@ -491,7 +491,11 @@
 /* === [v10.3] 全新雙層導航樣式 (Header) === */
 /* ========================================= */
 
-/* 外框容器 */
+/* ========================================= */
+/* === [v10.6] 導航列樣式 (完整重置版) === */
+/* ========================================= */
+
+/* 1. 外框容器 */
 .page-nav-wrapper {
   background-color: var(--secondary-bg);
   border-bottom: 1px solid var(--border-color);
@@ -499,17 +503,16 @@
   flex-direction: column;
 }
 
-/* 第一層：Main Nav (咖啡廳、工作枱...) */
+/* 2. 第一層：主選單 (Main Nav) */
 .main-nav {
   display: flex;
-  justify-content: center; /* 居中 */
+  justify-content: center;
   gap: 1rem;
   padding: 0 1rem;
   background: #fff;
   border-bottom: 1px solid #f0f0f0;
 }
 
-/* Main Nav 按鈕 */
 .nav-btn {
   padding: 1rem 1.5rem;
   font-size: 1.05rem;
@@ -531,7 +534,6 @@
   font-weight: bold;
 }
 
-/* Active 底線指示器 */
 .nav-btn.active::after {
   content: "";
   position: absolute;
@@ -541,23 +543,22 @@
   border-radius: 3px 3px 0 0;
 }
 
-/* 第二層：Sub Nav (基本設定、批改...) */
+/* 3. 第二層：子選單 (Sub Nav) */
 .sub-nav-container {
-  background-color: #fafafa; /* 淺灰底色區分 */
+  background-color: #fafafa;
   padding: 0.5rem 1rem;
-  display: flex;
+  display: flex; /* 預設 Flex，由 JS 控制內容 */
   justify-content: center;
-  min-height: 46px; /* 預留高度防止跳動 */
+  min-height: 46px;
+  display: none; /* 預設隱藏，按了才出 */
 }
 
-/* 當 Main Tab 是 Home 時，隱藏 Sub Nav */
-.sub-nav-container:empty { display: none; }
-
 .sub-nav-group {
-  display: flex;
+  display: flex; /* 預設 Flex */
   gap: 0.5rem;
   flex-wrap: wrap;
   justify-content: center;
+  display: none; /* 預設隱藏 */
 }
 
 .sub-nav-btn {
@@ -584,133 +585,107 @@
   box-shadow: 0 2px 5px rgba(90,143,123,0.3);
 }
 
-/* 手機版漢堡按鈕 (預設隱藏) */
+/* 4. 手機版漢堡按鈕 (Desktop 隱藏) */
 .mobile-menu-btn { display: none; }
 
-/* === [v10.4] Mobile RWD (全螢幕磨砂質感) === */
+/* ========================================= */
+/* === [v10.6] Mobile RWD (手機導航邏輯) === */
+/* ========================================= */
 @media (max-width: 768px) {
-  /* [v10.5] 手機版導航容器修正 (置頂顯示，無需 Scroll) */
+  /* A. 全螢幕遮罩 (置頂顯示) */
   .page-nav-wrapper {
-    display: block;
+    display: block; /* 讓它存在 DOM */
     position: fixed;
-    inset: 0;
-    background: rgba(243, 244, 246, 0.98); /* 加深少少背景色，睇得清楚啲 */
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(243, 244, 246, 0.98); /* 實色少少 */
     backdrop-filter: blur(15px);
     z-index: 2000;
     
+    /* 動畫控制 */
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.2s ease;
     
-    /* 🔥 關鍵修正：內容置頂，而非置中 */
+    /* 排版：由頂部開始，不置中 */
     flex-direction: column;
     align-items: center;
-    justify-content: flex-start; 
-    padding-top: 100px; /* 留位俾漢堡掣，內容由這裡開始 */
+    justify-content: flex-start;
+    padding-top: 100px; /* 避開漢堡掣 */
     padding-bottom: 40px;
-    overflow-y: auto; /* 只有當內容真係太長先 Scroll */
-  }
+    overflow-y: auto; /* 內容長時可捲動 */
   }
   
-  /* 激活狀態 */
   .page-nav-wrapper.mobile-active {
     opacity: 1;
     pointer-events: auto;
-    display: flex; /* 改回 flex 以便置中 */
+    display: flex;
   }
 
-  /* 2. 主選單按鈕 (加大) */
-  .main-nav {
-    flex-direction: column;
-    background: transparent;
-    border: none;
+  /* B. 主選單 (垂直排列) */
+  .main-nav { 
+    flex-direction: column; 
+    border: none; 
+    background: transparent; 
     width: 100%;
-    align-items: center;
     gap: 15px;
   }
-
-  .nav-btn {
-    font-size: 1.4rem;
-    color: #888;
-    padding: 10px 0;
-    font-family: 'LXGW WenKai TC', serif;
-    border: none;
-  }
   
-  .nav-btn.active {
-    color: var(--accent-color);
-    font-size: 1.6rem; /* Active 時再大啲 */
+  .nav-btn { 
+    font-size: 1.4rem; 
+    padding: 10px 0; 
+    border: none; 
   }
-  
-  .nav-btn::after { display: none; } /* 移除底線 */
+  .nav-btn.active::after { display: none; } /* 手機版唔要底線 */
 
-  /* 3. 子選單 (置中，更柔和) */
-  .sub-nav-container {
-    flex-direction: column;
-    background: transparent;
-    margin-top: 20px;
-    padding-top: 20px;
-    border-top: 1px dashed #ddd;
+  /* C. 子選單 (垂直排列) */
+  .sub-nav-container { 
+    flex-direction: column; 
+    background: transparent; 
+    padding: 10px 0; 
     width: 80%;
-    align-items: center;
+    border-top: 1px dashed #ddd;
+    margin-top: 10px;
   }
-
-  .sub-nav-group {
-    flex-direction: column;
-    gap: 12px;
+  
+  .sub-nav-group { 
+    flex-direction: column; 
+    gap: 12px; 
     width: 100%;
     align-items: center;
   }
-
-  .sub-nav-btn {
+  
+  .sub-nav-btn { 
+    width: 100%; 
+    text-align: center; 
+    padding: 10px; 
     font-size: 1.1rem;
-    color: #666;
-    padding: 8px 16px;
+    border: 1px solid #ddd;
     background: #fff;
-    border: 1px solid #eee;
-    border-radius: 99px; /* 膠囊形 */
-    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-    width: 100%;
-    text-align: center;
-    max-width: 200px;
   }
 
-  .sub-nav-btn.active {
-    background: var(--accent-color);
-    color: #fff;
-    border-color: var(--accent-color);
-  }
-
-  /* 4. 漢堡按鈕 (固定右上角) */
+  /* D. 漢堡按鈕 (固定右上) */
   .mobile-menu-btn {
     display: flex;
     flex-direction: column;
     gap: 6px;
-    position: fixed; /* 固定定位 */
-    top: 25px; 
-    right: 25px;
-    z-index: 2001; /* 確保在遮罩之上 */
+    position: fixed;
+    top: 20px; right: 20px;
+    z-index: 2001;
     background: rgba(255,255,255,0.8);
-    backdrop-filter: blur(5px);
-    border: 1px solid rgba(0,0,0,0.1);
     padding: 10px;
     border-radius: 12px;
+    border: 1px solid rgba(0,0,0,0.1);
     cursor: pointer;
+  }
+  .mobile-menu-btn span { 
+    width: 24px; height: 2px; background: #333; border-radius: 2px; 
     transition: all 0.3s;
   }
   
-  /* 開啟時變成 X */
+  /* 開啟時變 X */
   .page-nav-wrapper.mobile-active ~ .mobile-menu-btn span:nth-child(1) { transform: rotate(45deg) translate(5px, 6px); }
   .page-nav-wrapper.mobile-active ~ .mobile-menu-btn span:nth-child(2) { opacity: 0; }
   .page-nav-wrapper.mobile-active ~ .mobile-menu-btn span:nth-child(3) { transform: rotate(-45deg) translate(5px, -6px); }
-  
-  .mobile-menu-btn span {
-    width: 24px;
-    height: 2px;
-    background: #5b5044;
-    border-radius: 2px;
-    transition: all 0.3s;
-  }
 }
 /* ========================================= */
 /* === 頁面內容切換 (這部分必須保留！) === */
@@ -2839,8 +2814,9 @@ scroll-margin-top: 180px; /* 手機版 Header 疊起來比較高 */
         </div>
       </header>
      <!-- [v10.3] 全新雙層導航結構 -->
+<!-- [v10.6] 導航 HTML 結構 -->
 <nav class="page-nav-wrapper">
-  <!-- 第一層：4 大入口 (Main Tabs) -->
+  <!-- 第一層：4 大入口 -->
   <div class="main-nav">
     <button class="nav-btn active" onclick="switchMainTab('home')" data-target="home">☕️ 咖啡廳</button>
     <button class="nav-btn" onclick="switchMainTab('workspace')" data-target="workspace">💻 工作枱</button>
@@ -2848,22 +2824,22 @@ scroll-margin-top: 180px; /* 手機版 Header 疊起來比較高 */
     <button class="nav-btn" onclick="switchMainTab('archives')" data-target="archives">📑 檔案室</button>
   </div>
 
-  <!-- 第二層：次級導航 (Sub Tabs) - 根據 Main Tab 切換顯示 -->
-  <div id="sub-nav-container" class="sub-nav-container">
-    <!-- Workspace Sub-nav -->
-    <div id="sub-nav-workspace" class="sub-nav-group" style="display: none;">
+  <!-- 第二層：次級導航 -->
+  <div id="sub-nav-container" class="sub-nav-container" style="display: none;">
+    <!-- Workspace -->
+    <div id="sub-nav-workspace" class="sub-nav-group">
         <button id="nav-page1" class="sub-nav-btn" onclick="showPage('page1')">基本設定</button>
         <button id="nav-page2" class="sub-nav-btn" onclick="showPage('page2')">批改介面</button>
     </div>
     
-    <!-- AI Lab Sub-nav -->
-    <div id="sub-nav-ailab" class="sub-nav-group" style="display: none;">
+    <!-- AI Lab -->
+    <div id="sub-nav-ailab" class="sub-nav-group">
         <button id="nav-page6" class="sub-nav-btn" onclick="showPage('page6')">生成評語庫</button>
         <button id="nav-page7" class="sub-nav-btn" onclick="showPage('page7')">生成回饋</button>
     </div>
 
-    <!-- Archives Sub-nav -->
-    <div id="sub-nav-archives" class="sub-nav-group" style="display: none;">
+    <!-- Archives -->
+    <div id="sub-nav-archives" class="sub-nav-group">
         <button id="nav-page8" class="sub-nav-btn" onclick="showPage('page8')">班級管理</button>
         <button id="nav-page4" class="sub-nav-btn" onclick="showPage('page4')">學生總覽</button>
         <button id="nav-page3" class="sub-nav-btn" onclick="showPage('page3')">評語庫管理</button>
@@ -2871,6 +2847,11 @@ scroll-margin-top: 180px; /* 手機版 Header 疊起來比較高 */
     </div>
   </div>
 </nav>
+
+<!-- 手機版漢堡按鈕 -->
+<button id="mobile-menu-btn" class="mobile-menu-btn" onclick="toggleMobileMenu()">
+    <span></span><span></span><span></span>
+</button>
 
 <!-- 手機版漢堡按鈕 (Mobile Only) -->
 <button id="mobile-menu-btn" class="mobile-menu-btn" onclick="toggleMobileMenu()">
@@ -4494,81 +4475,7 @@ block: 'start'
 
   
 
-// [v10.3] 兼容雙層導航的 showPage
-function showPage(pageId, focusElementId = null) {
-  // 1. 隱藏所有頁面內容
-  document.querySelectorAll('.page-content').forEach(p => p.classList.remove('active'));
-  
-  // 2. 顯示目標頁面
-  const page = document.getElementById(pageId);
-  if(page) page.classList.add('active');
 
-  // 3. 更新導航狀態 (雙層聯動)
-  // 先移除所有 Active
-  document.querySelectorAll('.sub-nav-btn').forEach(n => n.classList.remove('active'));
-  document.querySelectorAll('.main-nav .nav-btn').forEach(n => n.classList.remove('active'));
-
-  const subBtn = document.getElementById('nav-' + pageId); // 搵 Sub Nav 按鈕
-  const subContainer = document.getElementById('sub-nav-container');
-
-  if (pageId === 'page-home') {
-      // 如果係主頁
-      const homeBtn = document.querySelector('.main-nav .nav-btn[data-target="home"]');
-      if(homeBtn) homeBtn.classList.add('active');
-      if(subContainer) subContainer.style.display = 'none'; // 收埋第二層
-  } 
-  else if (subBtn) {
-      // 如果係內頁
-      subBtn.classList.add('active');
-      
-      // 反向激活對應的 Main Tab
-      const parentGroup = subBtn.closest('.sub-nav-group');
-      if (parentGroup) {
-          // 顯示該組 Sub Nav
-          document.querySelectorAll('.sub-nav-group').forEach(g => g.style.display = 'none');
-          parentGroup.style.display = 'flex';
-          if(subContainer) subContainer.style.display = 'flex';
-
-          // 激活 Main Tab
-          const groupId = parentGroup.id.replace('sub-nav-', '');
-          const mainBtn = document.querySelector(`.main-nav .nav-btn[data-target="${groupId}"]`);
-          if(mainBtn) mainBtn.classList.add('active');
-      }
-  }
-
-  // 4. 懸浮導覽列 (只在 Page 2 顯示)
-  const floatingNav = document.getElementById('floating-nav');
-  if (floatingNav) {
-      floatingNav.classList.toggle('visible', pageId === 'page2');
-  }
-
-  // 5. 頁面自動刷新邏輯 (保留原有功能)
-  if (pageId === 'page-home') {
-      setTimeout(() => { if (typeof loadDashboard === 'function') loadDashboard(); }, 50);
-  }
-  else if (pageId === 'page2') {
-    const studentSelect = document.getElementById('student-select');
-    if (studentSelect && studentSelect.value) loadStudentData(studentSelect.value); 
-  } 
-  else if (pageId === 'page3') { if (typeof buildOverviewPage === 'function') buildOverviewPage(); } 
-  else if (pageId === 'page4') { if (typeof renderStudentOverviewTable === 'function') renderStudentOverviewTable(); } 
-  else if (pageId === 'page5') { if (typeof renderAnalysisPage === 'function') renderAnalysisPage(); }
-  else if (pageId === 'page8') { if (typeof loadAllClasses === 'function') loadAllClasses(); }
-
-  // 6. 自動聚焦
-  if (focusElementId) {
-    setTimeout(() => {
-      const targetElement = document.getElementById(focusElementId);
-      if (targetElement) {
-          targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          if(document.activeElement !== targetElement) targetElement.focus({ preventScroll: true });
-      }
-    }, 150);
-  }
-  
-  // 關閉手機 Menu
-  document.querySelector('.page-nav-wrapper').classList.remove('mobile-active');
-}
 function initFloatingNavObserver() {
     const sections = document.querySelectorAll('#page2 .section-box');
     const navLinks = document.querySelectorAll('#floating-nav .floating-nav-btn');
@@ -4898,7 +4805,11 @@ triggerAutoSave();
 
 /* ===== [v10.3] 雙層導航邏輯 ===== */
 
-// [v10.5] 雙層導航邏輯 (手機版防跳轉優化)
+/* ========================================= */
+/* === [v10.6] 導航與核心顯示邏輯 (JS) === */
+/* ========================================= */
+
+// 1. 切換主頁籤 (手機版：點擊只展開，不跳轉，不關閉)
 function switchMainTab(target) {
     // A. 更新 Main Nav 狀態
     document.querySelectorAll('.main-nav .nav-btn').forEach(btn => {
@@ -4910,21 +4821,100 @@ function switchMainTab(target) {
         grp.style.display = 'none';
     });
     
-    // C. 根據目標處理
+    // C. 顯示 Sub Nav Container
+    const container = document.getElementById('sub-nav-container');
+    
     if (target === 'home') {
         showPage('page-home'); // 回首頁直接跳轉
-        document.getElementById('sub-nav-container').style.display = 'none';
+        container.style.display = 'none'; // 收埋第二層
         // 只有回首頁才自動關閉手機 Menu
         document.querySelector('.page-nav-wrapper').classList.remove('mobile-active');
     } else {
-        // 其他分頁：只顯示子選單，不跳轉，不關閉
-        document.getElementById('sub-nav-container').style.display = 'flex';
+        container.style.display = 'flex'; // 顯示容器
         const subGroup = document.getElementById('sub-nav-' + target);
         if (subGroup) {
-            subGroup.style.display = 'flex';
-            // 🔥 移除自動點擊 firstBtn.click()，讓用戶自己選
+            subGroup.style.display = 'flex'; // 顯示該組按鈕
+            // 🔥 移除自動點擊，讓用戶自己選
         }
     }
+}
+
+// 2. 漢堡選單開關
+function toggleMobileMenu() {
+    document.querySelector('.page-nav-wrapper').classList.toggle('mobile-active');
+}
+
+// 3. 通用頁面切換 (兼容雙層導航)
+function showPage(pageId, focusElementId = null) {
+  // 隱藏所有頁面
+  document.querySelectorAll('.page-content').forEach(p => p.classList.remove('active'));
+  
+  // 顯示目標
+  const page = document.getElementById(pageId);
+  if(page) page.classList.add('active');
+
+  // 更新按鈕 Active 狀態
+  document.querySelectorAll('.sub-nav-btn').forEach(n => n.classList.remove('active'));
+  
+  const subBtn = document.getElementById('nav-' + pageId);
+  if (subBtn) {
+      subBtn.classList.add('active');
+      // 反向激活 Main Tab (防止 Refresh 後失去狀態)
+      const group = subBtn.closest('.sub-nav-group');
+      if(group) {
+          const target = group.id.replace('sub-nav-', '');
+          switchMainTab(target); // 這裡會重開 sub-nav，但唔緊要，因為 subBtn 已經 active
+          // 重新加返 active 因為 switchMainTab 可能洗咗
+          subBtn.classList.add('active'); 
+      }
+  } else if (pageId === 'page-home') {
+      // 確保 Home Active
+      document.querySelectorAll('.main-nav .nav-btn').forEach(b => b.classList.remove('active'));
+      const homeBtn = document.querySelector('.main-nav .nav-btn[data-target="home"]');
+      if(homeBtn) homeBtn.classList.add('active');
+  }
+
+  // 關閉手機 Menu (當真正轉頁時)
+  document.querySelector('.page-nav-wrapper').classList.remove('mobile-active');
+
+  // 懸浮導覽列 (Page 2 Only)
+  const fNav = document.getElementById('floating-nav');
+  if(fNav) fNav.classList.toggle('visible', pageId === 'page2');
+
+  // 頁面數據刷新
+  if (pageId === 'page-home') { setTimeout(() => { if(typeof loadDashboard === 'function') loadDashboard(); }, 50); }
+  else if (pageId === 'page8') { if(typeof loadAllClasses === 'function') loadAllClasses(); }
+  
+  // 自動聚焦
+  if (focusElementId) {
+      setTimeout(() => {
+          const el = document.getElementById(focusElementId);
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 150);
+  }
+}
+
+// 4. 🔥 補回缺失的 buildCardHtml 函數 (修復紅字錯誤)
+// 這個函數被 Dashboard 和 Archive 共用
+function buildCardHtml(item, uniqueId) {
+    const dateStr = new Date(item.last_updated).toLocaleDateString();
+    let clickAction = (item.source_type === 'legacy') ? `loadProjectById('${item.id}')` : `openAssignment('${item.id}')`;
+    const itemSafe = JSON.stringify(item).replace(/"/g, '&quot;');
+
+    return `
+    <div class="cozy-folder" onclick="${clickAction}">
+        <div style="position:absolute; top:15px; right:15px;" onclick="event.stopPropagation();">
+            <button onclick="openEditModal(${itemSafe})" style="background:transparent; border:none; color:#ddd; cursor:pointer; font-size:1.1rem; padding:5px;">⚙️</button>
+        </div>
+        <div class="folder-meta">
+            <span class="folder-class">${escapeHtml(item.class_name)}</span>
+            <div class="folder-title">${escapeHtml(item.topic)}</div>
+        </div>
+        <div class="folder-stats">
+            <span>📅 ${dateStr}</span>
+            <span class="folder-progress-pill">${item.progress}% 完成</span>
+        </div>
+    </div>`;
 }
 
 // 2. 擴充 showPage (兼容新導航)
@@ -8265,36 +8255,6 @@ function getOfflineProjectMeta() {
 }
 // 為了防止舊代碼殘留，如果還有 loadOfflineData 函數，請手動刪除它，或將其內容清空
 function loadOfflineData() { return []; }
-
-// [v10.5] 通用文件夾卡片生成器 (修復 Archives 顯示錯誤)
-function buildCardHtml(item, uniqueId) {
-    const dateStr = new Date(item.last_updated).toLocaleDateString();
-    
-    // 判斷點擊動作
-    let clickAction = (item.source_type === 'legacy') ? `loadProjectById('${item.id}')` : `openAssignment('${item.id}')`;
-    
-    // 準備 Edit Modal 數據 (防止引號破壞 HTML)
-    const itemSafe = JSON.stringify(item).replace(/"/g, '&quot;');
-
-    // 返回文件夾樣式的 HTML
-    return `
-    <div class="cozy-folder" onclick="${clickAction}">
-        <!-- 編輯按鈕 -->
-        <div style="position:absolute; top:15px; right:15px;" onclick="event.stopPropagation();">
-            <button onclick="openEditModal(${itemSafe})" style="background:transparent; border:none; color:#ddd; cursor:pointer; font-size:1.1rem; padding:5px;">⚙️</button>
-        </div>
-
-        <div class="folder-meta">
-            <span class="folder-class">${escapeHtml(item.class_name)}</span>
-            <div class="folder-title">${escapeHtml(item.topic)}</div>
-        </div>
-
-        <div class="folder-stats">
-            <span>📅 ${dateStr}</span>
-            <span class="folder-progress-pill">${item.progress}% 完成</span>
-        </div>
-    </div>`;
-}
 
 // [v10.4] 渲染文件夾網格 (Cozy Folder Grid)
 function renderFocusList(items, container) {
