@@ -84,10 +84,10 @@
 /* ================================================================= */
 
 /* ================================================================= */
-/* === [Step 2.0] 沉浸式彈窗系統 (Immersive App-like Modal) === */
+/* === [Pro-v9.8] 沉浸式彈窗系統 (Clean Immersive Layout) === */
 /* ================================================================= */
 
-/* 1. 底紙 (Overlay) - 鎖死背景，專注當前 */
+/* 1. 底紙 (Overlay) - 鎖死背景 */
 .pop-overlay {
   position: fixed !important;
   top: 0; left: 0; right: 0; bottom: 0;
@@ -97,7 +97,7 @@
   backdrop-filter: blur(8px);
   z-index: 2147483647 !important;
   
-  /* Flex 置中：讓卡片懸浮在畫面正中央 */
+  /* Flex 置中 */
   display: flex !important;
   justify-content: center !important;
   align-items: center !important;
@@ -111,50 +111,62 @@
   pointer-events: auto !important;
 }
 
-/* 2. 基礎小窗 (Base Modal) - 簡單對話框 */
+/* 2. 基礎小窗 (Base Modal) */
 .pop-modal {
   position: relative !important;
   background: #ffffff !important;
   border-radius: 20px !important;
   box-shadow: 0 25px 60px rgba(0,0,0,0.4) !important;
   padding: 30px !important;
+  
   width: 90% !important;
   max-width: 440px !important;
   margin: auto !important;
+  
   text-align: center;
   color: #4a4a4a;
   transform: scale(0.95);
   transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  
+  /* 小窗高度自動 */
+  height: auto !important;
+  max-height: 85vh !important;
+  overflow-y: auto !important; /* 如果小窗內容多，自己捲動 */
 }
 
-/* 3. 🟢 沉浸式大窗 (Max Pop) - 核心改動 */
+/* 3. 🟢 沉浸式大窗 (Max Pop) */
 .pop-modal.pop-modal-large {
   width: 90vw !important;
   max-width: 1000px !important;
   
-  /* 🔥 高度鎖死：佔螢幕 90%，營造 App 視窗感 */
+  /* 高度鎖死：佔螢幕 90% */
   height: 90vh !important;
   max-height: 90vh !important;
   
-  /* 佈局鎖死：Flex Column */
+  /* 佈局鎖死 */
   display: flex !important;
   flex-direction: column !important;
-  padding: 0 !important; /* 清除 Padding，交由內部元素管理 */
-  overflow: hidden !important; /* 防止圓角被切 */
+  padding: 0 !important;
+  overflow: hidden !important;
 }
 
 /* 4. 頭部固定區 (Header) */
+.pop-icon {
+  font-size: 36px;
+  margin-bottom: 8px;
+  display: block;
+}
 .pop-modal.pop-modal-large .pop-icon,
 .pop-modal.pop-modal-large h3,
 .pop-modal.pop-modal-large .pop-desc {
-  flex-shrink: 0 !important; /* 禁止壓縮 */
+  flex-shrink: 0 !important;
   margin-left: 25px !important;
   margin-right: 25px !important;
 }
 .pop-modal.pop-modal-large .pop-icon { margin-top: 25px !important; margin-bottom: 5px !important; }
-.pop-modal.pop-modal-large h3 { margin-bottom: 5px !important; }
+.pop-modal.pop-modal-large h3 { margin-bottom: 5px !important; font-size: 1.4rem; font-weight: 700; color: #333; }
 
-/* 5. 工具列與輸入框 (固定在上半部，不隨名單捲動) */
+/* 5. 工具列與輸入框 (固定區) */
 .pop-modal.pop-modal-large .btn-toolbar,
 .pop-modal.pop-modal-large .input-area-wrapper {
   flex-shrink: 0 !important;
@@ -162,20 +174,21 @@
   width: auto !important;
 }
 
-/* 輸入框如果內容太多，自己內部捲動，唔好推走其他人 */
+/* 讓大輸入框自己捲動 */
 .pop-modal.pop-modal-large .input-area-wrapper textarea {
   max-height: 15vh !important; 
+  min-height: 100px !important;
   overflow-y: auto !important;
+  resize: none !important;
 }
 
 /* 6. 🔥 內容捲動區 (The Scrollable Body) */
 .pop-scroll-area {
-  /* 這是唯一可以伸縮的區域 */
   flex-grow: 1 !important; 
-  height: 0 !important; /* Hack: 配合 flex-grow 強制佔滿剩餘空間 */
+  height: 0 !important; 
   min-height: 0 !important;
   
-  overflow-y: auto !important; /* 只有這裡會出 Scroll bar */
+  overflow-y: auto !important; /* 只有這裡出 Scroll bar */
   
   background: #fdfbf7 !important;
   border-top: 1px solid #e1d8c8 !important;
@@ -187,72 +200,20 @@
   border-radius: 0 !important;
 }
 
-/* 7. 底部按鈕區 (Footer) - 永遠固定在底 */
+/* 7. 底部按鈕區 (Footer) - 固定在底 */
 .pop-footer {
   flex-shrink: 0 !important;
   padding: 20px !important;
   background: #fff !important;
   z-index: 10 !important;
-  /* 確保按鈕區有陰影，感覺浮在名單上面 */
   box-shadow: 0 -5px 20px rgba(0,0,0,0.05) !important;
-}
-
-/* 8. 手機全螢幕模式 */
-@media (max-width: 600px) {
-  .pop-modal.pop-modal-large {
-    width: 100vw !important;
-    height: 100dvh !important; /* 用盡手機高度 */
-    max-height: 100dvh !important;
-    border-radius: 0 !important; /* 變成全螢幕頁面 */
-  }
-}
-
-/* 列表項目 */
-.pop-list-item {
-  padding: 10px 12px;
-  border-bottom: 1px dashed #ddd;
-  font-size: 0.95rem;
-  color: #555;
-  cursor: pointer;
-  border-radius: 8px;
-  transition: background 0.2s;
-}
-
-.pop-list-item:hover {
-  background-color: #fcf4d6;
-  color: #333;
-}
-
-/* 輸入框 */
-.pop-input {
-  width: 100%; /* 改為 100% 填滿容器 */
-  box-sizing: border-box; /* 確保 padding 不會撐爆寬度 */
-  padding: 12px 15px;
-  border: 2px solid #e0e0e0;
-  border-radius: 12px;
-  font-size: 16px; /* 防止 iOS 放大 */
-  outline: none;
-  text-align: left; /* 一般輸入靠左較好看 */
-  transition: border-color 0.3s;
-  font-family: inherit;
-  margin-bottom: 15px;
-  display: block;
-}
-
-.pop-input:focus {
-  border-color: #F2C037;
-  background-color: #fffdf8;
-}
-
-/* 按鈕區域 */
-.pop-footer {
+  
   display: flex;
   justify-content: center;
   gap: 12px;
-  margin-top: auto; /* 推到底部 */
-  flex-shrink: 0;
 }
 
+/* 8. 按鈕樣式 (補回缺失部分) */
 .pop-btn {
   padding: 10px 24px;
   border: none;
@@ -262,38 +223,52 @@
   cursor: pointer;
   font-family: inherit;
   transition: transform 0.1s, opacity 0.2s;
-  flex: 1; /* 按鈕平均分配寬度 */
+  flex: 1;
   max-width: 150px;
 }
+.pop-btn:active { transform: scale(0.96); }
+.pop-btn-cancel { background: #f0f0f0; color: #666; }
+.pop-btn-confirm { background: #F2C037; color: #fff; box-shadow: 0 4px 12px rgba(242, 192, 55, 0.4); }
+.pop-btn-confirm:hover { background: #e0b132; }
 
-.pop-btn:active {
-  transform: scale(0.96);
+/* 9. 輸入框樣式 (通用) */
+.pop-input, 
+.input-area-wrapper textarea {
+  width: 100% !important;
+  box-sizing: border-box !important;
+  padding: 12px 15px !important;
+  border: 2px solid #e0e0e0 !important;
+  border-radius: 12px !important;
+  font-size: 16px !important;
+  outline: none !important;
+  background-color: #fff !important;
+}
+.pop-input:focus, 
+.input-area-wrapper textarea:focus {
+  border-color: #F2C037 !important;
+  background-color: #fffdf8 !important;
 }
 
-.pop-btn-cancel {
-  background: #f0f0f0;
-  color: #666;
+/* 10. 列表項目 (List Item) */
+.pop-list-item {
+  padding: 10px 12px;
+  border-bottom: 1px dashed #ddd;
+  font-size: 0.95rem;
+  color: #555;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background 0.2s;
 }
+.pop-list-item:hover { background-color: #fcf4d6; color: #333; }
 
-.pop-btn-confirm {
-  background: #F2C037;
-  color: #fff;
-  box-shadow: 0 4px 12px rgba(242, 192, 55, 0.4);
-}
-.pop-btn-confirm:hover {
-  background: #e0b132;
-}
-
-/* 手機版適配 (防止鍵盤彈出時遮擋) */
-@media (max-height: 600px) {
-  .pop-modal {
-    max-height: 95vh;
-    padding: 15px;
+/* 11. 手機全螢幕模式 */
+@media (max-width: 600px) {
+  .pop-modal.pop-modal-large {
+    width: 100vw !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    border-radius: 0 !important;
   }
-  .pop-icon {
-    display: none; /* 螢幕矮時隱藏 icon 省位 */
-  }
-}
 
 
   /* --- 文青風色彩與字體定義 --- */
