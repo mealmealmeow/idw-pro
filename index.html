@@ -3175,10 +3175,10 @@
     
    
 
-    <!-- 操作按鈕 -->
-    <a href="javascript:void(0)" class="floating-nav-btn" onclick="saveCurrentStudentData('local')" data-tooltip="💾 暫存草稿 (Local)">💾</a>
-    <a href="javascript:void(0)" class="floating-nav-btn" onclick="saveCurrentStudentData('cloud')" data-tooltip="☁️ 同步上雲 (Cloud)">☁️</a>
+    <!-- 唯一的儲存行動 (Unified Action) -->
+    <a href="javascript:void(0)" class="floating-nav-btn" onclick="saveCurrentStudentData('cloud')" data-tooltip="☁️ 儲存並同步 (全包)" style="background-color: var(--accent-color); color: white;">☁️</a>
 </nav>
+
 <!-- 自定義 Pop Art 風格 Project Selection Modal -->
 <div id="pop-project-modal" class="pop-overlay">
   <div class="pop-modal">
@@ -5018,21 +5018,14 @@ function navigateToStudent(direction) {
   select.dispatchEvent(new Event('change'));
 }
 
-// [Fix-Data-Loss] 嚴格同步版 (確保 ID 存在才寫入，防止假成功)
+// [Pro-v9.4] 智能同步引擎 (Unified Sync + Smart Diff)
 async function saveCurrentStudentData(mode = 'cloud') {
   const studentSelect = document.getElementById('student-select');
   const studentOriginalName = studentSelect.value; 
-
-  if (!studentOriginalName) {
-    alert('請先選擇一位學生。');
-    return;
-  }
+  if (!studentOriginalName) { alert('請先選擇一位學生。'); return; }
 
   const studentRecord = allStudentRecords.find(r => r.originalName === studentOriginalName);
-  if (!studentRecord) {
-    alert('錯誤：找不到該學生資料 (Memory Error)。請刷新頁面。');
-    return;
-  }
+  if (!studentRecord) { alert('錯誤：找不到該學生資料。請刷新。'); return; }
 
   // 1. 收集數據
   const checkedCritiques = [];
@@ -5063,11 +5056,10 @@ async function saveCurrentStudentData(mode = 'cloud') {
       typos: document.getElementById('score-typos').value,
       total: document.getElementById('score-total').value,
   };
-  
   const fullComment = document.getElementById('full-output').value;
   const studentComment = document.getElementById('student-report-output').value;
 
-  // 2. 更新記憶體 (Local Update)
+  // 2. 更新記憶體
   studentRecord.data = {
     class: document.getElementById('student-class').value,
     topic: document.getElementById('topic').value,
@@ -5082,123 +5074,112 @@ async function saveCurrentStudentData(mode = 'cloud') {
     pureStudentComment: studentComment,
   };
 
-  // 3. 分流處理
   if (mode === 'local') {
-      saveToLocalBackup(); 
-      renderStudentOverviewTable(); 
-      isDataDirty = true; 
-      updateUIBasedOnAuthState();
-      if (typeof showToast === 'function') showToast("💾 草稿已儲存 (本機)", "success");
-      setTimeout(() => scrollToSection(new Event('dummy'), 'student-select'), 100);
-
+      // 雖然你說要刪除 Local 按鈕，但保留這個邏輯給自動備份用
+      saveToLocalBackup(); renderStudentOverviewTable(); isDataDirty = true; updateUIBasedOnAuthState();
+      if (typeof showToast === 'function') showToast("💾 草稿已儲存", "success");
   } else {
-      // === 模式 B: 同步上雲 ===
+      // === Cloud Mode ===
       if (window.currentClassId && currentUser) {
-          const saveBtn = document.querySelector('button[onclick*="cloud"]');
-          const originalBtnText = saveBtn ? saveBtn.textContent : '同步上雲';
-          if(saveBtn) { saveBtn.textContent = "寫入中..."; saveBtn.disabled = true; }
+          // 因為只剩一個懸浮按鈕，我們直接抓它
+          const saveBtn = document.querySelector('#floating-nav a[onclick*="cloud"]'); 
+          const originalBtnText = saveBtn ? saveBtn.textContent : '☁️';
+          
+          if(saveBtn) { saveBtn.textContent = "⏳"; saveBtn.style.opacity = "0.7"; }
 
           try {
-              // A. 確保 Assignment 存在
               const topicTitle = document.getElementById('topic').value.trim();
               let assignmentId = window.currentAssignmentId;
 
+              // A. 確保 Assignment 存在
               if (!assignmentId) {
-                  // 如果沒有 ID，嘗試去 DB 找或開新的
-                  const { data: assignData } = await supabaseClient
-                      .from('assignments')
-                      .select('id')
-                      .eq('class_id', window.currentClassId)
-                      .eq('title', topicTitle)
-                      .maybeSingle();
-
-                  if (assignData) {
-                      assignmentId = assignData.id;
-                  } else {
-                      const { data: newAssign, error: createError } = await supabaseClient
-                          .from('assignments')
-                          .insert([{ user_id: currentUser.id, class_id: window.currentClassId, title: topicTitle }])
-                          .select()
-                          .single();
+                  const { data: assignData } = await supabaseClient.from('assignments').select('id').eq('class_id', window.currentClassId).eq('title', topicTitle).maybeSingle();
+                  if (assignData) { assignmentId = assignData.id; } 
+                  else {
+                      const { data: newAssign, error: createError } = await supabaseClient.from('assignments').insert([{ user_id: currentUser.id, class_id: window.currentClassId, title: topicTitle, settings: { critiques: collectExportData() } }]).select().single();
                       if (createError) throw createError;
                       assignmentId = newAssign.id;
+                      // 新作業，當然要更新基準線
+                      window.lastSavedCritiques = JSON.stringify(collectExportData());
                   }
                   window.currentAssignmentId = assignmentId;
               }
 
-              // 🔥 B. 嚴格檢查 Student ID
-              if (!studentRecord.dbId) {
-                  // 嘗試緊急修復 ID
-                  console.warn(`學生 ${studentRecord.name} 缺少 DB ID，正在嘗試修復...`);
-                  const { data: fixedStudent } = await supabaseClient
-                      .from('students')
-                      .select('id')
-                      .eq('class_id', window.currentClassId)
-                      .eq('name', studentRecord.name) // 假設名字唯一，這有點冒險但總比失敗好
-                      .maybeSingle();
+              // 🔥 B. 智能評語庫同步 (Smart Sync)
+              // 比較當前評語庫 vs 上次儲存的基準線
+              const currentCritiquesJson = JSON.stringify(collectExportData());
+              if (currentCritiquesJson !== window.lastSavedCritiques) {
+                  console.log("⚡ 偵測到評語庫變更，正在同步 Assignments 表...");
+                  const { error: settingsError } = await supabaseClient
+                      .from('assignments')
+                      .update({ settings: { critiques: JSON.parse(currentCritiquesJson) } }) // 更新 Menu
+                      .eq('id', assignmentId);
                   
-                  if (fixedStudent) {
-                      studentRecord.dbId = fixedStudent.id;
-                  } else {
-                      throw new Error(`嚴重錯誤：資料庫中找不到學生「${studentRecord.name}」的 ID。請嘗試重新載入專案。`);
-                  }
+                  if (settingsError) throw settingsError;
+                  
+                  // 更新基準線，下次就不用存了
+                  window.lastSavedCritiques = currentCritiquesJson;
+                  console.log("✅ 評語庫已更新");
+              } else {
+                  console.log("⏩ 評語庫無變更，跳過 Assignments 表寫入 (Speed Optimization)");
               }
 
-              // C. 寫入 Results (使用 Upsert)
+              // C. 寫入 Results (學生資料)
+              if (!studentRecord.dbId) {
+                  const { data: fixedStudent } = await supabaseClient.from('students').select('id').eq('class_id', window.currentClassId).eq('name', studentRecord.name).maybeSingle();
+                  if (fixedStudent) studentRecord.dbId = fixedStudent.id;
+                  else throw new Error(`找不到學生 ID`);
+              }
+
               const payload = {
-                  assignment_id: assignmentId,
-                  student_id: studentRecord.dbId,
-                  content_score: parseFloat(scores.content) || 0,
-                  expression_score: parseFloat(scores.expression) || 0,
-                  structure_score: parseFloat(scores.structure) || 0,
-                  punctuation_score: parseFloat(scores.punctuation) || 0,
-                  typo_score: parseFloat(scores.typos) || 0,
-                  total_score: parseFloat(scores.total) || 0,
-                  comment_full: fullComment,
-                  // 注意：後端欄位名稱可能不同，這裡要確保對應
-                  // 如果你的 DB 是 comment_student，請保持；如果是 pure_comment，請修改
-                  comment_student: studentComment, 
-                  comment_data: { // 儲存完整前端狀態 JSON
-                      uniqueComment: document.getElementById('unique-comment').value,
-                      typos: currentTypos,
-                      checkedCritiques: checkedCritiques,
-                      studentComment: studentComment,
-                      pureStudentComment: studentComment,
-                      pureFullComment: fullComment
-                  },
-                  tags: selectedTags,
-                  updated_at: new Date().toISOString()
+                  assignment_id: assignmentId, student_id: studentRecord.dbId,
+                  content_score: parseFloat(scores.content)||0, expression_score: parseFloat(scores.expression)||0,
+                  structure_score: parseFloat(scores.structure)||0, punctuation_score: parseFloat(scores.punctuation)||0,
+                  typo_score: parseFloat(scores.typos)||0, total_score: parseFloat(scores.total)||0,
+                  comment_full: fullComment, comment_student: studentComment, 
+                  comment_data: { uniqueComment: document.getElementById('unique-comment').value, typos: currentTypos, checkedCritiques: checkedCritiques, studentComment: studentComment, pureStudentComment: studentComment, pureFullComment: fullComment },
+                  tags: selectedTags, updated_at: new Date().toISOString()
               };
 
-              const { error: resultError } = await supabaseClient
-                  .from('results')
-                  .upsert(payload, { onConflict: 'assignment_id, student_id' });
-
+              const { error: resultError } = await supabaseClient.from('results').upsert(payload, { onConflict: 'assignment_id, student_id' });
               if (resultError) throw resultError;
               
-              if (typeof showToast === 'function') showToast("☁️ 已同步至雲端！", "success");
+              // 🔥 D. 即時 UI 更新 (Hot Update)
+              // 1. 更新下拉選單狀態 (Visual Feedback)
+              const options = studentSelect.options;
+              for(let i=0; i<options.length; i++) {
+                  if(options[i].value === studentOriginalName) {
+                      // 如果還沒加綠勾，就加上去
+                      if(!options[i].text.includes('✅')) {
+                          options[i].text = `✅ ${options[i].text.replace('✅ ', '')}`;
+                      }
+                      break;
+                  }
+              }
               
-              // 成功後備份本地
+              // 2. 顯示成功訊息
+              if (typeof showToast === 'function') showToast("☁️ 學生及評語庫已同步！", "success");
+              
+              // 3. 備份
               saveToLocalBackup();
 
           } catch (e) {
-              console.error("儲存錯誤:", e);
-              alert(`雲端寫入失敗:\n${e.message}`);
-              // 失敗時，不應清空或跳轉，讓用戶有機會重試
-              if(saveBtn) { saveBtn.textContent = originalBtnText; saveBtn.disabled = false; }
-              return; // 中斷後續操作
+              console.error("Sync Error:", e);
+              alert(`同步失敗:\n${e.message}`);
           } finally {
-              if(saveBtn) { saveBtn.textContent = originalBtnText; saveBtn.disabled = false; }
+              if(saveBtn) { saveBtn.textContent = originalBtnText; saveBtn.style.opacity = "1"; }
           }
       } else {
           saveToLocalBackup();
           if (typeof showToast === 'function') showToast("⚠️ 未登入，僅儲存於本機", "warning");
       }
       
-      renderStudentOverviewTable();
-      isDataDirty = true; 
+      // 更新總覽表記憶體 (但不強制重繪整個表格以免閃爍)
+      renderStudentOverviewTable(); 
+      isDataDirty = false; // 標記為已乾淨
       updateUIBasedOnAuthState();
       
+      // 自動跳轉
       setTimeout(() => scrollToSection(new Event('dummy'), 'student-select'), 100);
   }
 }
@@ -5356,49 +5337,35 @@ function renderStudentOverviewTable() {
 // [Pro-v8.9] 顯示學生歷史圖表 (讀取該學生所有作業成績)
 let _historyChart = null;
 
-// [Pro-v10.0] Phase 10: 數據秩序重整 (強制前端時間軸排序)
 async function showStudentHistory(studentId, studentName) {
     if (!studentId) return;
     
-    // 1. 初始化介面
+    // 1. 打開 Modal 並顯示 Loading
     const modal = document.getElementById('pop-student-history-modal');
     document.getElementById('history-student-name').textContent = `${studentName} 的成長歷程`;
     modal.classList.add('active');
     
-    // 清除舊圖表 (防止閃爍)
-    const ctx = document.getElementById('studentHistoryChart');
-    if (_historyChart) {
-        _historyChart.destroy();
-        _historyChart = null;
-    }
-
+    // 2. 讀取數據 (從 results 表 join assignments 表)
     try {
-        // 2. 讀取數據 (不依賴 SQL 排序，只負責抓資料)
         const { data, error } = await supabaseClient
             .from('results')
             .select(`
                 total_score,
                 assignments!inner ( title, created_at )
             `)
-            .eq('student_id', studentId);
+            .eq('student_id', studentId)
+            .order('created_at', { foreignTable: 'assignments', ascending: true }); // 按時間排序
 
         if (error) throw error;
-
-        // 🔥 Phase 10 核心修正：在 JavaScript 端強制按日期排序
-        // 邏輯：將 ISO 字串轉為 Date 物件，相減得出先後 (舊 -> 新)
-        data.sort((a, b) => new Date(a.assignments.created_at) - new Date(b.assignments.created_at));
 
         // 3. 準備圖表數據
         const labels = data.map(d => d.assignments.title);
         const scores = data.map(d => d.total_score);
 
-        // 空狀態處理
-        if (data.length === 0) {
-            labels.push('暫無數據');
-            scores.push(0);
-        }
+        // 4. 繪製圖表
+        const ctx = document.getElementById('studentHistoryChart');
+        if (_historyChart) _historyChart.destroy(); // 銷毀舊圖表
 
-        // 4. 繪製圖表 (Pop Art 風格微調)
         _historyChart = new Chart(ctx, {
             type: 'line',
             data: {
@@ -5406,14 +5373,12 @@ async function showStudentHistory(studentId, studentName) {
                 datasets: [{
                     label: '總分走勢',
                     data: scores,
-                    borderColor: '#5A8F7B', // 沉靜灰綠
+                    borderColor: '#5A8F7B',
                     backgroundColor: 'rgba(90, 143, 123, 0.1)',
                     borderWidth: 3,
-                    pointBackgroundColor: '#F2C037', // Pop Art 黃色點綴
-                    pointBorderColor: '#fff',
-                    pointRadius: 6,
-                    pointHoverRadius: 8,
-                    tension: 0.2, // 稍微平滑一點，不要太生硬
+                    pointBackgroundColor: '#F2C037',
+                    pointRadius: 5,
+                    tension: 0.3, // 平滑曲線
                     fill: true
                 }]
             },
@@ -5421,42 +5386,17 @@ async function showStudentHistory(studentId, studentName) {
                 responsive: true,
                 maintainAspectRatio: false,
                 scales: {
-                    y: { 
-                        beginAtZero: true, 
-                        suggestedMax: 100,
-                        grid: { color: '#f0f0f0' },
-                        title: { display: true, text: '分數' }
-                    },
-                    x: {
-                        grid: { display: false }, // X 軸不畫網格，更乾淨
-                        title: { display: true, text: '作業題目 (按時間順序)' }
-                    }
+                    y: { beginAtZero: true, suggestedMax: 100 }
                 },
                 plugins: {
-                    legend: { display: false }, // 隱藏圖例，簡潔為主
-                    tooltip: {
-                        backgroundColor: 'rgba(91, 80, 68, 0.9)', // 深啡色背景
-                        titleFont: { size: 14 },
-                        bodyFont: { size: 14 },
-                        padding: 10,
-                        callbacks: {
-                            afterLabel: function(context) {
-                                const idx = context.dataIndex;
-                                if (data[idx]) {
-                                    const date = new Date(data[idx].assignments.created_at).toLocaleDateString();
-                                    return `📅 日期: ${date}`;
-                                }
-                                return '';
-                            }
-                        }
-                    }
+                    legend: { display: false }
                 }
             }
         });
 
     } catch (err) {
         console.error("History Error:", err);
-        alert("讀取失敗：" + err.message);
+        alert("無法讀取歷史數據：" + err.message);
         modal.classList.remove('active');
     }
 }
@@ -7498,13 +7438,13 @@ function buildCardHtml(item, uniqueId) {
         </div>
     </div>`;
 }
-// [Pro-v9.3] 開啟作業 (優先讀取專案專屬評語庫)
+// [Pro-v9.4] 開啟作業 (加入評語庫基準線記憶，為智能 Sync 鋪路)
 async function openAssignment(assignmentId) {
-    if (assignmentId === 'local_memory') { showPage('page2'); showToast("已返回草稿", "success"); return; }
+    if (assignmentId === 'local_memory') { showPage('page2'); showToast("已返回編輯中的草稿", "success"); return; }
     if (assignmentId === 'local_backup') { restoreFromLocalBackup(); return; }
-    if (!currentUser) { showToast("請先登入", "warning"); return; }
+    if (!currentUser) { showToast("請先登入以開啟此雲端專案", "warning"); return; }
     
-    showToast("正在載入...", "info");
+    showToast("正在載入雲端作業...", "info");
     
     try {
         // 1. 讀取 Assignment (包含 settings)
@@ -7521,19 +7461,21 @@ async function openAssignment(assignmentId) {
         const { data: results, error: resultError } = await supabaseClient.from('results').select('*').eq('assignment_id', assignmentId);
         if (resultError) throw resultError;
 
-        // 🔥 3. 處理評語庫 (Stick to Project)
+        // 3. 還原評語庫 & 設定基準線 (Baseline)
         const documentContainer = document.getElementById('critique-data');
-        documentContainer.innerHTML = ''; // 先清空
+        documentContainer.innerHTML = ''; 
 
         if (assignment.settings && assignment.settings.critiques && assignment.settings.critiques.length > 0) {
-            console.log("📂 發現專案專屬評語庫，正在還原...");
+            console.log("📂 還原專案評語庫...");
             applyCritiquesToDOM(assignment.settings.critiques);
         } else {
-            console.log("⚠️ 此專案無專屬評語 (舊版)，載入預設...");
-            loadDefaultCritiques(); // 或者保留當前畫面，視乎你喜好，這裡建議重置為預設比較安全
+            console.log("⚠️ 無專屬評語，載入預設...");
+            loadDefaultCritiques(); 
         }
         
-        // 重建 UI
+        // 🔥 關鍵新增：記住這一刻的評語庫樣子，稍後 Sync 時用來比對
+        window.lastSavedCritiques = JSON.stringify(collectExportData());
+
         buildChecklist();
         buildOverviewPage();
 
@@ -7579,6 +7521,7 @@ async function openAssignment(assignmentId) {
         alert(`載入失敗：${error.message}`);
     }
 }
+
 // 5. 歡迎訊息更新
 function updateWelcomeMessage() {
     const h = new Date().getHours();
