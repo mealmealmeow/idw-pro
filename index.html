@@ -126,43 +126,51 @@
   overflow: hidden; /* 確保圓角包住內容 */
 }
 
-/* 🟢 Type B: 巨型畫布 (Max Pop) */
+/* 🟢 Type B: 巨型畫布 (Max Pop) - 修正版 */
 .pop-modal.pop-modal-large {
-  max-width: 1000px; /* 電腦版夠闊 */
-  height: 90vh;      /* 佔高 90% */
-  width: 100%;       /* 佔寬 100% (扣除 padding) */
+  max-width: 95vw;  /* 佔螢幕寬度 95%，夠闊！ */
+  width: 95vw;      /* 強制設定寬度 */
+  height: 90vh;     /* 佔高 90% */
+  max-height: 90vh; /* 鎖死高度，防止撐爆螢幕 */
+  padding: 20px;    /* 稍微減少 padding，留更多位俾內容 */
+  
+  /* 確保 Flex 佈局生效，讓中間捲動，頭尾固定 */
+  display: flex;
+  flex-direction: column;
 }
 
-/* 顯示時的動畫 */
-.pop-overlay.active .pop-modal {
-  transform: scale(1);
+/* 確保 Header 和 Footer 不會被壓縮 */
+.pop-modal h3, 
+.pop-footer {
+  flex-shrink: 0; /* 關鍵：禁止壓縮，確保按鈕永遠可見 */
 }
 
-/* 3. 彈窗內部元件修正 (去虛線化) */
-
-/* 捲動區域 (如專案列表、學生列表) */
+/* 捲動區域修正 */
 .pop-scroll-area {
   text-align: left;
-  background: #fdfbf7; /* 暖米色底 */
+  background: #fdfbf7;
   border-radius: 12px;
   padding: 15px;
   
-  /* 🔥 核心修復：Flex 填充與溢出控制 */
-  flex: 1; /* 自動佔滿剩餘高度 */
-  overflow-y: auto; /* 只有這個區域會捲動 */
-  min-height: 0; /* 防止 Flex 子元素溢出 */
+  /* 🔥 核心：佔滿剩餘空間，但溢出時捲動 */
+  flex-grow: 1; 
+  flex-shrink: 1; 
+  overflow-y: auto;
+  min-height: 0; /* Firefox/Flex bug fix */
   
   margin: 15px 0;
-  border: 1px solid #e1d8c8; /* 實線取代虛線 */
-  box-shadow: inset 0 2px 6px rgba(0,0,0,0.03); /* 內陰影增加深度 */
+  border: 1px solid #e1d8c8;
+  box-shadow: inset 0 2px 6px rgba(0,0,0,0.03);
 }
 
-/* 手機版適配 */
+/* 手機版特別處理 */
 @media (max-width: 600px) {
-  .pop-overlay { padding: 10px; }
-  .pop-modal { padding: 16px; max-height: 90vh; }
-  /* 手機版大窗都要留少少位 */
-  .pop-modal.pop-modal-large { height: 92vh; }
+  .pop-modal.pop-modal-large {
+    width: 98vw;    /* 手機版再闊啲 */
+    height: 95vh;   /* 用盡高度 */
+    max-height: 95vh;
+    padding: 12px;  /* 減少邊距 */
+  }
 }
 
 /* 3. 彈窗內部元件 */
@@ -3885,8 +3893,8 @@ function scrollToSection(event, targetId) {
   const stickyBar = document.querySelector('.sticky-top-bar');
   const stickyBarHeight = stickyBar ? stickyBar.offsetHeight : 0;
   
-  // 🔥 Offset 加大至 60px (原本是 15px)，確保標題舒服地停在 Header 下方
-  const extraBuffer = 60; 
+   // 🔥 加大到 140px，確保標題和上方有一段距離
+  const extraBuffer = 140; 
   
   const elementPosition = targetElement.getBoundingClientRect().top;
   const offsetPosition = elementPosition + window.pageYOffset - stickyBarHeight - extraBuffer; 
