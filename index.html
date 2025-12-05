@@ -87,7 +87,12 @@
 /* === [Pro-v9.8] 沉浸式彈窗系統 (Clean Immersive Layout) === */
 /* ================================================================= */
 
-/* 1. 底紙 (Overlay) - 鎖死背景 */
+
+/* ================================================================= */
+/* === [Pro-v9.9] 穩定版彈窗系統 (Stable Scroll Layout) === */
+/* ================================================================= */
+
+/* 1. 底紙 (Overlay) - 負責捲動與背景 */
 .pop-overlay {
   position: fixed !important;
   top: 0; left: 0; right: 0; bottom: 0;
@@ -97,13 +102,24 @@
   backdrop-filter: blur(8px);
   z-index: 2147483647 !important;
   
-  /* Flex 置中 */
-  display: flex !important;
-  justify-content: center !important;
-  align-items: center !important;
+  /* 🔥 核心改動：讓 Overlay 本身可以捲動 */
+  overflow-y: auto !important;
   
-  overflow: hidden !important; /* 禁止背景捲動 */
-  padding: 0 !important;
+  /* Flex 置中，但允許內容過長時正常捲動 */
+  display: flex !important;
+  align-items: center !important; /* 垂直置中 */
+  justify-content: center !important; /* 水平置中 */
+  
+  /* 上下預留空間，避免彈窗貼邊 */
+  padding: 40px 20px !important;
+  box-sizing: border-box !important;
+}
+
+/* 當內容過長時，切換為靠上對齊，確保頭部可見 */
+@media (max-height: 800px) {
+  .pop-overlay {
+    align-items: flex-start !important;
+  }
 }
 
 .pop-overlay.active {
@@ -121,33 +137,36 @@
   
   width: 90% !important;
   max-width: 440px !important;
-  margin: auto !important;
+  /* margin: auto !important;  <-- Flexbox 下不需要 auto margin */
   
   text-align: center;
   color: #4a4a4a;
   transform: scale(0.95);
   transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
   
-  /* 小窗高度自動 */
+  /* 高度自動，讓內容撐開 */
   height: auto !important;
-  max-height: 85vh !important;
-  overflow-y: auto !important; /* 如果小窗內容多，自己捲動 */
+  max-height: none !important; 
 }
 
 /* 3. 🟢 沉浸式大窗 (Max Pop) */
 .pop-modal.pop-modal-large {
-  width: 90vw !important;
+  width: 95% !important;
   max-width: 1000px !important;
   
-  /* 高度鎖死：佔螢幕 90% */
-  height: 90vh !important;
-  max-height: 90vh !important;
+  /* 移除強制高度，改用 min-height */
+  height: auto !important;
+  min-height: 50vh !important;
   
-  /* 佈局鎖死 */
+  /* 佈局 */
   display: flex !important;
   flex-direction: column !important;
-  padding: 0 !important;
-  overflow: hidden !important;
+  
+  /* 如果您希望大窗內容很多時，內部有捲動條，請保留 max-height */
+  /* 如果希望大窗跟著頁面捲動，請移除 max-height */
+  /* 這裡採用折衷方案：在大螢幕限制高度，小螢幕解除限制 */
+  max-height: 90vh !important; 
+  overflow: hidden !important; /* 防止圓角被切 */
 }
 
 /* 4. 頭部固定區 (Header) */
@@ -155,6 +174,7 @@
   font-size: 36px;
   margin-bottom: 8px;
   display: block;
+  text-align: center; /* 確保 icon 置中 */
 }
 .pop-modal.pop-modal-large .pop-icon,
 .pop-modal.pop-modal-large h3,
@@ -176,17 +196,18 @@
 
 /* 讓大輸入框自己捲動 */
 .pop-modal.pop-modal-large .input-area-wrapper textarea {
-  max-height: 15vh !important; 
+  max-height: 150px !important; 
   min-height: 100px !important;
   overflow-y: auto !important;
-  resize: none !important;
+  resize: vertical !important;
 }
 
 /* 6. 🔥 內容捲動區 (The Scrollable Body) */
 .pop-scroll-area {
   flex-grow: 1 !important; 
-  height: 0 !important; 
-  min-height: 0 !important;
+  
+  /* 設定最小高度，避免內容少時過扁 */
+  min-height: 200px !important;
   
   overflow-y: auto !important; /* 只有這裡出 Scroll bar */
   
@@ -213,7 +234,7 @@
   gap: 12px;
 }
 
-/* 8. 按鈕樣式 (補回缺失部分) */
+/* 8. 按鈕樣式 */
 .pop-btn {
   padding: 10px 24px;
   border: none;
@@ -261,15 +282,25 @@
 }
 .pop-list-item:hover { background-color: #fcf4d6; color: #333; }
 
-/* 11. 手機全螢幕模式 */
-@media (max-width: 600px) {
-  .pop-modal.pop-modal-large {
-    width: 100vw !important;
-    height: 100dvh !important;
-    max-height: 100dvh !important;
-    border-radius: 0 !important;
+/* 11. 手機/小螢幕適配 */
+@media (max-width: 768px) {
+  .pop-overlay {
+    align-items: flex-start !important; /* 手機上強制靠上，避免鍵盤彈出遮擋 */
+    padding: 20px 10px !important;
   }
-
+  
+  .pop-modal { 
+    padding: 20px !important; 
+    width: 95% !important;
+  }
+  
+  .pop-modal.pop-modal-large { 
+    width: 100% !important;
+    height: auto !important;
+    max-height: 95vh !important; /* 手機上稍微留點邊 */
+    border-radius: 16px !important;
+  }
+}
 
   /* --- 文青風色彩與字體定義 --- */
   :root {
