@@ -11014,6 +11014,35 @@ async function openForgotModal() {
         if(link) link.textContent = originalText;
     }
 }
+
+/* [v11.4] Back To Top 邏輯 */
+const backToTopBtn = document.getElementById("back-to-top-btn");
+
+window.onscroll = function() {
+  if (backToTopBtn) {
+    // 捲動超過 300px 顯示
+    if (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) {
+      backToTopBtn.style.display = "block";
+    } else {
+      backToTopBtn.style.display = "none";
+    }
+  }
+  
+  // 順便觸發懸浮導覽列 (Floating Nav) 邏輯
+  const nav = document.getElementById('floating-nav');
+  if (nav && nav.classList.contains('visible')) {
+      nav.classList.add('is-scrolling');
+      clearTimeout(window.scrollTimer);
+      window.scrollTimer = setTimeout(() => {
+          if (!nav.matches(':hover')) nav.classList.remove('is-scrolling');
+      }, 2000);
+  }
+};
+
+function scrollToTop() {
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+  
 </script> <!-- 呢個係原本全個檔案唯一的結尾，保留佢 -->
 
 
