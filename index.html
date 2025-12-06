@@ -654,6 +654,66 @@
 }
 .text-btn:hover { background: #f3f4f6; }
 
+/* [v11.3] 設定選單 Z-Index 修復 (確保蓋過分頁導航) */
+.settings-menu-popover {
+    z-index: 9999 !important; /* 強制最高層級 */
+    /* 其餘樣式保持不變 */
+}
+
+/* [v11.3] Mobile Header 修復 (Email 完整顯示 + 按鈕同行) */
+@media (max-width: 768px) {
+  header {
+    display: flex !important;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 10px !important;
+  }
+
+  /* 標題 */
+  header h1 {
+    width: 100%;
+    text-align: center;
+    margin: 0 !important;
+  }
+
+  /* 身份區 (Email + 按鈕組) */
+  .auth-container {
+    width: 100%;
+    max-width: 100%; /* 解除寬度限制 */
+    display: flex;
+    flex-direction: column; /* 上面名，下面掣 */
+    align-items: center;
+    gap: 8px;
+    background: rgba(255,255,255,0.15); /* 輕微底色 */
+    padding: 10px !important;
+    border-radius: 12px;
+  }
+
+  /* 登入狀態文字 */
+  #auth-status {
+    font-size: 0.9rem !important;
+    white-space: normal !important; /* 允許換行 */
+    text-align: center;
+    word-break: break-all; /* 防止長 Email 撐爆 */
+  }
+
+  /* 按鈕組 (登出、同步、設定) */
+  #auth-buttons {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  /* 設定掣 (在手機版稍微放大) */
+  .font-control-btn {
+    width: 32px; height: 32px;
+    background: rgba(255,255,255,0.3) !important;
+  }
+}
+
 
 /* ========================================= */
 /* === [v11.2] Mobile RWD (Header & Nav 修復版) === */
@@ -2898,32 +2958,13 @@ scroll-margin-top: 180px; /* 手機版 Header 疊起來比較高 */
         </div>
         
         <!-- [v11.1] Header 右側：設定選單 (收納了字體控制) -->
-<div class="header-actions" style="position: relative;">
-    
-    <!-- 設定按鈕 (齒輪) -->
-    <button class="font-control-btn" onclick="toggleSettingsMenu()" style="width: 36px; height: 36px; border-radius: 50%; font-size: 1.1rem; border: none; background: rgba(255,255,255,0.2);">
-        ⚙️
-    </button>
 
-    <!-- 設定下拉選單 (預設隱藏) -->
-    <div id="settings-dropdown" class="settings-menu-popover" style="display: none;">
-        <div class="settings-group">
-            <label>字體大小</label>
-            <div class="font-controls-row">
-                <button onclick="adjustFontSize('decrease')" title="縮小">A-</button>
-                <button onclick="adjustFontSize('reset')" title="重設">⟳</button>
-                <button onclick="adjustFontSize('increase')" title="放大">A+</button>
-            </div>
-        </div>
-        <div class="settings-divider"></div>
-        <div class="settings-group">
-            <button class="text-btn" onclick="showHotkeyHelp()">⌨️ 鍵盤快捷鍵</button>
-        </div>
-    </div>
-
-</div>
       </header>
      <!-- [v10.3] 全新雙層導航結構 -->
+
+
+
+
 <!-- [v11.0] 懸浮導航結構 (Floating Island) -->
 <nav class="page-nav-wrapper">
   
@@ -3986,33 +4027,68 @@ scroll-margin-top: 180px; /* 手機版 Header 疊起來比較高 */
 </div>
 
 
-<!-- [Phase 3] 快速新增評語 Modal -->
+<!-- [v11.3] Header 修改指引 (請手動調整 Header HTML) -->
+<!-- 
+1. 刪除 <div class="header-actions">...</div>
+2. 將 <button ... onclick="toggleSettingsMenu()">⚙️</button> 放入 <div id="auth-buttons"> 內
+3. 將 <div id="settings-dropdown">...</div> 也放入 <div id="auth-buttons"> 內 (或者放在 header 底部)
+-->
+
+<!-- [v11.3] 完整版快速新增評語 Modal -->
 <div id="pop-instant-add-modal" class="pop-overlay">
-  <div class="pop-modal" style="max-width: 380px;">
+  <div class="pop-modal" style="max-width: 500px; max-height: 90vh; display:flex; flex-direction:column;">
     <div class="pop-icon">✨</div>
-    <h3>新增評語</h3>
+    <h3>新增評語詳情</h3>
     <p class="pop-desc" id="instant-add-category-display">類別：內容</p>
-    
     <input type="hidden" id="instant-add-category-val">
-    
-    <div style="text-align: left;">
-        <label style="font-size:0.85rem; font-weight:bold; color:#666;">標題 (Title)</label>
-        <input type="text" id="instant-add-title" class="pop-input" style="margin-bottom: 10px;" placeholder="例如：立意深刻">
+
+    <!-- 捲動區域 -->
+    <div class="pop-scroll-area" style="text-align: left; padding: 15px;">
+        
+        <!-- 標題與類型 -->
+        <label style="font-size:0.85rem; font-weight:bold; color:#5A8F7B;">標題 (必填)</label>
+        <input type="text" id="instant-add-title" class="pop-input" style="margin-bottom: 15px;" placeholder="例如：立意深刻">
         
         <label style="font-size:0.85rem; font-weight:bold; color:#666;">類型</label>
         <div style="display:flex; gap:10px; margin-bottom: 20px;">
-            <label style="flex:1; padding:10px; border:1px solid #ddd; border-radius:8px; cursor:pointer; text-align:center;">
-                <input type="radio" name="instant-add-type" value="excellent" checked> 👍 優點
+            <label style="flex:1; padding:10px; border:1px solid #ddd; border-radius:8px; cursor:pointer; text-align:center; background:#fff;">
+                <input type="radio" name="instant-add-type" value="excellent" checked onchange="toggleInstantAddFields()"> 👍 優點
             </label>
-            <label style="flex:1; padding:10px; border:1px solid #ddd; border-radius:8px; cursor:pointer; text-align:center;">
-                <input type="radio" name="instant-add-type" value="problem"> 👎 待改進
+            <label style="flex:1; padding:10px; border:1px solid #ddd; border-radius:8px; cursor:pointer; text-align:center; background:#fff;">
+                <input type="radio" name="instant-add-type" value="problem" onchange="toggleInstantAddFields()"> 👎 待改進
             </label>
+        </div>
+
+        <!-- 優點專用 -->
+        <div id="instant-field-excellent">
+            <label style="font-size:0.85rem; font-weight:bold; color:#666;">優點詳情</label>
+            <textarea id="instant-add-strength" class="pop-input" rows="2" placeholder="對優點的具體描述..."></textarea>
+        </div>
+
+        <!-- 缺點專用 (預設隱藏) -->
+        <div id="instant-field-problem" style="display:none;">
+            <label style="font-size:0.85rem; font-weight:bold; color:#c86a5a;">問題核心</label>
+            <textarea id="instant-add-problem" class="pop-input" rows="2" placeholder="問題在於..."></textarea>
+            
+            <label style="font-size:0.85rem; font-weight:bold; color:#5A8F7B; margin-top:10px;">建議 (宜)</label>
+            <textarea id="instant-add-suggestion" class="pop-input" rows="2" placeholder="建議如何改善..."></textarea>
+        </div>
+
+        <!-- 通用欄位 -->
+        <div style="margin-top: 15px; border-top: 1px dashed #ddd; padding-top: 15px;">
+            <label style="font-size:0.85rem; font-weight:bold; color:#666;">例子 (Example)</label>
+            <textarea id="instant-add-example" class="pop-input" rows="2" placeholder="具體例子..."></textarea>
+
+            <label style="font-size:0.85rem; font-weight:bold; color:#666; margin-top:10px;">下拉選項設定 (進階)</label>
+            <input type="text" id="instant-add-options-label" class="pop-input" placeholder="標籤 (e.g. 描寫對象)" style="margin-bottom:5px;">
+            <textarea id="instant-add-options" class="pop-input" rows="2" placeholder="選項 (每行一個，e.g. 天氣|心情)"></textarea>
+            <div style="font-size:0.75rem; color:#999;">註：可用 | 分隔多組選項</div>
         </div>
     </div>
 
     <div class="pop-footer">
       <button class="pop-btn pop-btn-cancel" onclick="document.getElementById('pop-instant-add-modal').classList.remove('active')">取消</button>
-      <button class="pop-btn pop-btn-confirm" onclick="saveInstantCritique()">新增並選取</button>
+      <button class="pop-btn pop-btn-confirm" onclick="saveInstantCritique()">儲存並選取</button>
     </div>
   </div>
 </div>
@@ -5361,52 +5437,81 @@ function openInstantAdd(category) {
     setTimeout(() => document.getElementById('instant-add-title').focus(), 100);
 }
 
-// [Phase 3] 儲存並應用新評語
+/* [v11.3] 快速新增邏輯 (完整欄位版) */
+
+// 切換欄位顯示 (優點 vs 問題)
+function toggleInstantAddFields() {
+    const type = document.querySelector('input[name="instant-add-type"]:checked').value;
+    const divExc = document.getElementById('instant-field-excellent');
+    const divProb = document.getElementById('instant-field-problem');
+    
+    if (type === 'excellent') {
+        divExc.style.display = 'block';
+        divProb.style.display = 'none';
+    } else {
+        divExc.style.display = 'none';
+        divProb.style.display = 'block';
+    }
+}
+
+// 儲存並應用
 async function saveInstantCritique() {
     const title = document.getElementById('instant-add-title').value.trim();
     const category = document.getElementById('instant-add-category-val').value;
     const type = document.querySelector('input[name="instant-add-type"]:checked').value;
     
+    // 獲取詳細欄位
+    const strength = document.getElementById('instant-add-strength').value.trim();
+    const problem = document.getElementById('instant-add-problem').value.trim();
+    const suggestion = document.getElementById('instant-add-suggestion').value.trim();
+    const example = document.getElementById('instant-add-example').value.trim();
+    const optionsLabel = document.getElementById('instant-add-options-label').value.trim();
+    const options = document.getElementById('instant-add-options').value.trim();
+
     if (!title) { alert("請輸入標題"); return; }
 
     const id = 'manual_' + Date.now();
     
-    // 1. 建立 DOM 元素 (加入 hidden container)
+    // 1. 建立 DOM 元素 (包含所有 dataset)
     const newDiv = document.createElement('div');
     newDiv.dataset.id = id;
     newDiv.dataset.category = category;
     newDiv.dataset.type = type;
-    newDiv.dataset.title = title; // 確保有 title 屬性
+    newDiv.dataset.title = title;
+    
+    // 寫入詳細資料
+    if(type === 'excellent') newDiv.dataset.strengthSummary = strength;
+    if(type === 'problem') {
+        newDiv.dataset.problemCore = problem;
+        newDiv.dataset.suggestion = suggestion;
+    }
+    newDiv.dataset.example = example;
+    newDiv.dataset.optionsLabel = optionsLabel;
+    newDiv.dataset.options = options;
+
     newDiv.innerHTML = `<h4>${title}</h4>`;
     document.getElementById('critique-data').appendChild(newDiv);
 
     // 2. 刷新介面
     buildChecklist();
 
-    // 3. 自動勾選該項目
+    // 3. 自動勾選
     const checkbox = document.getElementById(id);
     if (checkbox) {
         checkbox.checked = true;
-        handleCheckboxChange(checkbox); // 觸發聯動和儲存
+        handleCheckboxChange(checkbox);
         
-        // 自動捲動到該項目
         setTimeout(() => {
             checkbox.closest('.check-item').scrollIntoView({ behavior: 'smooth', block: 'center' });
-            // 閃爍效果
-            checkbox.closest('.check-item').style.transition = 'background 0.3s';
-            checkbox.closest('.check-item').style.backgroundColor = '#fff9c4'; // 黃色 highlight
-            setTimeout(() => {
-                checkbox.closest('.check-item').style.backgroundColor = '';
-            }, 800);
+            checkbox.closest('.check-item').style.backgroundColor = '#fff9c4';
+            setTimeout(() => { checkbox.closest('.check-item').style.backgroundColor = ''; }, 800);
         }, 100);
     }
 
-    // 4. 關閉 Modal
+    // 4. 關閉
     document.getElementById('pop-instant-add-modal').classList.remove('active');
     
-    // 5. 背景儲存到雲端 (如果已登入)
-    // 這樣下次再 load project 時，這些手動加的評語還在
-    // 我們可以將它加入到 Assignment Settings (這是進階同步，暫時先做 Local DOM)
+    // 5. 觸發儲存
     isDataDirty = true;
     updateUIBasedOnAuthState();
     if(typeof showToast === 'function') showToast("已新增並選取！", "success");
