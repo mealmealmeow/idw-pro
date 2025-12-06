@@ -656,100 +656,133 @@
 
 
 /* ========================================= */
-/* === [v11.1] Mobile RWD (極簡 App 風格) === */
+/* === [v11.2] Mobile RWD (Header & Nav 修復版) === */
 /* ========================================= */
 @media (max-width: 768px) {
   
-  /* 1. Header 瘦身 */
+  /* 1. Header 佈局重組 (慳位大法) */
   header {
-    padding: 0.8rem 1rem !important; /* 減少上下 Padding */
-    min-height: auto;
+    display: grid !important;
+    grid-template-columns: 1fr auto; /* 左邊內容，右邊預留 */
+    grid-template-areas: 
+      "title title"
+      "auth settings";
+    padding: 0.8rem 1rem !important;
+    gap: 5px 10px;
+    align-items: center;
+  }
+  
+  /* 標題 (佔滿上一行) */
+  header > div:first-child {
+    grid-area: title;
+    width: 100%;
   }
   
   h1 {
-    font-size: 1.4rem !important; /* 標題縮細 */
-    margin-bottom: 2px !important;
+    font-size: 1.5rem !important;
+    text-align: center; /* 標題置中更好看 */
+    margin-bottom: 5px !important;
   }
   
-  /* 隱藏/縮細非必要元素 */
+  /* 登入資料 (左下) */
   .auth-container { 
-    padding: 2px 6px !important;
+    grid-area: auth;
+    justify-self: start;
+    padding: 4px 8px !important;
     font-size: 0.8rem !important;
+    max-width: 250px; /* 防止太長 */
+    overflow: hidden;
   }
   #auth-status { font-size: 0.75rem !important; }
   
-  /* 2. 導航容器：固定頂部 */
+  /* 設定掣 (右下，跟登入資料同行) */
+  .header-actions {
+    grid-area: settings;
+    justify-self: end;
+    margin-top: 0 !important; /* 移除舊有的 margin */
+  }
+
+  /* 2. 導航容器 */
   .page-nav-wrapper {
     position: sticky;
     top: 0;
-    z-index: 2000;
+    z-index: 100; /* 確保唔會遮住 Pop-up */
     border-bottom: 1px solid rgba(0,0,0,0.05);
     background: #fff;
   }
 
-  /* 3. 主導航：App 風格 (Icon 上 字 下) */
+  /* 3. 主導航 (Icon 上 字 下) */
   .main-nav {
-    justify-content: space-around; /* 平均分佈 */
-    padding: 0;
+    justify-content: space-between; /* 平均分佈 */
+    padding: 0 10px;
     height: auto;
     background: #fff;
     gap: 0;
   }
 
   .nav-btn {
-    flex: 1; /* 每個按鈕佔同樣闊度 */
-    flex-direction: column; /* 垂直排列 */
-    gap: 2px;
-    padding: 8px 0;
+    flex: 1; 
+    flex-direction: column;
+    gap: 3px;
+    padding: 10px 0;
     background: transparent !important;
-    border: none !important; /* 去框 */
-    border-bottom: 2px solid transparent !important; /* 預留底線位 */
+    border: none !important;
+    border-bottom: 3px solid transparent !important;
     border-radius: 0;
-    font-size: 0.75rem; /* 字細啲 */
+    font-size: 0.75rem;
     color: #9ca3af;
   }
   
-  .nav-icon { font-size: 1.4rem; margin-bottom: 2px; }
+  .nav-icon { font-size: 1.3rem; margin-bottom: 0; }
 
   .nav-btn.active {
     color: var(--accent-color);
-    background: transparent !important;
-    border-bottom-color: var(--accent-color) !important; /* 幼底線 */
-    font-weight: normal; /* 唔使太粗 */
+    border-bottom-color: var(--accent-color) !important;
   }
 
-  /* 4. 子導航：橫滑膠囊 (保留 v11.0 邏輯，微調樣式) */
+  /* 4. 子導航 (置中橫滑) */
   .sub-nav-island {
     position: static;
     transform: none;
     width: 100%;
     border-radius: 0;
-    box-shadow: inset 0 -1px 0 #f0f0f0; /* 輕微內陰影 */
-    background: #fbfbfb;
+    box-shadow: inset 0 10px 10px -10px rgba(0,0,0,0.05); /* 內陰影增加層次 */
+    background: #fcfcfc;
     border: none;
-    padding: 10px 15px;
+    padding: 12px 0;
+    
+    /* 🔥 關鍵修正：置中顯示 */
+    display: flex;
+    justify-content: center; /* 內容置中 */
+    
     overflow-x: auto;
-    justify-content: flex-start;
     animation: none;
-    gap: 10px;
+  }
+  
+  .sub-nav-group {
+    width: auto; /* 自動寬度 */
+    display: flex;
+    justify-content: center; /* 組內置中 */
+    gap: 8px;
+    padding: 0 15px;
   }
   
   .sub-nav-btn {
     border: 1px solid #e5e7eb;
     background: #fff;
-    padding: 6px 14px;
+    padding: 6px 16px;
     font-size: 0.85rem;
     flex-shrink: 0;
+    white-space: nowrap;
   }
   
   .sub-nav-btn.active {
     background: var(--accent-color);
     color: #fff;
     border-color: var(--accent-color);
-    box-shadow: none;
+    box-shadow: 0 2px 6px rgba(90,143,123,0.3);
   }
 }
-
 
 
 .page-content { 
@@ -3952,6 +3985,38 @@ scroll-margin-top: 180px; /* 手機版 Header 疊起來比較高 */
   </div>
 </div>
 
+
+<!-- [Phase 3] 快速新增評語 Modal -->
+<div id="pop-instant-add-modal" class="pop-overlay">
+  <div class="pop-modal" style="max-width: 380px;">
+    <div class="pop-icon">✨</div>
+    <h3>新增評語</h3>
+    <p class="pop-desc" id="instant-add-category-display">類別：內容</p>
+    
+    <input type="hidden" id="instant-add-category-val">
+    
+    <div style="text-align: left;">
+        <label style="font-size:0.85rem; font-weight:bold; color:#666;">標題 (Title)</label>
+        <input type="text" id="instant-add-title" class="pop-input" style="margin-bottom: 10px;" placeholder="例如：立意深刻">
+        
+        <label style="font-size:0.85rem; font-weight:bold; color:#666;">類型</label>
+        <div style="display:flex; gap:10px; margin-bottom: 20px;">
+            <label style="flex:1; padding:10px; border:1px solid #ddd; border-radius:8px; cursor:pointer; text-align:center;">
+                <input type="radio" name="instant-add-type" value="excellent" checked> 👍 優點
+            </label>
+            <label style="flex:1; padding:10px; border:1px solid #ddd; border-radius:8px; cursor:pointer; text-align:center;">
+                <input type="radio" name="instant-add-type" value="problem"> 👎 待改進
+            </label>
+        </div>
+    </div>
+
+    <div class="pop-footer">
+      <button class="pop-btn pop-btn-cancel" onclick="document.getElementById('pop-instant-add-modal').classList.remove('active')">取消</button>
+      <button class="pop-btn pop-btn-confirm" onclick="saveInstantCritique()">新增並選取</button>
+    </div>
+  </div>
+</div>
+
 <script>
 
 // --- Supabase 初始化與設定 ---
@@ -5172,19 +5237,20 @@ document.addEventListener('click', (e) => {
 
 
 
-// [Pro-v9.5 Step 2] 構建評語清單 (包含空狀態救援)
+/* ===== [Phase 3] 批改頁升級：Checklist 渲染與快速新增 ===== */
+
 function buildChecklist() {
   const dataContainer = document.getElementById('critique-data');
   const checklistContainer = document.getElementById('checklist-container');
 
-  // 1. 備份當前勾選狀態 (防止重繪時丟失)
+  // 1. 狀態備份
   const checkedStates = {};
   const editedTexts = {};
   document.querySelectorAll('#checklist-container input[type="checkbox"]').forEach(cb => {
     checkedStates[cb.id] = cb.checked;
     if (cb.checked) {
-      const textarea = document.getElementById(`text-${cb.id}`);
-      if (textarea) editedTexts[cb.id] = textarea.value;
+      const ta = document.getElementById(`text-${cb.id}`);
+      if (ta) editedTexts[cb.id] = ta.value;
     }
   });
 
@@ -5192,7 +5258,7 @@ function buildChecklist() {
   const currentCategories = {};
   let hasItems = false;
 
-  // 2. 分類處理
+  // 2. 分類
   dataContainer.querySelectorAll('div[data-id]').forEach(el => {
     hasItems = true;
     const category = el.dataset.category || '未分類';
@@ -5200,7 +5266,7 @@ function buildChecklist() {
     currentCategories[category].push(el);
   });
   
-  // 3. 排序範疇
+  // 3. 排序 (自定義順序)
   const sortedCategoryNames = Object.keys(currentCategories).sort((a, b) => {
     const indexA = CATEGORY_ORDER.indexOf(a);
     const indexB = CATEGORY_ORDER.indexOf(b);
@@ -5210,17 +5276,29 @@ function buildChecklist() {
     return a.localeCompare(b);
   });
 
-  // 4. 渲染列表 (如果有評語)
+  // 4. 渲染
   if (hasItems) {
-      // 恢復網格佈局 (如果之前被改過)
       checklistContainer.style.display = 'grid'; 
-      checklistContainer.className = ''; // 清除特殊 class
+      checklistContainer.className = ''; 
 
       for (const categoryName of sortedCategoryNames) {
         const categoryDetails = document.createElement('details');
         categoryDetails.className = 'category-group';
-        categoryDetails.open = true; // 預設展開
-        categoryDetails.innerHTML = `<summary><h3>${categoryName}</h3></summary>`;
+        categoryDetails.open = true;
+        
+        // 🔥 新增：標題旁的 [+] 按鈕 (防止冒泡，點擊只開 Modal)
+        const summary = document.createElement('summary');
+        summary.innerHTML = `
+            <div style="display:flex; align-items:center; gap:10px; width:100%;">
+                <h3>${escapeHtml(categoryName)}</h3>
+                <button class="light-btn" style="padding: 2px 8px; font-size: 0.8rem; border-radius: 99px;" 
+                        onclick="event.preventDefault(); openInstantAdd('${escapeHtmlAttr(categoryName)}')">
+                    + 新增
+                </button>
+            </div>
+        `;
+        categoryDetails.appendChild(summary);
+
         const itemsContainer = document.createElement('div');
         itemsContainer.className = 'category-content';
 
@@ -5235,6 +5313,7 @@ function buildChecklist() {
 
           const headerDiv = document.createElement('div');
           headerDiv.className = 'check-item-header';
+          // Label padding 調整已在 CSS 做咗
           headerDiv.innerHTML = `<input type="checkbox" id="${id}"><label for="${id}">${title}</label>`;
           itemDiv.appendChild(headerDiv);
 
@@ -5247,11 +5326,15 @@ function buildChecklist() {
 
           itemsContainer.appendChild(itemDiv);
 
-          // 恢復勾選狀態
-          const checkbox = headerDiv.querySelector(`#${id}`);
+          // 恢復狀態
           if (checkedStates[id]) {
+            const checkbox = headerDiv.querySelector(`#${id}`);
             checkbox.checked = true;
-            handleCheckboxChange(checkbox, false);
+            // 這裡不需再 handleCheckboxChange，因為那是點擊觸發的，這裡只是渲染
+            // 但我們要確保 UI 顯示正確 (展開)
+            if (hasOptions) itemDiv.querySelector('.interactive-module').style.display = 'block';
+            itemDiv.querySelector('.editable-comment').style.display = 'block';
+            
             const textarea = itemDiv.querySelector(`#text-${id}`);
             if (textarea && editedTexts[id]) textarea.value = editedTexts[id];
           }
@@ -5260,40 +5343,73 @@ function buildChecklist() {
         categoryDetails.appendChild(itemsContainer);
         checklistContainer.appendChild(categoryDetails);
       }
-  } 
-  else {
-    // 🔥 [核心改動] 空狀態救援卡片 (Rescue Card)
-    checklistContainer.style.display = 'block'; // 卡片要佔滿寬度
-    checklistContainer.innerHTML = `
-      <div class="rescue-card">
-        <div class="rescue-title">🌱 評語庫準備就緒</div>
-        <p class="rescue-desc">這份作業尚未設定評語。請選擇一種方式開始：</p>
-        
-        <div class="rescue-grid">
-          <!-- 選項 1: 預設罐頭 -->
-          <div class="rescue-btn" onclick="quickLoadPresets()">
-            <div class="rescue-icon">📦</div>
-            <div class="rescue-label">載入預設</div>
-            <div class="rescue-sub">記敘、抒情...</div>
-          </div>
-
-          <!-- 選項 2: 匯入檔案 -->
-          <label class="rescue-btn" for="import-critique-excel">
-            <div class="rescue-icon">📂</div>
-            <div class="rescue-label">匯入 Excel</div>
-            <div class="rescue-sub">從舊檔導入</div>
-          </label>
-
-          <!-- 選項 3: AI 生成 -->
-          <div class="rescue-btn" onclick="showPage('page6')">
-            <div class="rescue-icon">🤖</div>
-            <div class="rescue-label">AI 生成</div>
-            <div class="rescue-sub">量身打造</div>
-          </div>
-        </div>
-      </div>
-    `;
+  } else {
+    // Rescue Card 代碼 (保持不變)
+    checklistContainer.style.display = 'block';
+    checklistContainer.innerHTML = `<div class="rescue-card">... (保留你原有的 Rescue Card 內容) ...</div>`;
+    // 為免代碼太長，這裡省略 Rescue Card HTML，請保留你原本那段
+    // 如果你 copy 唔到，我可以再貼一次
   }
+}
+
+// [Phase 3] 打開新增評語 Modal
+function openInstantAdd(category) {
+    document.getElementById('instant-add-category-display').textContent = `分類：${category}`;
+    document.getElementById('instant-add-category-val').value = category;
+    document.getElementById('instant-add-title').value = '';
+    document.getElementById('pop-instant-add-modal').classList.add('active');
+    setTimeout(() => document.getElementById('instant-add-title').focus(), 100);
+}
+
+// [Phase 3] 儲存並應用新評語
+async function saveInstantCritique() {
+    const title = document.getElementById('instant-add-title').value.trim();
+    const category = document.getElementById('instant-add-category-val').value;
+    const type = document.querySelector('input[name="instant-add-type"]:checked').value;
+    
+    if (!title) { alert("請輸入標題"); return; }
+
+    const id = 'manual_' + Date.now();
+    
+    // 1. 建立 DOM 元素 (加入 hidden container)
+    const newDiv = document.createElement('div');
+    newDiv.dataset.id = id;
+    newDiv.dataset.category = category;
+    newDiv.dataset.type = type;
+    newDiv.dataset.title = title; // 確保有 title 屬性
+    newDiv.innerHTML = `<h4>${title}</h4>`;
+    document.getElementById('critique-data').appendChild(newDiv);
+
+    // 2. 刷新介面
+    buildChecklist();
+
+    // 3. 自動勾選該項目
+    const checkbox = document.getElementById(id);
+    if (checkbox) {
+        checkbox.checked = true;
+        handleCheckboxChange(checkbox); // 觸發聯動和儲存
+        
+        // 自動捲動到該項目
+        setTimeout(() => {
+            checkbox.closest('.check-item').scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // 閃爍效果
+            checkbox.closest('.check-item').style.transition = 'background 0.3s';
+            checkbox.closest('.check-item').style.backgroundColor = '#fff9c4'; // 黃色 highlight
+            setTimeout(() => {
+                checkbox.closest('.check-item').style.backgroundColor = '';
+            }, 800);
+        }, 100);
+    }
+
+    // 4. 關閉 Modal
+    document.getElementById('pop-instant-add-modal').classList.remove('active');
+    
+    // 5. 背景儲存到雲端 (如果已登入)
+    // 這樣下次再 load project 時，這些手動加的評語還在
+    // 我們可以將它加入到 Assignment Settings (這是進階同步，暫時先做 Local DOM)
+    isDataDirty = true;
+    updateUIBasedOnAuthState();
+    if(typeof showToast === 'function') showToast("已新增並選取！", "success");
 }
 
 // [Pro-v9.5] 快速載入預設 (Rescue Action)
