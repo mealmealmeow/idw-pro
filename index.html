@@ -462,39 +462,6 @@
   position: relative;
 }
 
-/* [v11.5] 極簡透明 Back to Top */
-#back-to-top-btn {
-  display: none; /* JS 控制顯示 */
-  position: fixed; /* 🔥 關鍵：脫離文檔流，浮在視窗之上 */
-  bottom: 25px;
-  right: 25px;
-  z-index: 9999; /* 最頂層 */
-  
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background-color: rgba(90, 143, 123, 0.2); /* 極淡綠色 */
-  color: rgba(255, 255, 255, 0.9); /* 白色箭嘴 */
-  
-  border: none;
-  cursor: pointer;
-  font-size: 1.2rem;
-  
-  /* 柔和過渡 */
-  transition: all 0.3s ease;
-  backdrop-filter: blur(2px); /* 輕微磨砂 */
-  
-  /* 預設隱形感 */
-  opacity: 0.6; 
-}
-
-/* Hover 時才變實色 */
-#back-to-top-btn:hover {
-  background-color: var(--accent-color);
-  opacity: 1;
-  transform: translateY(-3px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-}
 
 
 
@@ -2788,30 +2755,7 @@ header h1 {
   text-align: left;
 }
 
-/* 6. Back To Top (懸浮右下角，半透明) */
-#back-to-top-btn {
-  display: none; /* JS 控制 */
-  position: fixed;
-  bottom: 25px;
-  right: 25px;
-  z-index: 2147483647; /* 確保唔會被遮 */
-  width: 45px;
-  height: 45px;
-  border-radius: 50%;
-  background-color: rgba(90, 143, 123, 0.3); /* 半透明綠 */
-  color: #fff;
-  border: none;
-  cursor: pointer;
-  font-size: 1.2rem;
-  backdrop-filter: blur(4px);
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-}
-#back-to-top-btn:hover {
-  background-color: var(--accent-color); /* 實色 */
-  opacity: 1;
-  transform: translateY(-3px);
-}
+
 
 
 /* ========================================================================== */
@@ -2982,100 +2926,153 @@ header h1 {
   box-shadow: 0 4px 10px rgba(90, 143, 123, 0.3);
 }
 
-/* --- 4. Back To Top 按鈕 --- */
-#back-to-top-btn {
-  display: none; position: fixed; bottom: 25px; right: 25px; z-index: 2147483647;
-  width: 45px; height: 45px; border-radius: 50%;
-  background-color: rgba(90, 143, 123, 0.3); /* 半透明綠 */
-  color: #fff; border: none; cursor: pointer; font-size: 1.2rem;
-  backdrop-filter: blur(4px); transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-}
-#back-to-top-btn:hover {
-  background-color: var(--accent-color); opacity: 1; transform: translateY(-3px);
-}
 
-/* --- 5. Mobile RWD (手機專用) --- */
+
+/* ========================================= */
+/* === [v12.2] Mobile RWD (終極修復版) === */
+/* ========================================= */
 @media (max-width: 768px) {
-  /* A. Header (保持左對齊，橫向) */
+  
+  /* 1. Header: 左對齊 */
   header {
-    flex-direction: row !important; align-items: flex-start !important;
-    padding: 15px 15px !important; height: auto !important;
+    padding: 15px 20px !important;
+    gap: 12px !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
   }
-  header h1 { font-size: 1.5rem !important; margin-bottom: 5px !important; }
   
+  header h1 {
+    text-align: left !important;
+    font-size: 1.6rem !important;
+    width: 100%;
+  }
+
   .auth-container {
-    padding: 3px 8px !important; max-width: 100%; flex-wrap: wrap;
+    margin: 0 !important;
+    justify-content: flex-start !important;
+    max-width: 75%; /* 留位俾右邊 Setting 掣 */
   }
-  #auth-status { font-size: 0.75rem !important; max-width: 140px; }
-
-  /* Setting 掣固定右上 */
-  .header-right { position: absolute; top: 15px; right: 15px; }
   
-  /* Setting 選單靠左彈出 */
-  .settings-menu-popover { right: auto !important; left: 0 !important; top: 45px !important; }
+  /* Setting 掣：拍埋膠囊右邊 */
+  .header-right {
+    position: absolute !important;
+    top: auto !important;
+    bottom: 18px !important; /* 對齊膠囊 */
+    right: 20px !important;
+    display: block !important;
+  }
+  
+  /* Setting 選單位置修正 (唔好飛去最右，唔好遮字) */
+  .settings-menu-popover {
+    right: 0 !important; 
+    left: auto !important;
+    top: 45px !important;
+    width: 180px !important;
+  }
 
-  /* B. 導航 Nav (橫滑 Tabs) */
+  /* 2. 導航 Nav: 修正迫埋一邊問題 */
   .main-nav {
-    justify-content: flex-start; padding: 0 10px; height: auto; gap: 0;
-    overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none;
+    justify-content: space-between !important; /* 平均分佈 */
+    width: 100%;
+    overflow-x: auto;
+    padding: 0 10px;
   }
-  .main-nav::-webkit-scrollbar { display: none; }
-
+  
   .nav-btn {
-    flex-shrink: 0; flex-direction: column; gap: 2px; padding: 10px 0;
-    font-size: 0.75rem; border-radius: 0; border-bottom: 3px solid transparent !important;
+    flex: 1;
+    text-align: center;
   }
-  .nav-btn.active {
-    color: var(--accent-color); border-bottom-color: var(--accent-color) !important;
-  }
-  .nav-icon { font-size: 1.4rem; margin-bottom: 0; }
 
-  /* C. 子導航 (橫滑條) */
+  /* 子導航: 橫滑 + 置中 */
   .sub-nav-island {
-    position: static; transform: none; width: 100%; border-radius: 0;
-    box-shadow: inset 0 10px 10px -10px rgba(0,0,0,0.05); background: #fcfcfc;
-    border: none; padding: 12px 0; display: flex;
-    justify-content: flex-start; overflow-x: auto; animation: none;
+    position: static;
+    transform: none;
+    width: 100%;
+    border-radius: 0;
+    background: #fcfcfc;
+    padding: 12px 0;
+    
+    /* 🔥 關鍵：使用 Flex 令其置中 */
+    display: flex;
+    justify-content: center; 
+    gap: 8px;
   }
-  .sub-nav-group { width: auto; display: flex; gap: 8px; padding: 0 15px; }
+  
+  /* 修正子選單按鈕 */
   .sub-nav-btn {
-    border: 1px solid #e5e7eb; background: #fff; padding: 6px 16px;
-    font-size: 0.85rem; flex-shrink: 0;
+    border: 1px solid #eee;
+    background: #fff;
+    font-size: 0.85rem;
+    padding: 6px 14px;
+    border-radius: 99px;
+    flex-shrink: 0;
   }
+  
   .sub-nav-btn.active {
-    background: var(--accent-color); color: #fff;
-    border-color: var(--accent-color); box-shadow: none;
+    background: var(--accent-color);
+    color: #fff;
+    box-shadow: 0 2px 5px rgba(90,143,123,0.3);
   }
+
+  /* 3. 通用修正 */
+  .font-control-btn { width: 36px !important; height: 36px !important; }
   
-  /* D. 通用修正 */
-  input, textarea, select { font-size: 16px !important; }
-  
-  /* E. 表格變卡片 (保持原有) */
-  #student-overview-table-wrapper { width: 100% !important; overflow-x: hidden !important; border: none !important; box-shadow: none !important; }
-  #student-overview-table { display: block !important; min-width: 0 !important; }
+  /* 表格卡片化 */
+  #student-overview-table-wrapper { width: 100% !important; border: none !important; box-shadow: none !important; }
+  #student-overview-table, #student-overview-table tbody, #student-overview-table tr, #student-overview-table td { display: block !important; width: 100% !important; }
   #student-overview-table thead { display: none !important; }
-  #student-overview-table tbody, #student-overview-table tr, #student-overview-table td { display: block !important; width: 100% !important; box-sizing: border-box !important; }
-  #student-overview-table tr { margin-bottom: 20px; border: 2px solid #5A8F7B !important; border-radius: 12px !important; padding: 15px !important; box-shadow: 0 4px 8px rgba(0,0,0,0.1) !important; }
-  #student-overview-table td { display: flex !important; justify-content: space-between; border-bottom: 1px dashed #eee !important; text-align: right !important; padding: 10px 0 !important; min-height: auto; position: static !important; background: transparent !important; }
-  #student-overview-table td::before { content: attr(data-label-fix); font-weight: bold; color: #5A8F7B; text-align: left; margin-right: 10px; }
-  #student-overview-table td:last-child { border-bottom: none !important; }
+  #student-overview-table tr { margin-bottom: 20px; border: 2px solid var(--accent-color); border-radius: 12px; padding: 15px; background: #fff; }
+  #student-overview-table td { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px dashed #eee; text-align: right; }
+  #student-overview-table td:last-child { border-bottom: none; }
+  #student-overview-table td::before { content: attr(data-label-fix); font-weight: bold; color: var(--accent-color); text-align: left; margin-right: 10px; }
+  /* 補回欄位名稱 */
   #student-overview-table td:nth-of-type(1)::before { content: "學號"; }
   #student-overview-table td:nth-of-type(2)::before { content: "姓名"; }
-  #student-overview-table td:nth-of-type(3)::before { content: "內容 (40%)"; }
-  #student-overview-table td:nth-of-type(4)::before { content: "表達 (30%)"; }
-  #student-overview-table td:nth-of-type(5)::before { content: "結構 (20%)"; }
-  #student-overview-table td:nth-of-type(6)::before { content: "標點 (10%)"; }
+  #student-overview-table td:nth-of-type(3)::before { content: "內容"; }
+  #student-overview-table td:nth-of-type(4)::before { content: "表達"; }
+  #student-overview-table td:nth-of-type(5)::before { content: "結構"; }
+  #student-overview-table td:nth-of-type(6)::before { content: "標點"; }
   #student-overview-table td:nth-of-type(7)::before { content: "錯別字"; }
-  #student-overview-table td:nth-of-type(8)::before { content: "總分"; color: #d48806; }
-  #student-overview-table td:nth-of-type(9)::before { content: "學生評語"; }
-  #student-overview-table td:nth-of-type(10) { display: none !important; }
-  #student-overview-table td:nth-of-type(9) { flex-direction: column; align-items: flex-start; }
-  #student-overview-table textarea { width: 100% !important; border: 1px solid #ccc !important; padding: 8px !important; }
-  #student-overview-table input[type="number"] { width: 60px !important; text-align: center; border: 1px solid #ddd; }
-  .empty-state-message { text-align: center !important; display: block !important; white-space: normal !important; }
+  #student-overview-table td:nth-of-type(8)::before { content: "總分"; }
+  #student-overview-table td:nth-of-type(9)::before { content: "評語"; }
+  #student-overview-table td:nth-of-type(10) { display: none; }
 }
 
+/* ========================================= */
+/* === [v12.2] 唯一 Back To Top 樣式 (已修復) === */
+/* ========================================= */
+#back-to-top-btn {
+  display: none; /* JS 控制顯示 */
+  position: fixed !important; /* 強制脫離文檔流，浮在視窗之上 */
+  bottom: 30px;
+  right: 30px;
+  z-index: 2147483647; /* 宇宙最高，確保唔會被遮 */
+  
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  
+  /* 極致透明風格 */
+  background-color: rgba(255, 255, 255, 0.3); 
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  color: var(--accent-color); /* 綠色箭嘴 */
+  
+  cursor: pointer;
+  font-size: 1.5rem; /* 箭嘴大粒啲 */
+  line-height: 1;
+  
+  /* 柔和過渡 */
+  transition: all 0.3s ease;
+  backdrop-filter: blur(4px); /* 磨砂效果 */
+}
+
+/* Hover 時才變實色，方便點擊 */
+#back-to-top-btn:hover {
+  background-color: var(--accent-color);
+  color: white;
+  transform: translateY(-3px);
+  box-shadow: 0 4px 15px rgba(90, 143, 123, 0.3);
+}
 
 </style>
 
@@ -3127,8 +3124,7 @@ header h1 {
     </div>
 </header>
 
-<!-- [v11.4] Back To Top 按鈕 (放在 body 結尾附近) -->
-<button id="back-to-top-btn" onclick="scrollToTop()" title="回到頂部">⬆</button>
+
   
 
 
@@ -11071,7 +11067,10 @@ function scrollToTop() {
 
 </script> <!-- 呢個係原本全個檔案唯一的結尾，保留佢 -->
 
-
+<!-- [v12.2] Back To Top (確保在最外層，不受干擾) -->
+<button id="back-to-top-btn" onclick="scrollToTop()" title="回到頂部" style="display: none;">⬆</button>
+</body>
+</html>
 
 </body>
 </html>
