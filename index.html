@@ -2864,48 +2864,68 @@ scroll-margin-top: 180px; /* 手機版 Header 疊起來比較高 */
     <main>
 
 
-   <!-- [v10.4] Cozy Dashboard HTML -->
+ <!-- [v10.6] Homepage HTML (豐富版) -->
 <div id="page-home" class="page-content">
   <div class="overview-container">
     
-    <!-- 1. 問候區 -->
-    <div style="text-align: center; margin-bottom: 3rem; padding-top: 2rem;">
-      <h2 id="welcome-msg" style="font-size: 2rem; color: var(--accent-color); border: none; margin-bottom: 0.5rem;">
-        早晨，老師。
-      </h2>
-      <p style="color: #8c867a; font-size: 1.1rem;">
-        準備好開始一杯咖啡的時間了嗎？
-      </p>
+    <!-- 1. Hero 區域：歡迎卡 + 捷徑 -->
+    <div class="home-hero-grid">
+      <!-- 左：歡迎卡 -->
+      <div class="welcome-card">
+        <div class="welcome-date">
+          <span style="width:8px;height:8px;background:#5A8F7B;border-radius:50%;"></span>
+          <span id="home-date-display">LOADING DATE...</span>
+        </div>
+        <h1 class="welcome-title" id="welcome-msg">早晨，老師。</h1>
+        <div class="welcome-quote" id="home-quote-display">
+          “教學的藝術，是喚醒少年內心天然好奇心的藝術。”
+        </div>
+      </div>
+
+      <!-- 右：捷徑區 -->
+      <div class="quick-actions-grid">
+        <!-- 開新批改 -->
+        <button class="action-card-btn" onclick="startNewProjectForClass(null, null)">
+          <div class="ac-icon">✨</div>
+          <div class="ac-text">
+            <h4>開新批改</h4>
+            <p>建立新作業或輸入名單</p>
+          </div>
+        </button>
+        
+        <!-- 管理班級 -->
+        <button class="action-card-btn" onclick="showPage('page8')">
+          <div class="ac-icon">🏫</div>
+          <div class="ac-text">
+            <h4>班級管理</h4>
+            <p>查看名單或新增班別</p>
+          </div>
+        </button>
+      </div>
     </div>
 
-    <!-- 2. 核心操作區 (Quick Actions) -->
-    <div style="display: flex; gap: 15px; justify-content: center; margin-bottom: 3rem; flex-wrap: wrap;">
-      <button class="action-btn" onclick="startNewProjectForClass(null, null)" style="padding: 12px 24px; font-size: 1.1rem;">
-        ✨ 開新批改
-      </button>
-      <button class="secondary-btn" onclick="showPage('page8')" style="padding: 12px 24px; font-size: 1.1rem;">
-        🏫 管理班級
-      </button>
-    </div>
-
-    <!-- 3. 進行中 (On My Desk) -->
-    <div style="margin-bottom: 2rem;">
-        <h3 style="font-size: 1.2rem; color: #5b5044; margin-bottom: 1.5rem; text-align: left; border-left: 5px solid var(--accent-color); padding-left: 15px;">
-            📂 案頭工作 (Active Projects)
-        </h3>
-        <!-- 這裡會由 JS 插入「文件夾」卡片 -->
+    <!-- 2. 下方：案頭工作 -->
+    <div style="margin-top: 1rem;">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom: 1.2rem;">
+            <h3 style="font-size: 1.3rem; color: #5b5044; margin: 0;">📂 案頭工作</h3>
+            <span style="font-size:0.85rem; background:#eee; padding:2px 8px; border-radius:10px; color:#666;">Active</span>
+        </div>
+        
+        <!-- 文件夾網格 -->
         <div id="focus-task-list" class="folder-grid">
             <div class="dashboard-loading">☕️ 正在沖泡數據...</div>
         </div>
     </div>
 
-    <!-- 4. 班級歸檔 (隱藏式) -->
-    <details style="background: transparent; border: none; box-shadow: none;">
-        <summary style="justify-content: center; background: transparent; color: #999; font-size: 0.9rem;">
-            查看過往歸檔
-        </summary>
-        <div id="class-accordion-container" style="margin-top: 1rem;"></div>
-    </details>
+    <!-- 3. 歸檔 (保持隱藏式) -->
+    <div style="margin-top: 3rem; text-align: center; border-top: 1px solid #eee; padding-top: 1rem;">
+        <details style="background: transparent; border: none; box-shadow: none;">
+            <summary style="justify-content: center; background: transparent; color: #999; font-size: 0.9rem; cursor: pointer;">
+                查看過往學年歸檔 (Archives)
+            </summary>
+            <div id="class-accordion-container" style="margin-top: 1.5rem; text-align: left;"></div>
+        </details>
+    </div>
 
   </div>
 </div>
@@ -7249,6 +7269,126 @@ function exportOverviewToWord() {
   color: #2e7d32;
   font-weight: bold;
 }
+
+/* ===== [v10.6] Homepage 新設計樣式 ===== */
+
+/* 1. 歡迎區佈局 (Grid) */
+.home-hero-grid {
+  display: grid;
+  grid-template-columns: 1.8fr 1fr; /* 左邊大份啲，右邊放按鈕 */
+  gap: 1.5rem;
+  margin-bottom: 2.5rem;
+}
+
+/* 2. 左邊：歡迎卡片 */
+.welcome-card {
+  background: linear-gradient(135deg, #ffffff 0%, #f9fbfb 100%);
+  border-radius: 20px;
+  padding: 2.5rem;
+  box-shadow: 0 10px 30px rgba(90, 143, 123, 0.08); /* 帶綠色嘅柔和陰影 */
+  border: 1px solid rgba(255,255,255,0.8);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* 裝飾圓圈 (增加層次感) */
+.welcome-card::after {
+  content: "";
+  position: absolute;
+  top: -50px; right: -50px;
+  width: 150px; height: 150px;
+  background: var(--accent-color);
+  opacity: 0.05;
+  border-radius: 50%;
+}
+
+.welcome-date {
+  font-size: 0.95rem;
+  color: #888;
+  font-weight: bold;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.welcome-title {
+  font-size: 2.2rem;
+  color: var(--title-color);
+  margin: 0 0 15px 0;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.welcome-quote {
+  font-size: 1.05rem;
+  color: #6b7280;
+  font-style: italic;
+  background: rgba(90,143,123,0.08);
+  padding: 10px 15px;
+  border-radius: 12px;
+  display: inline-block;
+  max-width: 90%;
+}
+
+/* 3. 右邊：捷徑卡片區 */
+.quick-actions-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.action-card-btn {
+  flex: 1;
+  background: #ffffff;
+  border: 1px solid #eee;
+  border-radius: 16px;
+  padding: 1.2rem;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+}
+
+.action-card-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 15px rgba(0,0,0,0.05);
+  border-color: var(--accent-color-soft);
+}
+
+.ac-icon {
+  width: 48px; height: 48px;
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.5rem;
+  background: #f3f4f6;
+  transition: background 0.2s;
+}
+
+.action-card-btn:hover .ac-icon {
+  background: var(--accent-color-soft);
+}
+
+.ac-text h4 { margin: 0; font-size: 1.1rem; color: #333; }
+.ac-text p { margin: 2px 0 0 0; font-size: 0.85rem; color: #999; }
+
+/* 4. 手機版適配：變回單欄 */
+@media (max-width: 768px) {
+  .home-hero-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  .welcome-card { padding: 1.5rem; text-align: center; align-items: center; }
+  .welcome-title { font-size: 1.8rem; }
+}
 </style>
 </head>
 <body>`;
@@ -8530,14 +8670,37 @@ async function openAssignment(assignmentId) {
     }
 }
 
-// 5. 歡迎訊息更新
+// [v10.6] 更新首頁歡迎語與日期
 function updateWelcomeMessage() {
     const h = new Date().getHours();
     const msg = document.getElementById('welcome-msg');
+    const quote = document.getElementById('home-quote-display');
+    const dateDisplay = document.getElementById('home-date-display');
+
     if (!msg) return;
-    if (h < 12) msg.textContent = "早晨，老師。☕";
-    else if (h < 18) msg.textContent = "午後好，撐住。🍵";
+
+    // 1. 問候語
+    if (h < 11) msg.textContent = "早晨，老師。☀️";
+    else if (h < 14) msg.textContent = "午安，食咗飯未？🍱";
+    else if (h < 18) msg.textContent = "午後好，飲杯茶吧。🍵";
     else msg.textContent = "夜深了，注意休息。🌙";
+
+    // 2. 日期顯示 (e.g. 2025年 12月 06日 星期六)
+    const now = new Date();
+    const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' };
+    dateDisplay.textContent = now.toLocaleDateString('zh-HK', options);
+
+    // 3. 隨機金句 (扮 AI 生成，其實係 Random)
+    const quotes = [
+        "“教育不是注滿一桶水，而是點燃一把火。”",
+        "“願你的週末，有一杯熱咖啡的時間。”",
+        "“慢慢來，比較快。”",
+        "“每一個學生，都是一個待拆的盲盒。”",
+        "“批改是為了看見，而不只是為了修正。”"
+    ];
+    // 每次 Refresh 隨機一句 (簡單版)
+    // 如果想固定一日一句，可以用 Date 做種子，暫時隨機先
+    quote.textContent = quotes[Math.floor(Math.random() * quotes.length)];
 }
 
 
