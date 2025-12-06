@@ -2977,10 +2977,23 @@ header h1 {
     overflow-x: auto;
     padding: 0 10px;
   }
-  
+ /* [v12.7-MobileNav-TextFix] 手機版導航：隱藏文字，Icon 居中 */
   .nav-btn {
     flex: 1;
-    text-align: center;
+    justify-content: center; /* 強制置中 */
+    padding: 8px 0;
+    display: flex; /* 確保 Flex 生效 */
+  }
+
+  /* 隱藏文字 span */
+  .nav-btn .nav-text {
+    display: none !important;
+  }
+
+  /* 放大 Icon 並移除間距 */
+  .nav-btn .nav-icon {
+    font-size: 1.5rem; 
+    margin: 0 !important;
   }
 
   /* 子導航: 橫滑 + 置中 */
@@ -3073,7 +3086,120 @@ header h1 {
   transform: translateY(-3px);
   box-shadow: 0 4px 15px rgba(90, 143, 123, 0.3);
 }
+/* [v12.1] Hotfix: 解決遮擋與跳動 */
 
+/* 1. 電腦版 Setting 選單 (強制脫離父容器) */
+@media (min-width: 769px) {
+    .settings-menu-popover {
+        position: fixed !important; /* 由 absolute 改為 fixed */
+        top: 70px !important;       /* 固定在 Header 下方 */
+        right: 30px !important;     /* 靠右 */
+        left: auto !important;
+        z-index: 2147483647 !important; /* 宇宙最高 */
+        /* 確保唔會受 Header 的 overflow:hidden 影響 */
+    }
+}
+
+/* 2. 手機版導航 (預設隱藏，JS 載入後顯示，防止閃左邊) */
+.sub-nav-island {
+    opacity: 0; 
+    animation: fadeInNav 0.3s ease forwards; /* 載入時淡入 */
+}
+
+@keyframes fadeInNav {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* [v12.8-MobileNav-DisplayFix] 手機版強制置中 (修復首頁灰條問題) */
+@media (max-width: 768px) {
+    .sub-nav-island {
+        justify-content: center !important; /* 強制置中 */
+        /* 🔥 關鍵修正：移除 display: flex !important; */
+        /* 讓 JS 決定幾時顯示 (flex) 幾時隱藏 (none) */
+    }
+}
+
+
+/* =================================================== */
+/* === [v12.5] 終極樣式補丁 (Header, Nav, TopBtn) === */
+/* =================================================== */
+
+/* 1. Back To Top (強制懸浮右下角) */
+#back-to-top-btn {
+  display: none; /* JS 控制 */
+  position: fixed !important;
+  bottom: 30px;
+  right: 30px;
+  z-index: 2147483647;
+  width: 45px; height: 45px; border-radius: 50%;
+  background-color: rgba(90, 143, 123, 0.3); /* 半透明綠 */
+  color: #fff; border: none; cursor: pointer; font-size: 1.4rem;
+  backdrop-filter: blur(4px); transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+#back-to-top-btn:hover {
+  background-color: var(--accent-color); opacity: 1; transform: translateY(-3px);
+}
+
+/* 2. 電腦版 Setting 選單 (防止被遮) */
+.settings-menu-popover {
+  position: fixed !important;
+  top: 70px !important; right: 30px !important; left: auto !important;
+  z-index: 2147483647 !important;
+  box-shadow: 0 10px 60px rgba(0,0,0,0.3) !important;
+}
+
+/* 3. 導航懸浮島 (電腦版置中修正) */
+.sub-nav-island {
+  position: absolute;
+  top: 65px; left: 50%; transform: translateX(-50%);
+  background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px);
+  border: 1px solid rgba(0,0,0,0.05); box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+  padding: 6px 8px; border-radius: 99px;
+  display: flex; gap: 5px; z-index: 1001; white-space: nowrap;
+  /* 使用 JS 顯示時會自動套用 Flex，無需動畫以免移位 */
+}
+
+
+
+/* ========================================= */
+/* === [v12.6] 導航置中強力修正 (Hammer Fix) === */
+/* ========================================= */
+
+/* 1. 定義一個「絕對置中」的動畫 (必須包含 translate -50%) */
+/* 之前歪咗係因為動畫入面冇包含 -50%，所以一郁就走位 */
+@keyframes floatDownCenterFixed {
+  from { opacity: 0; transform: translate(-50%, -10px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+/* 2. 電腦版懸浮島 (強制應用置中動畫) */
+@media (min-width: 769px) {
+  .sub-nav-island {
+    left: 50% !important;
+    transform: translateX(-50%) !important; /* 靜止狀態：置中 */
+    
+    /* 🔥 關鍵：動畫狀態也要置中 */
+    animation: floatDownCenterFixed 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) forwards !important;
+    
+    /* 鎖死其他可能影響定位嘅屬性 */
+    margin: 0 !important;
+    right: auto !important;
+    top: 65px !important;
+  }
+}
+
+/* 3. 手機版防禦 (確保唔會受影響) */
+@media (max-width: 768px) {
+  .sub-nav-island {
+    transform: none !important;
+    left: 0 !important;
+    animation: none !important; /* 手機唔要動畫，費事閃 */
+    opacity: 1 !important;
+    justify-content: center !important;
+  }
+}
 </style>
 
 </head>
@@ -3123,12 +3249,6 @@ header h1 {
         </div>
     </div>
 </header>
-
-
-  
-
-
-
 
 <!-- [v11.0] 懸浮導航結構 (Floating Island) -->
 <nav class="page-nav-wrapper">
@@ -4483,11 +4603,12 @@ async function promptAndLoadCloudProject() {
     try {
         // 1. 讀取 [新] assignments 表
         // (暫時移除 classes join 以避免關聯錯誤，只讀 title)
-        const { data: newProjects, error: newError } = await supabaseClient
-            .from('assignments')
-            .select('id, title, created_at')
-            .eq('user_id', currentUser.id)
-            .order('created_at', { ascending: false });
+    const { data: newProjects, error: newError } = await supabaseClient
+    .from('assignments')
+    // 👇 關鍵是這句，要加 classes(class_name)
+    .select('id, title, created_at, user_id, classes(class_name)') 
+    .eq('user_id', currentUser.id)
+    .order('created_at', { ascending: false });
 
         // 2. 讀取 [舊] student_projects 表 (Legacy)
         const { data: oldProjects, error: oldError } = await supabaseClient
@@ -4508,12 +4629,13 @@ async function promptAndLoadCloudProject() {
         if (newProjects) {
             newProjects.forEach(p => {
                 combinedList.push({
-                    id: p.id,
-                    title: p.title,
-                    className: '(新格式)', // 因為暫時沒 join class，先這樣顯示
-                    date: p.created_at,
-                    type: 'new' // 標記為新版
-                });
+    id: p.id,
+    title: p.title,
+    // 👇 這段意思是：如果抓得到 class_name 就顯示，抓不到才顯示 (未分類)
+    className: (p.classes && p.classes.class_name) ? p.classes.class_name : '(未分類)',
+    date: p.created_at,
+    type: 'new'
+});
             });
         }
 
@@ -4572,8 +4694,8 @@ async function promptAndLoadCloudProject() {
                     
                     // 視覺區分新舊
                     const badge = p.type === 'legacy' 
-                        ? '<span style="background:#eee; color:#666; font-size:0.7em; padding:2px 4px; border-radius:4px;">舊版</span>' 
-                        : '<span style="background:#e0f2f1; color:#00695c; font-size:0.7em; padding:2px 4px; border-radius:4px;">新版</span>';
+                        ? '<span style="background:#eee; color:#666; font-size:0.7em; padding:2px 4px; border-radius:4px;">🍃</span>' 
+                        : '<span style="background:#e0f2f1; color:#00695c; font-size:0.7em; padding:2px 4px; border-radius:4px;">☁️</span>';
 
                     div.innerHTML = `<strong>${index + 1}.</strong> ${badge} ${escapeHtmlAttr(p.className)} - ${escapeHtmlAttr(p.title)} <span style="font-size:0.8em;color:#999">(${dateStr})</span>`;
                     
@@ -5408,13 +5530,47 @@ function initSwipeGestures() {
   }
 }
 
-// [v11.1] 設定選單開關
+// [v12.1] Setting 選單開關 (支援 Fixed Positioning)
 function toggleSettingsMenu() {
     const menu = document.getElementById('settings-dropdown');
-    if (menu) {
-        menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+    if (!menu) return;
+
+    // 獲取按鈕位置 (如果是 Desktop)
+    const btn = document.querySelector('.header-right .font-control-btn');
+    
+    if (menu.style.display === 'none' || menu.style.display === '') {
+        menu.style.display = 'block';
+        
+        // 電腦版動態定位 (對齊按鈕)
+        if (window.innerWidth > 768 && btn) {
+            const rect = btn.getBoundingClientRect();
+            menu.style.top = (rect.bottom + 10) + 'px';
+            menu.style.right = (window.innerWidth - rect.right) + 'px';
+            menu.style.left = 'auto';
+        }
+    } else {
+        menu.style.display = 'none';
     }
 }
+
+// 點擊空白處關閉 (保持不變，但確保能抓到 fixed 元素)
+document.addEventListener('click', (e) => {
+    const menu = document.getElementById('settings-dropdown');
+    const btn = document.querySelector('.font-control-btn');
+    
+    // 檢查是否點擊了 Menu 內部或按鈕
+    if (menu && menu.style.display === 'block') {
+        if (!menu.contains(e.target) && !btn.contains(e.target)) {
+            menu.style.display = 'none';
+        }
+    }
+});
+
+// 視窗縮放時關閉 Menu (防止位置錯亂)
+window.addEventListener('resize', () => {
+    const menu = document.getElementById('settings-dropdown');
+    if (menu) menu.style.display = 'none';
+});
 
 // 點擊空白處關閉選單
 document.addEventListener('click', (e) => {
@@ -7703,7 +7859,213 @@ details.category-group[style*="border: 2px solid"] {
 /* 確保常用評語預設收合 (可選) */
 /* 如果你想預設收埋，請在 JS 改 open = false，或者手動撳 */
 
+/* =========================================
+   [v13.0] 頂部導航修復 & 懸浮文字特效
+   請將此段貼在 CSS 文件最底部以確保生效
+   ========================================= */
 
+/* 1. 容器設定：修復手機版間距與切邊問題 */
+.sub-nav-island {
+    display: flex !important; /* 強制 Flex 排列 */
+    justify-content: space-between;
+    align-items: center;
+    width: 95%;
+    max-width: 380px;
+    margin: 0 auto 20px auto; /* 居中 */
+    padding: 10px 15px;
+    background: rgba(255, 255, 255, 0.6); /* 半透明白底 */
+    backdrop-filter: blur(10px);
+    border-radius: 50px; /* 圓潤外型 */
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    box-sizing: border-box;
+}
+
+/* 2. 按鈕基本設定 */
+.sub-nav-island .nav-item {
+    position: relative; /* 這是為了讓文字可以定位 */
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 10px 0;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* 彈性動畫 */
+    background: transparent; /* 預設無背景 */
+    border-radius: 50%; /* 圓形按鈕 */
+    height: 50px; /* 固定高度確保圓形 */
+    width: 50px;  /* 固定寬度 */
+    max-width: 50px; /* 鎖定寬度防止撐開 */
+}
+
+/* Emoji 圖標大小 */
+.sub-nav-island .nav-item .nav-icon {
+    font-size: 1.4rem;
+    z-index: 2; /* 確保圖標在最上層 */
+}
+
+/* 3. [重點] 懸浮文字 (Floating Label) */
+.sub-nav-island .nav-item .nav-text {
+    position: absolute;
+    top: -35px; /* 初始位置：在圖標上方 */
+    left: 50%;
+    transform: translateX(-50%) scale(0.8); /* 居中並縮小 */
+    background-color: #333; /* 深色背景氣泡 */
+    color: #fff;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    opacity: 0; /* 平時隱藏 */
+    visibility: hidden;
+    transition: all 0.3s ease;
+    pointer-events: none; /* 防止擋住點擊 */
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+/* 加個小三角形指住下面 (Speech Bubble effect) */
+.sub-nav-island .nav-item .nav-text::after {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 4px 4px 0;
+    border-style: solid;
+    border-color: #333 transparent transparent transparent;
+}
+
+/* 4. Active (被選中) 狀態 */
+.sub-nav-island .nav-item.active {
+    background-color: #fff; /* 選中時變白底 */
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1); /* 加陰影 */
+    transform: translateY(-2px); /* 輕微浮起 */
+}
+
+/* 選中時，文字飄出來 */
+.sub-nav-island .nav-item.active .nav-text {
+    opacity: 1;
+    visibility: visible;
+    top: -42px; /* 向上飄一點點 */
+    transform: translateX(-50%) scale(1); /* 變回原大 */
+}
+
+/* 手機版微調 */
+@media (max-width: 768px) {
+    .sub-nav-island {
+        gap: 5px; /* 按鈕之間的間距 */
+    }
+}
+
+
+/* =========================================
+   [v14.0] 主導航欄 (Main Nav) 懸浮特效
+   專門針對 .main-nav 及其按鈕設計
+   ========================================= */
+
+/* 1. 導航欄底座 (Island) */
+.main-nav {
+    display: flex;
+    justify-content: space-between; /* 平均分佈 */
+    align-items: center;
+    width: 90%;
+    max-width: 380px; /* 限制最大寬度，唔好太闊 */
+    margin: 0 auto;   /* 居中 */
+    padding: 10px 20px;
+    
+    /* 懸浮島外觀 */
+    background: rgba(255, 255, 255, 0.85); /* 透白底 */
+    backdrop-filter: blur(12px); /* 磨砂玻璃效果 */
+    border-radius: 60px; /* 圓潤邊角 */
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1); /* 柔和陰影 */
+    
+    /* 固定在底部 (如果你想佢黐住底，可以保留呢幾行) */
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+}
+
+/* 2. 按鈕重置與設定 */
+.main-nav .nav-btn {
+    position: relative; /* 關鍵：為咗定位飄起嘅文字 */
+    background: transparent;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%; /* 圓形 */
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* 彈跳動畫 */
+    padding: 0;
+    -webkit-tap-highlight-color: transparent; /* 移除手機點擊藍框 */
+}
+
+/* Emoji 圖標大小 */
+.main-nav .nav-btn .nav-icon {
+    font-size: 1.6rem;
+    line-height: 1;
+    z-index: 2;
+    transition: transform 0.3s ease;
+}
+
+/* 3. [核心] 飄起文字 (Floating Text) */
+.main-nav .nav-btn .nav-text {
+    position: absolute;
+    top: -10px; /* 初始位置：同 Emoji 重疊或稍高 */
+    left: 50%;
+    transform: translateX(-50%) scale(0.5); /* 縮細 */
+    
+    background-color: #2c3e50; /* 深色氣泡底 */
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 500;
+    padding: 5px 10px;
+    border-radius: 12px;
+    white-space: nowrap;
+    
+    opacity: 0; /* 平時隱藏 */
+    visibility: hidden;
+    pointer-events: none;
+    transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+}
+
+/* 氣泡下面個小三角形 */
+.main-nav .nav-btn .nav-text::after {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 4px 4px 0;
+    border-style: solid;
+    border-color: #2c3e50 transparent transparent transparent;
+}
+
+/* 4. Active (被選中) 狀態特效 */
+.main-nav .nav-btn.active {
+    background-color: #fff; /* 選中時按鈕變白底 */
+    box-shadow: 0 5px 15px rgba(0,0,0,0.15); /* 加強陰影 */
+    transform: translateY(-5px); /* 成個掣浮起 */
+}
+
+/* 選中時，文字飄上去 */
+.main-nav .nav-btn.active .nav-text {
+    opacity: 1;
+    visibility: visible;
+    top: -45px; /* 向上飄到頭頂 */
+    transform: translateX(-50%) scale(1); /* 變回原大 */
+}
+
+/* 選中時，Emoji 稍微縮細少少，讓路俾個氣泡 */
+.main-nav .nav-btn.active .nav-icon {
+    transform: scale(0.9);
+}
 </style>
 </head>
 <body>`;
@@ -8623,7 +8985,7 @@ async function loadDashboard() {
         // --- Step B: 讀取所有作業 ---
         const { data: assignments, error: assignError } = await supabaseClient
             .from('assignments')
-            .select('id, title, created_at, class_id') 
+            .select('id, title, created_at, class_id,classes(class_name)') 
             .eq('user_id', currentUser.id)
             .order('created_at', { ascending: false });
 
@@ -10639,7 +11001,7 @@ async function openClassReportModal(classId, className) {
         // 讀取該班所有 Assignments
         const { data: assignments, error } = await supabaseClient
             .from('assignments')
-            .select('id, title, created_at')
+            .select('id, title, created_at,classes(class_name)')
             .eq('class_id', classId)
             .order('created_at', { ascending: false });
 
@@ -11069,8 +11431,5 @@ function scrollToTop() {
 
 <!-- [v12.2] Back To Top (確保在最外層，不受干擾) -->
 <button id="back-to-top-btn" onclick="scrollToTop()" title="回到頂部" style="display: none;">⬆</button>
-</body>
-</html>
-
 </body>
 </html>
