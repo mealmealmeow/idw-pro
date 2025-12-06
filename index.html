@@ -354,19 +354,8 @@
     box-shadow: 0 2px 8px rgba(0,0,0,0.08);
   }
 
-  header { 
-    padding: 1.6rem 2rem 1.4rem; 
-    background: var(--header-bg); 
-    color: white; 
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 1rem;
-    box-shadow: 0 10px 26px rgba(0,0,0,0.16);
-    position: relative;
-    z-index: 2;
-  }
+  /* [v11.4] Header 樣式優化 */
+
 
   header::after {
     content: "";
@@ -487,6 +476,98 @@
 
   /* ===== 上方導航 tabs ===== */
 
+
+/* 設定掣容器 (Desktop) */
+.header-settings-wrapper {
+  position: relative;
+}
+
+/* [v11.5] 極簡透明 Back to Top */
+#back-to-top-btn {
+  display: none; /* JS 控制顯示 */
+  position: fixed; /* 🔥 關鍵：脫離文檔流，浮在視窗之上 */
+  bottom: 25px;
+  right: 25px;
+  z-index: 9999; /* 最頂層 */
+  
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: rgba(90, 143, 123, 0.2); /* 極淡綠色 */
+  color: rgba(255, 255, 255, 0.9); /* 白色箭嘴 */
+  
+  border: none;
+  cursor: pointer;
+  font-size: 1.2rem;
+  
+  /* 柔和過渡 */
+  transition: all 0.3s ease;
+  backdrop-filter: blur(2px); /* 輕微磨砂 */
+  
+  /* 預設隱形感 */
+  opacity: 0.6; 
+}
+
+/* Hover 時才變實色 */
+#back-to-top-btn:hover {
+  background-color: var(--accent-color);
+  opacity: 1;
+  transform: translateY(-3px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+/* === Mobile RWD Header (修復版) === */
+@media (max-width: 768px) {
+  header {
+    flex-direction: column; /* 垂直排列：標題在上，膠囊在下 */
+    padding: 15px 10px !important;
+    gap: 10px;
+    height: auto;
+  }
+
+  /* 標題 */
+  header h1 {
+    font-size: 1.6rem !important;
+    margin: 0;
+    text-align: center;
+    width: 100%;
+  }
+
+  /* 登入膠囊 (還原圓潤感) */
+  .auth-container {
+    width: auto;
+    max-width: 90%;
+    background-color: rgba(255, 255, 255, 0.15) !important;
+    border-radius: 999px !important; /* 膠囊形 */
+    padding: 6px 12px !important;
+    display: flex;
+    flex-direction: row !important; /* 橫向排列 */
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    justify-content: center;
+  }
+
+  #auth-status {
+    font-size: 0.85rem !important;
+    background: transparent !important;
+    padding: 0 !important;
+    max-width: 120px !important; /* 限制寬度 */
+  }
+
+  #auth-buttons .btn {
+    padding: 4px 10px !important;
+    font-size: 0.8rem !important;
+  }
+
+  /* 設定掣 (絕對定位：右上角) */
+  .header-settings-wrapper {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+  }
+}
+
 /* ========================================= */
 /* === [v11.0] 懸浮導航樣式 (Fixed + Floating) === */
 /* ========================================= */
@@ -599,18 +680,17 @@
 }
 
 /* ===== [v11.1] 設定選單樣式 (Settings Popover) ===== */
-/* [v11.8] Setting 選單 Z-Index 修復 (確保在最頂) */
 .settings-menu-popover {
     position: absolute;
     top: 45px;
     right: 0;
     background: #fff;
     border-radius: 12px;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
     border: 1px solid rgba(0,0,0,0.05);
     width: 200px;
     padding: 12px;
-    z-index: 99999 !important; /* 🔥 贏晒所有野 */
+    z-index: 3000;
     color: #555;
     animation: fadeInMenu 0.2s ease-out;
 }
@@ -655,107 +735,168 @@
 }
 .text-btn:hover { background: #f3f4f6; }
 
+/* [v11.3] 設定選單 Z-Index 修復 (確保蓋過分頁導航) */
+.settings-menu-popover {
+    z-index: 9999 !important; /* 強制最高層級 */
+    /* 其餘樣式保持不變 */
+}
+
+/* [v11.5] 手機版 Header 微調 (保持左對齊結構) */
+@media (max-width: 768px) {
+  /* 只需要微調字體，結構由 HTML Flex 控制，不需改 display */
+  
+  header {
+    padding: 0.8rem 1rem !important;
+  }
+
+  header h1 {
+    font-size: 1.4rem !important; /* 手機標題細啲 */
+  }
+
+  /* 登入資料膠囊 */
+  .auth-container {
+    padding: 3px 8px !important;
+    max-width: 100%; /* 確保唔會爆出畫面 */
+    flex-wrap: wrap; /* 如果個名太長，按鈕會自動換行，唔會爆 */
+  }
+  
+  #auth-status {
+    font-size: 0.75rem !important;
+    max-width: 150px; /* 限制名嘅長度 */
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
 
 /* ========================================= */
-/* === [v11.1] Mobile RWD (極簡 App 風格) === */
+/* === [v11.2] Mobile RWD (Header & Nav 修復版) === */
 /* ========================================= */
 @media (max-width: 768px) {
   
-  /* 1. Header 瘦身 */
+  /* 1. Header 佈局重組 (慳位大法) */
   header {
-    padding: 0.8rem 1rem !important; /* 減少上下 Padding */
-    min-height: auto;
+    display: grid !important;
+    grid-template-columns: 1fr auto; /* 左邊內容，右邊預留 */
+    grid-template-areas: 
+      "title title"
+      "auth settings";
+    padding: 0.8rem 1rem !important;
+    gap: 5px 10px;
+    align-items: center;
+  }
+  
+  /* 標題 (佔滿上一行) */
+  header > div:first-child {
+    grid-area: title;
+    width: 100%;
   }
   
   h1 {
-    font-size: 1.4rem !important; /* 標題縮細 */
-    margin-bottom: 2px !important;
+    font-size: 1.5rem !important;
+    text-align: center; /* 標題置中更好看 */
+    margin-bottom: 5px !important;
   }
   
-  /* 隱藏/縮細非必要元素 */
+  /* 登入資料 (左下) */
   .auth-container { 
-    padding: 2px 6px !important;
+    grid-area: auth;
+    justify-self: start;
+    padding: 4px 8px !important;
     font-size: 0.8rem !important;
+    max-width: 250px; /* 防止太長 */
+    overflow: hidden;
   }
   #auth-status { font-size: 0.75rem !important; }
   
-  /* 2. 導航容器：固定頂部 */
+  /* 設定掣 (右下，跟登入資料同行) */
+  .header-actions {
+    grid-area: settings;
+    justify-self: end;
+    margin-top: 0 !important; /* 移除舊有的 margin */
+  }
+
+  /* 2. 導航容器 */
   .page-nav-wrapper {
     position: sticky;
     top: 0;
-    z-index: 2000;
+    z-index: 100; /* 確保唔會遮住 Pop-up */
     border-bottom: 1px solid rgba(0,0,0,0.05);
     background: #fff;
   }
 
-  /* 3. 主導航：App 風格 (Icon 上 字 下) */
+  /* 3. 主導航 (Icon 上 字 下) */
   .main-nav {
-    justify-content: space-around; /* 平均分佈 */
-    padding: 0;
+    justify-content: space-between; /* 平均分佈 */
+    padding: 0 10px;
     height: auto;
     background: #fff;
     gap: 0;
   }
 
   .nav-btn {
-    flex: 1; /* 每個按鈕佔同樣闊度 */
-    flex-direction: column; /* 垂直排列 */
-    gap: 2px;
-    padding: 8px 0;
+    flex: 1; 
+    flex-direction: column;
+    gap: 3px;
+    padding: 10px 0;
     background: transparent !important;
-    border: none !important; /* 去框 */
-    border-bottom: 2px solid transparent !important; /* 預留底線位 */
+    border: none !important;
+    border-bottom: 3px solid transparent !important;
     border-radius: 0;
-    font-size: 0.75rem; /* 字細啲 */
+    font-size: 0.75rem;
     color: #9ca3af;
   }
   
-  .nav-icon { font-size: 1.4rem; margin-bottom: 2px; }
+  .nav-icon { font-size: 1.3rem; margin-bottom: 0; }
 
   .nav-btn.active {
     color: var(--accent-color);
-    background: transparent !important;
-    border-bottom-color: var(--accent-color) !important; /* 幼底線 */
-    font-weight: normal; /* 唔使太粗 */
+    border-bottom-color: var(--accent-color) !important;
   }
 
-/* [v11.8] 懸浮導航島 (絕對定位，防止推郁主頁) */
-.sub-nav-island {
-  position: absolute; /* 🔥 關鍵：懸浮，不佔空間 */
-  top: 100%; /* 緊貼 Nav bar 底部 */
-  left: 50%;
-  transform: translateX(-50%);
-  margin-top: 10px;
+  /* 4. 子導航 (置中橫滑) */
+  .sub-nav-island {
+    position: static;
+    transform: none;
+    width: 100%;
+    border-radius: 0;
+    box-shadow: inset 0 10px 10px -10px rgba(0,0,0,0.05); /* 內陰影增加層次 */
+    background: #fcfcfc;
+    border: none;
+    padding: 12px 0;
+    
+    /* 🔥 關鍵修正：置中顯示 */
+    display: flex;
+    justify-content: center; /* 內容置中 */
+    
+    overflow-x: auto;
+    animation: none;
+  }
   
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(0,0,0,0.05);
-  box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+  .sub-nav-group {
+    width: auto; /* 自動寬度 */
+    display: flex;
+    justify-content: center; /* 組內置中 */
+    gap: 8px;
+    padding: 0 15px;
+  }
   
-  padding: 6px 8px;
-  border-radius: 99px;
-  display: flex;
-  gap: 5px;
-  z-index: 2000; /* 比 Content 高，比 Header 低 */
-  white-space: nowrap;
-}
-
   .sub-nav-btn {
     border: 1px solid #e5e7eb;
     background: #fff;
-    padding: 6px 14px;
+    padding: 6px 16px;
     font-size: 0.85rem;
     flex-shrink: 0;
+    white-space: nowrap;
   }
   
   .sub-nav-btn.active {
     background: var(--accent-color);
     color: #fff;
     border-color: var(--accent-color);
-    box-shadow: none;
+    box-shadow: 0 2px 6px rgba(90,143,123,0.3);
   }
 }
-
 
 
 .page-content { 
@@ -2843,60 +2984,64 @@ scroll-margin-top: 180px; /* 手機版 Header 疊起來比較高 */
 
   <div class="main-container">
     <div class="sticky-top-bar">
-     <header>
-        <!-- 左邊區域：垂直排列 -->
-        <div style="display: flex; flex-direction: column; gap: 0.5rem; align-items: flex-start; flex: 1;">
-          
-          <!-- 1. 標題 -->
-          <h1>我不想努力了</h1>
-          
-          <!-- 2. 登入/同步按鈕 -->
-          <div class="auth-container">
-            <span id="auth-status">未連接</span>
-            <div id="auth-buttons">
-              <button id="login-btn" class="btn light-btn">登入/註冊</button>
-              <button id="logout-btn" class="btn danger-btn" style="display: none;">登出</button>
-              <button id="sync-btn" class="btn action-btn" style="display: none;" disabled>同步至雲端</button>
-            </div>
-          </div>
-
-      <div id="project-header-info" class="project-header-info" style="display:none;" onclick="promptAndLoadCloudProject()" title="點擊切換/載入雲端專案">
-        <span style="opacity:0.8">📂</span>
-        <span id="ph-class"></span>
-        <span class="ph-divider">|</span>
-        <span id="ph-topic"></span>
-        <span style="opacity:0.6; font-size: 0.8em; margin-left: 4px;">▼</span> <!-- 加個箭咀仔示意可點擊 -->
-      </div>
-
-        </div>
-        
-        <!-- [v11.1] Header 右側：設定選單 (收納了字體控制) -->
-<div class="header-actions" style="position: relative;">
+     <!-- [v11.5] Header：左側垂直排列 (標題+登入)，右側設定掣 -->
+<header style="display: flex; justify-content: space-between; align-items: flex-start; padding: 1rem 1.5rem; background: var(--header-bg); color: white; position: relative; z-index: 2002;">
     
-    <!-- 設定按鈕 (齒輪) -->
-    <button class="font-control-btn" onclick="toggleSettingsMenu()" style="width: 36px; height: 36px; border-radius: 50%; font-size: 1.1rem; border: none; background: rgba(255,255,255,0.2);">
-        ⚙️
-    </button>
-
-    <!-- 設定下拉選單 (預設隱藏) -->
-    <div id="settings-dropdown" class="settings-menu-popover" style="display: none;">
-        <div class="settings-group">
-            <label>字體大小</label>
-            <div class="font-controls-row">
-                <button onclick="adjustFontSize('decrease')" title="縮小">A-</button>
-                <button onclick="adjustFontSize('reset')" title="重設">⟳</button>
-                <button onclick="adjustFontSize('increase')" title="放大">A+</button>
+    <!-- 左邊區域：包含標題 和 登入資料 -->
+    <div class="header-left" style="display: flex; flex-direction: column; gap: 8px;">
+        
+        <!-- 標題 -->
+        <h1 style="margin: 0; font-size: 1.8rem; font-weight: 500; letter-spacing: 0.1em; line-height: 1.2;">我不想努力了</h1>
+        
+        <!-- 登入資料 (放在標題正下方) -->
+        <div class="auth-container" style="display: inline-flex; align-items: center; gap: 10px; background-color: rgba(255, 255, 255, 0.15); padding: 4px 10px; border-radius: 99px; width: fit-content;">
+            <span id="auth-status" style="font-size: 0.8rem; white-space: nowrap;">未連接</span>
+            <div id="auth-buttons" style="display: flex; gap: 5px;">
+                <button id="login-btn" class="btn light-btn" style="padding: 2px 8px; font-size: 0.75rem;">登入</button>
+                <button id="logout-btn" class="btn danger-btn" style="display: none; padding: 2px 8px; font-size: 0.75rem;">登出</button>
+                <button id="sync-btn" class="btn action-btn" style="display: none; padding: 2px 8px; font-size: 0.75rem;" disabled>同步</button>
             </div>
         </div>
-        <div class="settings-divider"></div>
-        <div class="settings-group">
-            <button class="text-btn" onclick="showHotkeyHelp()">⌨️ 鍵盤快捷鍵</button>
+
+        <!-- 專案資訊 (隱藏式，跟隨在登入資料旁或下) -->
+        <div id="project-header-info" class="project-header-info" style="display:none; margin-top: 2px;" onclick="promptAndLoadCloudProject()">
+            <span style="opacity:0.8">📂</span>
+            <span id="ph-class"></span> <span class="ph-divider">|</span> <span id="ph-topic"></span>
         </div>
     </div>
 
-</div>
+    <!-- 右邊區域：設定掣 (固定右上) -->
+    <div class="header-right" style="position: relative; padding-top: 5px;">
+        <button class="font-control-btn" onclick="toggleSettingsMenu()" style="width: 36px; height: 36px; border-radius: 50%; border: none; background: rgba(255,255,255,0.25); color: #fff; cursor: pointer;">
+            ⚙️
+        </button>
+        
+        <!-- 設定選單 -->
+        <div id="settings-dropdown" class="settings-menu-popover" style="display: none; top: 45px; right: 0;">
+            <div class="settings-group">
+                <label>字體大小</label>
+                <div class="font-controls-row">
+                    <button onclick="adjustFontSize('decrease')">A-</button>
+                    <button onclick="adjustFontSize('reset')">⟳</button>
+                    <button onclick="adjustFontSize('increase')">A+</button>
+                </div>
+            </div>
+            <div class="settings-divider"></div>
+            <div class="settings-group">
+                <button class="text-btn" onclick="showHotkeyHelp()">⌨️ 鍵盤快捷鍵</button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- [v11.4] Back To Top 按鈕 (放在 body 結尾附近) -->
+<button id="back-to-top-btn" onclick="scrollToTop()" title="回到頂部">⬆</button>
       </header>
-     <!-- [v10.3] 全新雙層導航結構 -->
+   
+
+
+
+
 <!-- [v11.0] 懸浮導航結構 (Floating Island) -->
 <nav class="page-nav-wrapper">
   
@@ -3958,7 +4103,15 @@ scroll-margin-top: 180px; /* 手機版 Header 疊起來比較高 */
   </div>
 </div>
 
-<!-- [v11.9] 快速新增評語 Modal (確保存在) -->
+
+<!-- [v11.3] Header 修改指引 (請手動調整 Header HTML) -->
+<!-- 
+1. 刪除 <div class="header-actions">...</div>
+2. 將 <button ... onclick="toggleSettingsMenu()">⚙️</button> 放入 <div id="auth-buttons"> 內
+3. 將 <div id="settings-dropdown">...</div> 也放入 <div id="auth-buttons"> 內 (或者放在 header 底部)
+-->
+
+<!-- [v11.3] 完整版快速新增評語 Modal -->
 <div id="pop-instant-add-modal" class="pop-overlay">
   <div class="pop-modal" style="max-width: 500px; max-height: 90vh; display:flex; flex-direction:column;">
     <div class="pop-icon">✨</div>
@@ -3969,6 +4122,7 @@ scroll-margin-top: 180px; /* 手機版 Header 疊起來比較高 */
     <!-- 捲動區域 -->
     <div class="pop-scroll-area" style="text-align: left; padding: 15px;">
         
+        <!-- 標題與類型 -->
         <label style="font-size:0.85rem; font-weight:bold; color:#5A8F7B;">標題 (必填)</label>
         <input type="text" id="instant-add-title" class="pop-input" style="margin-bottom: 15px;" placeholder="例如：立意深刻">
         
@@ -3988,7 +4142,7 @@ scroll-margin-top: 180px; /* 手機版 Header 疊起來比較高 */
             <textarea id="instant-add-strength" class="pop-input" rows="2" placeholder="對優點的具體描述..."></textarea>
         </div>
 
-        <!-- 缺點專用 -->
+        <!-- 缺點專用 (預設隱藏) -->
         <div id="instant-field-problem" style="display:none;">
             <label style="font-size:0.85rem; font-weight:bold; color:#c86a5a;">問題核心</label>
             <textarea id="instant-add-problem" class="pop-input" rows="2" placeholder="問題在於..."></textarea>
@@ -4004,7 +4158,8 @@ scroll-margin-top: 180px; /* 手機版 Header 疊起來比較高 */
 
             <label style="font-size:0.85rem; font-weight:bold; color:#666; margin-top:10px;">下拉選項設定 (進階)</label>
             <input type="text" id="instant-add-options-label" class="pop-input" placeholder="標籤 (e.g. 描寫對象)" style="margin-bottom:5px;">
-            <textarea id="instant-add-options" class="pop-input" rows="2" placeholder="選項範例：&#10;天氣變差&#10;心情低落&#10;|&#10;正面描寫&#10;側面描寫"></textarea>
+            <textarea id="instant-add-options" class="pop-input" rows="2" placeholder="選項 (每行一個，e.g. 天氣|心情)"></textarea>
+            <div style="font-size:0.75rem; color:#999;">註：可用 | 分隔多組選項</div>
         </div>
     </div>
 
@@ -5235,7 +5390,8 @@ document.addEventListener('click', (e) => {
 
 
 
-// [v11.8] 批改頁渲染 (Hot List + Instant Add 回歸)
+/* ===== [Phase 3] 批改頁升級：Checklist 渲染與快速新增 ===== */
+
 function buildChecklist() {
   const dataContainer = document.getElementById('critique-data');
   const checklistContainer = document.getElementById('checklist-container');
@@ -5253,20 +5409,17 @@ function buildChecklist() {
 
   checklistContainer.innerHTML = '';
   const currentCategories = {};
-  const allCritiquesMap = {}; 
   let hasItems = false;
 
-  // 2. 分類與映射
+  // 2. 分類
   dataContainer.querySelectorAll('div[data-id]').forEach(el => {
     hasItems = true;
     const category = el.dataset.category || '未分類';
-    const id = el.dataset.id;
-    
     if (!currentCategories[category]) currentCategories[category] = [];
     currentCategories[category].push(el);
-    allCritiquesMap[id] = el; 
   });
   
+  // 3. 排序 (自定義順序)
   const sortedCategoryNames = Object.keys(currentCategories).sort((a, b) => {
     const indexA = CATEGORY_ORDER.indexOf(a);
     const indexB = CATEGORY_ORDER.indexOf(b);
@@ -5276,72 +5429,17 @@ function buildChecklist() {
     return a.localeCompare(b);
   });
 
+  // 4. 渲染
   if (hasItems) {
       checklistContainer.style.display = 'grid'; 
       checklistContainer.className = ''; 
 
-      // 🔥 [復刻] 常用評語 (Hot List)
-      // (假設 getTopCritiques 函數已存在，若無請看 Step 4)
-      if (typeof getTopCritiques === 'function') {
-          const topIds = getTopCritiques(5);
-          const hotListItems = topIds.map(id => allCritiquesMap[id]).filter(Boolean);
-
-          if (hotListItems.length > 0) {
-              const hotDetails = document.createElement('details');
-              hotDetails.className = 'category-group';
-              hotDetails.open = true;
-              hotDetails.style.border = "2px solid #F2C037"; 
-              hotDetails.style.background = "#fffdf5";
-
-              hotDetails.innerHTML = `
-                <summary style="background: linear-gradient(90deg, #fffdf5, #fff8e1);">
-                    <div style="display:flex; align-items:center; gap:10px; width:100%;">
-                        <h3>🔥 常用評語</h3>
-                    </div>
-                </summary>`;
-              
-              const hotContainer = document.createElement('div');
-              hotContainer.className = 'category-content';
-              
-              hotListItems.forEach(el => {
-                  const originalId = el.dataset.id;
-                  const hotId = `hot_${originalId}`;
-                  const title = el.querySelector('h4').textContent;
-                  const type = el.dataset.type;
-                  
-                  const itemDiv = document.createElement('div');
-                  itemDiv.className = `check-item ${type === 'problem' ? 'is-problem' : 'is-excellent'}`;
-                  itemDiv.innerHTML = `
-                    <div class="check-item-header">
-                        <input type="checkbox" id="${hotId}" ${checkedStates[originalId] ? 'checked' : ''}>
-                        <label for="${hotId}">${title}</label>
-                    </div>`;
-                    
-                  // 同步點擊邏輯
-                  itemDiv.addEventListener('click', (e) => {
-                      e.preventDefault();
-                      const originalCb = document.getElementById(originalId);
-                      if(originalCb) {
-                          originalCb.checked = !originalCb.checked;
-                          handleCheckboxChange(originalCb);
-                          itemDiv.querySelector('input').checked = originalCb.checked;
-                          if(originalCb.checked && typeof incrementCritiqueUsage === 'function') incrementCritiqueUsage(originalId);
-                      }
-                  });
-                  hotContainer.appendChild(itemDiv);
-              });
-              hotDetails.appendChild(hotContainer);
-              checklistContainer.appendChild(hotDetails);
-          }
-      }
-
-      // 渲染正常分類
       for (const categoryName of sortedCategoryNames) {
         const categoryDetails = document.createElement('details');
         categoryDetails.className = 'category-group';
         categoryDetails.open = true;
         
-        // 🔥 [復刻] 標題旁的 [+ 新增] 按鈕
+        // 🔥 新增：標題旁的 [+] 按鈕 (防止冒泡，點擊只開 Modal)
         const summary = document.createElement('summary');
         summary.innerHTML = `
             <div style="display:flex; align-items:center; gap:10px; width:100%;">
@@ -5368,6 +5466,7 @@ function buildChecklist() {
 
           const headerDiv = document.createElement('div');
           headerDiv.className = 'check-item-header';
+          // Label padding 調整已在 CSS 做咗
           headerDiv.innerHTML = `<input type="checkbox" id="${id}"><label for="${id}">${title}</label>`;
           itemDiv.appendChild(headerDiv);
 
@@ -5375,16 +5474,20 @@ function buildChecklist() {
 
           const editableCommentDiv = document.createElement('div');
           editableCommentDiv.className = 'editable-comment';
-          editableCommentDiv.innerHTML = `<textarea id="text-${id}" placeholder="此處顯示學生版預覽…"></textarea>`;
+          editableCommentDiv.innerHTML = `<textarea id="text-${id}" placeholder="此處顯示學生版預覽（已細化例子）…"></textarea>`;
           itemDiv.appendChild(editableCommentDiv);
 
           itemsContainer.appendChild(itemDiv);
 
+          // 恢復狀態
           if (checkedStates[id]) {
             const checkbox = headerDiv.querySelector(`#${id}`);
             checkbox.checked = true;
+            // 這裡不需再 handleCheckboxChange，因為那是點擊觸發的，這裡只是渲染
+            // 但我們要確保 UI 顯示正確 (展開)
             if (hasOptions) itemDiv.querySelector('.interactive-module').style.display = 'block';
             itemDiv.querySelector('.editable-comment').style.display = 'block';
+            
             const textarea = itemDiv.querySelector(`#text-${id}`);
             if (textarea && editedTexts[id]) textarea.value = editedTexts[id];
           }
@@ -5394,44 +5497,26 @@ function buildChecklist() {
         checklistContainer.appendChild(categoryDetails);
       }
   } else {
-    // Rescue Card
+    // Rescue Card 代碼 (保持不變)
     checklistContainer.style.display = 'block';
-    checklistContainer.innerHTML = `<div class="rescue-card">...</div>`;
+    checklistContainer.innerHTML = `<div class="rescue-card">... (保留你原有的 Rescue Card 內容) ...</div>`;
+    // 為免代碼太長，這裡省略 Rescue Card HTML，請保留你原本那段
+    // 如果你 copy 唔到，我可以再貼一次
   }
 }
 
-
-/* ========================================= */
-/* === [v11.9] 快速新增功能 (Missing Scripts) === */
-/* ========================================= */
-
-// 1. 打開新增視窗
+// [Phase 3] 打開新增評語 Modal
 function openInstantAdd(category) {
-    console.log("打開新增視窗:", category); // Debug 用
-    
-    const modal = document.getElementById('pop-instant-add-modal');
-    if (!modal) {
-        alert("錯誤：找不到新增視窗 (pop-instant-add-modal)。請檢查 HTML。");
-        return;
-    }
-
     document.getElementById('instant-add-category-display').textContent = `分類：${category}`;
     document.getElementById('instant-add-category-val').value = category;
-    
-    // 清空欄位
     document.getElementById('instant-add-title').value = '';
-    document.getElementById('instant-add-strength').value = '';
-    document.getElementById('instant-add-problem').value = '';
-    document.getElementById('instant-add-suggestion').value = '';
-    document.getElementById('instant-add-example').value = '';
-    document.getElementById('instant-add-options').value = '';
-    document.getElementById('instant-add-options-label').value = '';
-
-    modal.classList.add('active');
+    document.getElementById('pop-instant-add-modal').classList.add('active');
     setTimeout(() => document.getElementById('instant-add-title').focus(), 100);
 }
 
-// 2. 切換欄位 (優點/缺點)
+/* [v11.3] 快速新增邏輯 (完整欄位版) */
+
+// 切換欄位顯示 (優點 vs 問題)
 function toggleInstantAddFields() {
     const type = document.querySelector('input[name="instant-add-type"]:checked').value;
     const divExc = document.getElementById('instant-field-excellent');
@@ -5446,7 +5531,7 @@ function toggleInstantAddFields() {
     }
 }
 
-// 3. 儲存並應用
+// 儲存並應用
 async function saveInstantCritique() {
     const title = document.getElementById('instant-add-title').value.trim();
     const category = document.getElementById('instant-add-category-val').value;
@@ -5464,7 +5549,7 @@ async function saveInstantCritique() {
 
     const id = 'manual_' + Date.now();
     
-    // 建立 DOM 元素
+    // 1. 建立 DOM 元素 (包含所有 dataset)
     const newDiv = document.createElement('div');
     newDiv.dataset.id = id;
     newDiv.dataset.category = category;
@@ -5482,53 +5567,31 @@ async function saveInstantCritique() {
     newDiv.dataset.options = options;
 
     newDiv.innerHTML = `<h4>${title}</h4>`;
-    
-    const dataContainer = document.getElementById('critique-data');
-    if(dataContainer) dataContainer.appendChild(newDiv);
+    document.getElementById('critique-data').appendChild(newDiv);
 
-    // 刷新介面
-    if (typeof buildChecklist === 'function') buildChecklist();
+    // 2. 刷新介面
+    buildChecklist();
 
-    // 自動勾選
-    setTimeout(() => {
-        const checkbox = document.getElementById(id);
-        if (checkbox) {
-            checkbox.checked = true;
-            if(typeof handleCheckboxChange === 'function') handleCheckboxChange(checkbox);
-            
+    // 3. 自動勾選
+    const checkbox = document.getElementById(id);
+    if (checkbox) {
+        checkbox.checked = true;
+        handleCheckboxChange(checkbox);
+        
+        setTimeout(() => {
             checkbox.closest('.check-item').scrollIntoView({ behavior: 'smooth', block: 'center' });
             checkbox.closest('.check-item').style.backgroundColor = '#fff9c4';
             setTimeout(() => { checkbox.closest('.check-item').style.backgroundColor = ''; }, 800);
-        }
-    }, 200);
+        }, 100);
+    }
 
-    // 關閉
+    // 4. 關閉
     document.getElementById('pop-instant-add-modal').classList.remove('active');
     
-    // 觸發儲存
+    // 5. 觸發儲存
     isDataDirty = true;
     updateUIBasedOnAuthState();
     if(typeof showToast === 'function') showToast("已新增並選取！", "success");
-}
-
-
-/* [v11.8] Hot List 輔助函數 */
-const HOT_LIST_KEY = 'idw_hot_list_data';
-
-function incrementCritiqueUsage(critiqueId) {
-    let data = {};
-    try { data = JSON.parse(localStorage.getItem(HOT_LIST_KEY) || '{}'); } catch (e) {}
-    data[critiqueId] = (data[critiqueId] || 0) + 1;
-    localStorage.setItem(HOT_LIST_KEY, JSON.stringify(data));
-}
-
-function getTopCritiques(limit = 5) {
-    let data = {};
-    try { data = JSON.parse(localStorage.getItem(HOT_LIST_KEY) || '{}'); } catch (e) {}
-    return Object.entries(data)
-        .sort(([, a], [, b]) => b - a)
-        .slice(0, limit)
-        .map(([id]) => id);
 }
 
 // [Pro-v9.5] 快速載入預設 (Rescue Action)
@@ -7582,21 +7645,30 @@ function exportOverviewToWord() {
   color: #2e7d32;
   font-weight: bold;
 }
+/* [v11.10] 緊急修復：遮擋與排版 */
 
-/* [v11.9] 緊急修復：設定選單 & 常用評語佈局 */
-
-/* 1. 設定選單：強制最高層級 (突破天際) */
+/* 1. 設定選單 (使用 fixed 定位，脫離父層限制) */
 .settings-menu-popover {
-    z-index: 2147483647 !important; /* Max Z-Index */
-    position: absolute;
-    /* 確保佢唔會因為父容器 overflow 而被切斷 */
+    position: fixed !important; /* 終極手段 */
+    top: 70px !important;
+    right: 20px !important;
+    left: auto !important; /* 確保唔會受 left 影響 */
+    z-index: 2147483647 !important; /* 瀏覽器最大值 */
+    box-shadow: 0 20px 60px rgba(0,0,0,0.4) !important;
 }
 
-/* 2. 常用評語：強制橫跨整行 (修復迫散下方四格的問題) */
-#checklist-container details.category-group[style*="border: 2px solid"] {
-    grid-column: 1 / -1 !important; /* 佔滿整行 */
-    margin-bottom: 20px; /* 同下面分開啲 */
+/* 2. 常用評語 (強制獨佔一行 + 樣式微調) */
+/* 選擇器特指 "常用評語" 那個 details */
+details.category-group[style*="border: 2px solid"] {
+    grid-column: 1 / -1 !important; /* 橫跨所有欄位 */
+    width: 100%;
+    margin-bottom: 25px; /* 同下面分開啲 */
+    order: -1; /* 強制排最前 */
 }
+
+/* 確保常用評語預設收合 (可選) */
+/* 如果你想預設收埋，請在 JS 改 open = false，或者手動撳 */
+
 
 </style>
 </head>
