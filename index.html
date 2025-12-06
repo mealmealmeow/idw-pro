@@ -3958,6 +3958,63 @@ scroll-margin-top: 180px; /* 手機版 Header 疊起來比較高 */
   </div>
 </div>
 
+<!-- [v11.9] 快速新增評語 Modal (確保存在) -->
+<div id="pop-instant-add-modal" class="pop-overlay">
+  <div class="pop-modal" style="max-width: 500px; max-height: 90vh; display:flex; flex-direction:column;">
+    <div class="pop-icon">✨</div>
+    <h3>新增評語詳情</h3>
+    <p class="pop-desc" id="instant-add-category-display">類別：內容</p>
+    <input type="hidden" id="instant-add-category-val">
+
+    <!-- 捲動區域 -->
+    <div class="pop-scroll-area" style="text-align: left; padding: 15px;">
+        
+        <label style="font-size:0.85rem; font-weight:bold; color:#5A8F7B;">標題 (必填)</label>
+        <input type="text" id="instant-add-title" class="pop-input" style="margin-bottom: 15px;" placeholder="例如：立意深刻">
+        
+        <label style="font-size:0.85rem; font-weight:bold; color:#666;">類型</label>
+        <div style="display:flex; gap:10px; margin-bottom: 20px;">
+            <label style="flex:1; padding:10px; border:1px solid #ddd; border-radius:8px; cursor:pointer; text-align:center; background:#fff;">
+                <input type="radio" name="instant-add-type" value="excellent" checked onchange="toggleInstantAddFields()"> 👍 優點
+            </label>
+            <label style="flex:1; padding:10px; border:1px solid #ddd; border-radius:8px; cursor:pointer; text-align:center; background:#fff;">
+                <input type="radio" name="instant-add-type" value="problem" onchange="toggleInstantAddFields()"> 👎 待改進
+            </label>
+        </div>
+
+        <!-- 優點專用 -->
+        <div id="instant-field-excellent">
+            <label style="font-size:0.85rem; font-weight:bold; color:#666;">優點詳情</label>
+            <textarea id="instant-add-strength" class="pop-input" rows="2" placeholder="對優點的具體描述..."></textarea>
+        </div>
+
+        <!-- 缺點專用 -->
+        <div id="instant-field-problem" style="display:none;">
+            <label style="font-size:0.85rem; font-weight:bold; color:#c86a5a;">問題核心</label>
+            <textarea id="instant-add-problem" class="pop-input" rows="2" placeholder="問題在於..."></textarea>
+            
+            <label style="font-size:0.85rem; font-weight:bold; color:#5A8F7B; margin-top:10px;">建議 (宜)</label>
+            <textarea id="instant-add-suggestion" class="pop-input" rows="2" placeholder="建議如何改善..."></textarea>
+        </div>
+
+        <!-- 通用欄位 -->
+        <div style="margin-top: 15px; border-top: 1px dashed #ddd; padding-top: 15px;">
+            <label style="font-size:0.85rem; font-weight:bold; color:#666;">例子 (Example)</label>
+            <textarea id="instant-add-example" class="pop-input" rows="2" placeholder="具體例子..."></textarea>
+
+            <label style="font-size:0.85rem; font-weight:bold; color:#666; margin-top:10px;">下拉選項設定 (進階)</label>
+            <input type="text" id="instant-add-options-label" class="pop-input" placeholder="標籤 (e.g. 描寫對象)" style="margin-bottom:5px;">
+            <textarea id="instant-add-options" class="pop-input" rows="2" placeholder="選項範例：&#10;天氣變差&#10;心情低落&#10;|&#10;正面描寫&#10;側面描寫"></textarea>
+        </div>
+    </div>
+
+    <div class="pop-footer">
+      <button class="pop-btn pop-btn-cancel" onclick="document.getElementById('pop-instant-add-modal').classList.remove('active')">取消</button>
+      <button class="pop-btn pop-btn-confirm" onclick="saveInstantCritique()">儲存並選取</button>
+    </div>
+  </div>
+</div>
+
 <script>
 
 // --- Supabase 初始化與設定 ---
@@ -5341,6 +5398,117 @@ function buildChecklist() {
     checklistContainer.style.display = 'block';
     checklistContainer.innerHTML = `<div class="rescue-card">...</div>`;
   }
+}
+
+
+/* ========================================= */
+/* === [v11.9] 快速新增功能 (Missing Scripts) === */
+/* ========================================= */
+
+// 1. 打開新增視窗
+function openInstantAdd(category) {
+    console.log("打開新增視窗:", category); // Debug 用
+    
+    const modal = document.getElementById('pop-instant-add-modal');
+    if (!modal) {
+        alert("錯誤：找不到新增視窗 (pop-instant-add-modal)。請檢查 HTML。");
+        return;
+    }
+
+    document.getElementById('instant-add-category-display').textContent = `分類：${category}`;
+    document.getElementById('instant-add-category-val').value = category;
+    
+    // 清空欄位
+    document.getElementById('instant-add-title').value = '';
+    document.getElementById('instant-add-strength').value = '';
+    document.getElementById('instant-add-problem').value = '';
+    document.getElementById('instant-add-suggestion').value = '';
+    document.getElementById('instant-add-example').value = '';
+    document.getElementById('instant-add-options').value = '';
+    document.getElementById('instant-add-options-label').value = '';
+
+    modal.classList.add('active');
+    setTimeout(() => document.getElementById('instant-add-title').focus(), 100);
+}
+
+// 2. 切換欄位 (優點/缺點)
+function toggleInstantAddFields() {
+    const type = document.querySelector('input[name="instant-add-type"]:checked').value;
+    const divExc = document.getElementById('instant-field-excellent');
+    const divProb = document.getElementById('instant-field-problem');
+    
+    if (type === 'excellent') {
+        divExc.style.display = 'block';
+        divProb.style.display = 'none';
+    } else {
+        divExc.style.display = 'none';
+        divProb.style.display = 'block';
+    }
+}
+
+// 3. 儲存並應用
+async function saveInstantCritique() {
+    const title = document.getElementById('instant-add-title').value.trim();
+    const category = document.getElementById('instant-add-category-val').value;
+    const type = document.querySelector('input[name="instant-add-type"]:checked').value;
+    
+    // 獲取詳細欄位
+    const strength = document.getElementById('instant-add-strength').value.trim();
+    const problem = document.getElementById('instant-add-problem').value.trim();
+    const suggestion = document.getElementById('instant-add-suggestion').value.trim();
+    const example = document.getElementById('instant-add-example').value.trim();
+    const optionsLabel = document.getElementById('instant-add-options-label').value.trim();
+    const options = document.getElementById('instant-add-options').value.trim();
+
+    if (!title) { alert("請輸入標題"); return; }
+
+    const id = 'manual_' + Date.now();
+    
+    // 建立 DOM 元素
+    const newDiv = document.createElement('div');
+    newDiv.dataset.id = id;
+    newDiv.dataset.category = category;
+    newDiv.dataset.type = type;
+    newDiv.dataset.title = title;
+    
+    // 寫入詳細資料
+    if(type === 'excellent') newDiv.dataset.strengthSummary = strength;
+    if(type === 'problem') {
+        newDiv.dataset.problemCore = problem;
+        newDiv.dataset.suggestion = suggestion;
+    }
+    newDiv.dataset.example = example;
+    newDiv.dataset.optionsLabel = optionsLabel;
+    newDiv.dataset.options = options;
+
+    newDiv.innerHTML = `<h4>${title}</h4>`;
+    
+    const dataContainer = document.getElementById('critique-data');
+    if(dataContainer) dataContainer.appendChild(newDiv);
+
+    // 刷新介面
+    if (typeof buildChecklist === 'function') buildChecklist();
+
+    // 自動勾選
+    setTimeout(() => {
+        const checkbox = document.getElementById(id);
+        if (checkbox) {
+            checkbox.checked = true;
+            if(typeof handleCheckboxChange === 'function') handleCheckboxChange(checkbox);
+            
+            checkbox.closest('.check-item').scrollIntoView({ behavior: 'smooth', block: 'center' });
+            checkbox.closest('.check-item').style.backgroundColor = '#fff9c4';
+            setTimeout(() => { checkbox.closest('.check-item').style.backgroundColor = ''; }, 800);
+        }
+    }, 200);
+
+    // 關閉
+    document.getElementById('pop-instant-add-modal').classList.remove('active');
+    
+    // 觸發儲存
+    isDataDirty = true;
+    updateUIBasedOnAuthState();
+    if(typeof showToast === 'function') showToast("已新增並選取！", "success");
 }
 
 
@@ -7414,6 +7582,22 @@ function exportOverviewToWord() {
   color: #2e7d32;
   font-weight: bold;
 }
+
+/* [v11.9] 緊急修復：設定選單 & 常用評語佈局 */
+
+/* 1. 設定選單：強制最高層級 (突破天際) */
+.settings-menu-popover {
+    z-index: 2147483647 !important; /* Max Z-Index */
+    position: absolute;
+    /* 確保佢唔會因為父容器 overflow 而被切斷 */
+}
+
+/* 2. 常用評語：強制橫跨整行 (修復迫散下方四格的問題) */
+#checklist-container details.category-group[style*="border: 2px solid"] {
+    grid-column: 1 / -1 !important; /* 佔滿整行 */
+    margin-bottom: 20px; /* 同下面分開啲 */
+}
+
 </style>
 </head>
 <body>`;
