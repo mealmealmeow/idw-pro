@@ -354,27 +354,7 @@
     box-shadow: 0 2px 8px rgba(0,0,0,0.08);
   }
 
-  /* [v11.4] Header 樣式優化 */
-
-
-  header::after {
-    content: "";
-    position: absolute;
-    inset: auto 1.8rem -0.65rem;
-    height: 14px;
-    border-radius: 999px;
-    background: rgba(0,0,0,0.08);
-    filter: blur(6px);
-    opacity: 0.6;
-    pointer-events: none;
-  }
-
-  h1 { 
-    margin: 0; 
-    font-size: 2.25rem; 
-    font-weight: 500; 
-    letter-spacing: 0.16em;
-  }
+  
   
   .auth-container {
     display: flex;
@@ -516,110 +496,9 @@
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 
-/* === Mobile RWD Header (修復版) === */
-@media (max-width: 768px) {
-  header {
-    flex-direction: column; /* 垂直排列：標題在上，膠囊在下 */
-    padding: 15px 10px !important;
-    gap: 10px;
-    height: auto;
-  }
 
-  /* 標題 */
-  header h1 {
-    font-size: 1.6rem !important;
-    margin: 0;
-    text-align: center;
-    width: 100%;
-  }
 
-  /* 登入膠囊 (還原圓潤感) */
-  .auth-container {
-    width: auto;
-    max-width: 90%;
-    background-color: rgba(255, 255, 255, 0.15) !important;
-    border-radius: 999px !important; /* 膠囊形 */
-    padding: 6px 12px !important;
-    display: flex;
-    flex-direction: row !important; /* 橫向排列 */
-    align-items: center;
-    gap: 10px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    justify-content: center;
-  }
 
-  #auth-status {
-    font-size: 0.85rem !important;
-    background: transparent !important;
-    padding: 0 !important;
-    max-width: 120px !important; /* 限制寬度 */
-  }
-
-  #auth-buttons .btn {
-    padding: 4px 10px !important;
-    font-size: 0.8rem !important;
-  }
-
-  /* 設定掣 (絕對定位：右上角) */
-  .header-settings-wrapper {
-    position: absolute;
-    top: 15px;
-    right: 15px;
-  }
-}
-
-/* ========================================= */
-/* === [v11.0] 懸浮導航樣式 (Fixed + Floating) === */
-/* ========================================= */
-
-/* 1. 外框 (相對定位，作為懸浮島的錨點) */
-.page-nav-wrapper {
-  background-color: #fff;
-  border-bottom: 1px solid rgba(0,0,0,0.05);
-  position: relative; /* 關鍵 */
-  z-index: 1000;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.02);
-}
-
-/* 2. 第一層：主導航 (固定) */
-.main-nav {
-  display: flex;
-  justify-content: center;
-  gap: 2rem;
-  padding: 0 1rem;
-  background: transparent;
-  height: 60px; /* 固定高度 */
-  align-items: center;
-}
-
-.nav-btn {
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  padding: 8px 16px;
-  border-radius: 12px;
-  color: #888;
-  font-size: 1rem;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  transition: all 0.2s ease;
-  font-family: inherit;
-}
-
-.nav-btn:hover {
-  background-color: rgba(0,0,0,0.03);
-  color: #555;
-}
-
-.nav-btn.active {
-  color: var(--accent-color);
-  background-color: var(--accent-color-soft);
-  font-weight: bold;
-}
-
-.nav-btn::after { display: none; } /* 移除舊版底線 */
 
 /* 3. 第二層：懸浮島 (Floating Island) */
 .sub-nav-island {
@@ -679,28 +558,7 @@
   box-shadow: 0 4px 10px rgba(90, 143, 123, 0.3);
 }
 
-/* ===== [v11.1] 設定選單樣式 (Settings Popover) ===== */
-.settings-menu-popover {
-    position: absolute;
-    top: 45px;
-    right: 0;
-    background: #fff;
-    border-radius: 12px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
-    border: 1px solid rgba(0,0,0,0.05);
-    width: 200px;
-    padding: 12px;
-    z-index: 3000;
-    color: #555;
-    animation: fadeInMenu 0.2s ease-out;
-}
 
-.settings-group label {
-    font-size: 0.8rem;
-    color: #999;
-    margin-bottom: 8px;
-    display: block;
-}
 
 .font-controls-row {
     display: flex;
@@ -735,168 +593,29 @@
 }
 .text-btn:hover { background: #f3f4f6; }
 
-/* [v11.3] 設定選單 Z-Index 修復 (確保蓋過分頁導航) */
+
+
+/* [v12.0] CSS 最終修復：Setting Z-Index & Mobile Header */
+
+/* 1. 設定選單 (強制最頂層，解決遮擋) */
 .settings-menu-popover {
-    z-index: 9999 !important; /* 強制最高層級 */
-    /* 其餘樣式保持不變 */
-}
-
-/* [v11.5] 手機版 Header 微調 (保持左對齊結構) */
-@media (max-width: 768px) {
-  /* 只需要微調字體，結構由 HTML Flex 控制，不需改 display */
-  
-  header {
-    padding: 0.8rem 1rem !important;
-  }
-
-  header h1 {
-    font-size: 1.4rem !important; /* 手機標題細啲 */
-  }
-
-  /* 登入資料膠囊 */
-  .auth-container {
-    padding: 3px 8px !important;
-    max-width: 100%; /* 確保唔會爆出畫面 */
-    flex-wrap: wrap; /* 如果個名太長，按鈕會自動換行，唔會爆 */
-  }
-  
-  #auth-status {
-    font-size: 0.75rem !important;
-    max-width: 150px; /* 限制名嘅長度 */
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
+    position: absolute;
+    top: 45px;
+    right: auto; /* 靠左彈出，防止手機版出界 */
+    left: 0;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 10px 50px rgba(0,0,0,0.3); /* 深陰影 */
+    border: 1px solid rgba(0,0,0,0.05);
+    width: 200px;
+    padding: 12px;
+    z-index: 2147483647 !important; /* 🔥 宇宙最高，保證唔會被遮 */
+    color: #555;
 }
 
 
-/* ========================================= */
-/* === [v11.2] Mobile RWD (Header & Nav 修復版) === */
-/* ========================================= */
-@media (max-width: 768px) {
-  
-  /* 1. Header 佈局重組 (慳位大法) */
-  header {
-    display: grid !important;
-    grid-template-columns: 1fr auto; /* 左邊內容，右邊預留 */
-    grid-template-areas: 
-      "title title"
-      "auth settings";
-    padding: 0.8rem 1rem !important;
-    gap: 5px 10px;
-    align-items: center;
-  }
-  
-  /* 標題 (佔滿上一行) */
-  header > div:first-child {
-    grid-area: title;
-    width: 100%;
-  }
-  
-  h1 {
-    font-size: 1.5rem !important;
-    text-align: center; /* 標題置中更好看 */
-    margin-bottom: 5px !important;
-  }
-  
-  /* 登入資料 (左下) */
-  .auth-container { 
-    grid-area: auth;
-    justify-self: start;
-    padding: 4px 8px !important;
-    font-size: 0.8rem !important;
-    max-width: 250px; /* 防止太長 */
-    overflow: hidden;
-  }
-  #auth-status { font-size: 0.75rem !important; }
-  
-  /* 設定掣 (右下，跟登入資料同行) */
-  .header-actions {
-    grid-area: settings;
-    justify-self: end;
-    margin-top: 0 !important; /* 移除舊有的 margin */
-  }
 
-  /* 2. 導航容器 */
-  .page-nav-wrapper {
-    position: sticky;
-    top: 0;
-    z-index: 100; /* 確保唔會遮住 Pop-up */
-    border-bottom: 1px solid rgba(0,0,0,0.05);
-    background: #fff;
-  }
 
-  /* 3. 主導航 (Icon 上 字 下) */
-  .main-nav {
-    justify-content: space-between; /* 平均分佈 */
-    padding: 0 10px;
-    height: auto;
-    background: #fff;
-    gap: 0;
-  }
-
-  .nav-btn {
-    flex: 1; 
-    flex-direction: column;
-    gap: 3px;
-    padding: 10px 0;
-    background: transparent !important;
-    border: none !important;
-    border-bottom: 3px solid transparent !important;
-    border-radius: 0;
-    font-size: 0.75rem;
-    color: #9ca3af;
-  }
-  
-  .nav-icon { font-size: 1.3rem; margin-bottom: 0; }
-
-  .nav-btn.active {
-    color: var(--accent-color);
-    border-bottom-color: var(--accent-color) !important;
-  }
-
-  /* 4. 子導航 (置中橫滑) */
-  .sub-nav-island {
-    position: static;
-    transform: none;
-    width: 100%;
-    border-radius: 0;
-    box-shadow: inset 0 10px 10px -10px rgba(0,0,0,0.05); /* 內陰影增加層次 */
-    background: #fcfcfc;
-    border: none;
-    padding: 12px 0;
-    
-    /* 🔥 關鍵修正：置中顯示 */
-    display: flex;
-    justify-content: center; /* 內容置中 */
-    
-    overflow-x: auto;
-    animation: none;
-  }
-  
-  .sub-nav-group {
-    width: auto; /* 自動寬度 */
-    display: flex;
-    justify-content: center; /* 組內置中 */
-    gap: 8px;
-    padding: 0 15px;
-  }
-  
-  .sub-nav-btn {
-    border: 1px solid #e5e7eb;
-    background: #fff;
-    padding: 6px 16px;
-    font-size: 0.85rem;
-    flex-shrink: 0;
-    white-space: nowrap;
-  }
-  
-  .sub-nav-btn.active {
-    background: var(--accent-color);
-    color: #fff;
-    border-color: var(--accent-color);
-    box-shadow: 0 2px 6px rgba(90,143,123,0.3);
-  }
-}
 
 
 .page-content { 
@@ -920,12 +639,6 @@ background-color: rgba(252,250,246,0.88);
 scroll-margin-top: 160px;
 }
 
-/* 手機版 Header 可能會變形，這裡預留更多空間 */
-@media (max-width: 768px) {
-.section-box {
-scroll-margin-top: 180px; /* 手機版 Header 疊起來比較高 */
-}
-}
 
   .section-box:nth-child(odd) {
     background: linear-gradient(135deg, rgba(255,255,255,0.9), rgba(251,246,238,0.9));
@@ -2976,7 +2689,396 @@ scroll-margin-top: 180px; /* 手機版 Header 疊起來比較高 */
   font-weight: bold;
   color: var(--accent-color);
 }
+
+
+
+/* ========================================= */
+/* === [v12.1] 終極 Header & UI 修復版 === */
+/* ========================================= */
+
+/* 1. Header 容器 (Desktop & Mobile 通用) */
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center; /* 垂直置中 */
+  padding: 1rem 1.5rem;
+  background: var(--header-bg);
+  color: white;
+  position: relative;
+  z-index: 3000;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+/* 2. 左邊區域 (標題 + 身份) */
+.header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 85%; /* 留位俾右邊齒輪 */
+}
+
+header h1 {
+  margin: 0;
+  font-size: 1.8rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  line-height: 1.2;
+}
+
+/* 3. 登入資料膠囊 */
+.auth-container {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: rgba(255, 255, 255, 0.15);
+  padding: 4px 10px;
+  border-radius: 99px;
+  width: fit-content;
+}
+
+#auth-status {
+  font-size: 0.8rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+#auth-buttons {
+  display: flex;
+  gap: 5px;
+}
+
+/* 4. 右邊區域 (設定掣) */
+.header-right {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.font-control-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255,255,255,0.25);
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  transition: background 0.2s;
+}
+.font-control-btn:hover { background: rgba(255,255,255,0.4); }
+
+/* 5. 設定選單 (強制最頂層，解決遮擋) */
+.settings-menu-popover {
+  position: absolute;
+  top: 50px;
+  right: 0;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 10px 60px rgba(0,0,0,0.3); /* 深陰影 */
+  border: 1px solid rgba(0,0,0,0.05);
+  width: 200px;
+  padding: 12px;
+  z-index: 2147483647 !important; /* 🔥 宇宙最高 */
+  color: #555;
+  text-align: left;
+}
+
+/* 6. Back To Top (懸浮右下角，半透明) */
+#back-to-top-btn {
+  display: none; /* JS 控制 */
+  position: fixed;
+  bottom: 25px;
+  right: 25px;
+  z-index: 2147483647; /* 確保唔會被遮 */
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  background-color: rgba(90, 143, 123, 0.3); /* 半透明綠 */
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  font-size: 1.2rem;
+  backdrop-filter: blur(4px);
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+#back-to-top-btn:hover {
+  background-color: var(--accent-color); /* 實色 */
+  opacity: 1;
+  transform: translateY(-3px);
+}
+
+
+/* ========================================================================== */
+/* === [v12.1-Final] 核心導航與介面樣式 (Header, Nav, Mobile, Settings) === */
+/* ========================================================================== */
+
+/* --- 1. Header (頂部欄) --- */
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center; /* 垂直置中 */
+  padding: 1rem 1.5rem;
+  background: var(--header-bg);
+  color: white;
+  position: relative;
+  z-index: 3000;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 85%; /* 留位俾右邊齒輪 */
+}
+
+header h1 {
+  margin: 0;
+  font-size: 1.8rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  line-height: 1.2;
+}
+
+/* 登入資料膠囊 */
+.auth-container {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: rgba(255, 255, 255, 0.15);
+  padding: 4px 10px;
+  border-radius: 99px;
+  width: fit-content;
+}
+
+#auth-status {
+  font-size: 0.8rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+#auth-buttons { display: flex; gap: 5px; }
+
+/* 右邊設定掣區域 */
+.header-right {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+/* 設定按鈕 (齒輪) */
+.font-control-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255,255,255,0.25);
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  transition: background 0.2s;
+}
+.font-control-btn:hover { background: rgba(255,255,255,0.4); }
+
+/* --- 2. 設定選單 (Settings Popover) --- */
+.settings-menu-popover {
+  position: absolute;
+  top: 50px;
+  right: 0;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 10px 60px rgba(0,0,0,0.3); /* 深陰影 */
+  border: 1px solid rgba(0,0,0,0.05);
+  width: 200px;
+  padding: 12px;
+  z-index: 2147483647 !important; /* 🔥 宇宙最高 */
+  color: #555;
+  text-align: left;
+}
+
+.settings-group label {
+  font-size: 0.8rem; color: #999; margin-bottom: 8px; display: block;
+}
+
+.font-controls-row {
+  display: flex; gap: 5px; justify-content: space-between;
+}
+
+.font-controls-row button {
+  flex: 1; padding: 6px 0; border: 1px solid #eee; background: #f9f9f9;
+  border-radius: 6px; cursor: pointer; font-size: 0.9rem; color: #555;
+}
+.font-controls-row button:hover { background: #eee; }
+
+.settings-divider { height: 1px; background: #eee; margin: 10px 0; }
+
+.text-btn {
+  width: 100%; text-align: left; background: transparent; border: none;
+  padding: 8px; cursor: pointer; font-size: 0.95rem; color: #5b5044; border-radius: 6px;
+}
+.text-btn:hover { background: #f3f4f6; }
+
+/* --- 3. 導航列 (Nav) --- */
+.page-nav-wrapper {
+  background-color: #fff;
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+  position: relative;
+  z-index: 1000;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+}
+
+/* 主導航 (固定) */
+.main-nav {
+  display: flex; justify-content: center; gap: 2rem; padding: 0 1rem;
+  background: transparent; height: 60px; align-items: center;
+}
+
+.nav-btn {
+  background: transparent; border: none; cursor: pointer; padding: 8px 16px;
+  border-radius: 12px; color: #888; font-size: 1rem; font-weight: 500;
+  display: flex; align-items: center; gap: 6px; transition: all 0.2s ease; font-family: inherit;
+}
+.nav-btn:hover { background-color: rgba(0,0,0,0.03); color: #555; }
+.nav-btn.active { color: var(--accent-color); background-color: var(--accent-color-soft); font-weight: bold; }
+.nav-btn::after { display: none; }
+
+/* 子導航 (懸浮島) */
+.sub-nav-island {
+  position: absolute;
+  top: 65px; left: 50%; transform: translateX(-50%);
+  background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.5); box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+  padding: 6px 8px; border-radius: 99px;
+  display: flex; gap: 5px; z-index: 1001; white-space: nowrap;
+  animation: floatDown 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes floatDown {
+  from { opacity: 0; transform: translate(-50%, -10px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+.sub-nav-group { display: flex; gap: 5px; }
+
+.sub-nav-btn {
+  padding: 6px 16px; font-size: 0.9rem; color: #666; background: transparent;
+  border: none; border-radius: 99px; cursor: pointer; transition: all 0.2s;
+  font-family: inherit; white-space: nowrap;
+}
+.sub-nav-btn:hover { background-color: rgba(0,0,0,0.05); color: #333; }
+.sub-nav-btn.active {
+  background-color: var(--accent-color); color: #fff;
+  box-shadow: 0 4px 10px rgba(90, 143, 123, 0.3);
+}
+
+/* --- 4. Back To Top 按鈕 --- */
+#back-to-top-btn {
+  display: none; position: fixed; bottom: 25px; right: 25px; z-index: 2147483647;
+  width: 45px; height: 45px; border-radius: 50%;
+  background-color: rgba(90, 143, 123, 0.3); /* 半透明綠 */
+  color: #fff; border: none; cursor: pointer; font-size: 1.2rem;
+  backdrop-filter: blur(4px); transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+#back-to-top-btn:hover {
+  background-color: var(--accent-color); opacity: 1; transform: translateY(-3px);
+}
+
+/* --- 5. Mobile RWD (手機專用) --- */
+@media (max-width: 768px) {
+  /* A. Header (保持左對齊，橫向) */
+  header {
+    flex-direction: row !important; align-items: flex-start !important;
+    padding: 15px 15px !important; height: auto !important;
+  }
+  header h1 { font-size: 1.5rem !important; margin-bottom: 5px !important; }
+  
+  .auth-container {
+    padding: 3px 8px !important; max-width: 100%; flex-wrap: wrap;
+  }
+  #auth-status { font-size: 0.75rem !important; max-width: 140px; }
+
+  /* Setting 掣固定右上 */
+  .header-right { position: absolute; top: 15px; right: 15px; }
+  
+  /* Setting 選單靠左彈出 */
+  .settings-menu-popover { right: auto !important; left: 0 !important; top: 45px !important; }
+
+  /* B. 導航 Nav (橫滑 Tabs) */
+  .main-nav {
+    justify-content: flex-start; padding: 0 10px; height: auto; gap: 0;
+    overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none;
+  }
+  .main-nav::-webkit-scrollbar { display: none; }
+
+  .nav-btn {
+    flex-shrink: 0; flex-direction: column; gap: 2px; padding: 10px 0;
+    font-size: 0.75rem; border-radius: 0; border-bottom: 3px solid transparent !important;
+  }
+  .nav-btn.active {
+    color: var(--accent-color); border-bottom-color: var(--accent-color) !important;
+  }
+  .nav-icon { font-size: 1.4rem; margin-bottom: 0; }
+
+  /* C. 子導航 (橫滑條) */
+  .sub-nav-island {
+    position: static; transform: none; width: 100%; border-radius: 0;
+    box-shadow: inset 0 10px 10px -10px rgba(0,0,0,0.05); background: #fcfcfc;
+    border: none; padding: 12px 0; display: flex;
+    justify-content: flex-start; overflow-x: auto; animation: none;
+  }
+  .sub-nav-group { width: auto; display: flex; gap: 8px; padding: 0 15px; }
+  .sub-nav-btn {
+    border: 1px solid #e5e7eb; background: #fff; padding: 6px 16px;
+    font-size: 0.85rem; flex-shrink: 0;
+  }
+  .sub-nav-btn.active {
+    background: var(--accent-color); color: #fff;
+    border-color: var(--accent-color); box-shadow: none;
+  }
+  
+  /* D. 通用修正 */
+  input, textarea, select { font-size: 16px !important; }
+  
+  /* E. 表格變卡片 (保持原有) */
+  #student-overview-table-wrapper { width: 100% !important; overflow-x: hidden !important; border: none !important; box-shadow: none !important; }
+  #student-overview-table { display: block !important; min-width: 0 !important; }
+  #student-overview-table thead { display: none !important; }
+  #student-overview-table tbody, #student-overview-table tr, #student-overview-table td { display: block !important; width: 100% !important; box-sizing: border-box !important; }
+  #student-overview-table tr { margin-bottom: 20px; border: 2px solid #5A8F7B !important; border-radius: 12px !important; padding: 15px !important; box-shadow: 0 4px 8px rgba(0,0,0,0.1) !important; }
+  #student-overview-table td { display: flex !important; justify-content: space-between; border-bottom: 1px dashed #eee !important; text-align: right !important; padding: 10px 0 !important; min-height: auto; position: static !important; background: transparent !important; }
+  #student-overview-table td::before { content: attr(data-label-fix); font-weight: bold; color: #5A8F7B; text-align: left; margin-right: 10px; }
+  #student-overview-table td:last-child { border-bottom: none !important; }
+  #student-overview-table td:nth-of-type(1)::before { content: "學號"; }
+  #student-overview-table td:nth-of-type(2)::before { content: "姓名"; }
+  #student-overview-table td:nth-of-type(3)::before { content: "內容 (40%)"; }
+  #student-overview-table td:nth-of-type(4)::before { content: "表達 (30%)"; }
+  #student-overview-table td:nth-of-type(5)::before { content: "結構 (20%)"; }
+  #student-overview-table td:nth-of-type(6)::before { content: "標點 (10%)"; }
+  #student-overview-table td:nth-of-type(7)::before { content: "錯別字"; }
+  #student-overview-table td:nth-of-type(8)::before { content: "總分"; color: #d48806; }
+  #student-overview-table td:nth-of-type(9)::before { content: "學生評語"; }
+  #student-overview-table td:nth-of-type(10) { display: none !important; }
+  #student-overview-table td:nth-of-type(9) { flex-direction: column; align-items: flex-start; }
+  #student-overview-table textarea { width: 100% !important; border: 1px solid #ccc !important; padding: 8px !important; }
+  #student-overview-table input[type="number"] { width: 60px !important; text-align: center; border: 1px solid #ddd; }
+  .empty-state-message { text-align: center !important; display: block !important; white-space: normal !important; }
+}
+
+
 </style>
+
 </head>
 <body>
 
@@ -2984,51 +3086,42 @@ scroll-margin-top: 180px; /* 手機版 Header 疊起來比較高 */
 
   <div class="main-container">
     <div class="sticky-top-bar">
-     <!-- [v11.5] Header：左側垂直排列 (標題+登入)，右側設定掣 -->
-<header style="display: flex; justify-content: space-between; align-items: flex-start; padding: 1rem 1.5rem; background: var(--header-bg); color: white; position: relative; z-index: 2002;">
-    
-    <!-- 左邊區域：包含標題 和 登入資料 -->
-    <div class="header-left" style="display: flex; flex-direction: column; gap: 8px;">
+<!-- [v12.1] Header 最終版 -->
+<header>
+    <!-- 左邊：標題 & 身份 -->
+    <div class="header-left">
+        <h1>我不想努力了</h1>
         
-        <!-- 標題 -->
-        <h1 style="margin: 0; font-size: 1.8rem; font-weight: 500; letter-spacing: 0.1em; line-height: 1.2;">我不想努力了</h1>
-        
-        <!-- 登入資料 (放在標題正下方) -->
-        <div class="auth-container" style="display: inline-flex; align-items: center; gap: 10px; background-color: rgba(255, 255, 255, 0.15); padding: 4px 10px; border-radius: 99px; width: fit-content;">
-            <span id="auth-status" style="font-size: 0.8rem; white-space: nowrap;">未連接</span>
-            <div id="auth-buttons" style="display: flex; gap: 5px;">
+        <div class="auth-container">
+            <span id="auth-status">未連接</span>
+            <div id="auth-buttons">
                 <button id="login-btn" class="btn light-btn" style="padding: 2px 8px; font-size: 0.75rem;">登入</button>
                 <button id="logout-btn" class="btn danger-btn" style="display: none; padding: 2px 8px; font-size: 0.75rem;">登出</button>
                 <button id="sync-btn" class="btn action-btn" style="display: none; padding: 2px 8px; font-size: 0.75rem;" disabled>同步</button>
             </div>
         </div>
-
-        <!-- 專案資訊 (隱藏式，跟隨在登入資料旁或下) -->
-        <div id="project-header-info" class="project-header-info" style="display:none; margin-top: 2px;" onclick="promptAndLoadCloudProject()">
-            <span style="opacity:0.8">📂</span>
-            <span id="ph-class"></span> <span class="ph-divider">|</span> <span id="ph-topic"></span>
+        
+        <div id="project-header-info" class="project-header-info" style="display:none; margin-top:2px;" onclick="promptAndLoadCloudProject()">
+            <span style="opacity:0.8">📂</span><span id="ph-class"></span><span class="ph-divider">|</span><span id="ph-topic"></span>
         </div>
     </div>
 
-    <!-- 右邊區域：設定掣 (固定右上) -->
-    <div class="header-right" style="position: relative; padding-top: 5px;">
-        <button class="font-control-btn" onclick="toggleSettingsMenu()" style="width: 36px; height: 36px; border-radius: 50%; border: none; background: rgba(255,255,255,0.25); color: #fff; cursor: pointer;">
-            ⚙️
-        </button>
+    <!-- 右邊：Setting 掣 -->
+    <div class="header-right">
+        <button class="font-control-btn" onclick="toggleSettingsMenu()">⚙️</button>
         
-        <!-- 設定選單 -->
-        <div id="settings-dropdown" class="settings-menu-popover" style="display: none; top: 45px; right: 0;">
+        <div id="settings-dropdown" class="settings-menu-popover" style="display: none;">
             <div class="settings-group">
-                <label>字體大小</label>
-                <div class="font-controls-row">
-                    <button onclick="adjustFontSize('decrease')">A-</button>
-                    <button onclick="adjustFontSize('reset')">⟳</button>
-                    <button onclick="adjustFontSize('increase')">A+</button>
+                <label style="font-size:0.8rem;color:#999;display:block;margin-bottom:5px;">字體大小</label>
+                <div class="font-controls-row" style="display:flex;gap:5px;">
+                    <button onclick="adjustFontSize('decrease')" style="flex:1;padding:5px;">A-</button>
+                    <button onclick="adjustFontSize('reset')" style="flex:1;padding:5px;">⟳</button>
+                    <button onclick="adjustFontSize('increase')" style="flex:1;padding:5px;">A+</button>
                 </div>
             </div>
-            <div class="settings-divider"></div>
+            <div style="height:1px;background:#eee;margin:10px 0;"></div>
             <div class="settings-group">
-                <button class="text-btn" onclick="showHotkeyHelp()">⌨️ 鍵盤快捷鍵</button>
+                <button class="text-btn" onclick="showHotkeyHelp()" style="width:100%;text-align:left;background:none;border:none;padding:5px;cursor:pointer;">⌨️ 鍵盤快捷鍵</button>
             </div>
         </div>
     </div>
@@ -3036,8 +3129,7 @@ scroll-margin-top: 180px; /* 手機版 Header 疊起來比較高 */
 
 <!-- [v11.4] Back To Top 按鈕 (放在 body 結尾附近) -->
 <button id="back-to-top-btn" onclick="scrollToTop()" title="回到頂部">⬆</button>
-      </header>
-   
+  
 
 
 
@@ -5319,55 +5411,6 @@ function initSwipeGestures() {
     }
   }
 }
-// --- 新增：鍵盤快捷鍵功能 ---
-function initHotkeys() {
-  document.addEventListener('keydown', (e) => {
-    // 1. 儲存當前學生 (Ctrl + S 或 Cmd + S)
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
-      e.preventDefault(); // 阻止瀏覽器預設的「儲存網頁」彈窗
-      
-      // 只在「批改頁 (Page 2)」才生效，避免誤觸
-      if (document.getElementById('page2').classList.contains('active')) {
-         saveCurrentStudentData();
-         // saveCurrentStudentData 內已有 Toast 提示，這裏不用重覆
-      }
-      // 如果想支援「同步至雲端」快捷鍵，可以在這裡加 else logic
-    }
-
-    // 2. 切換學生 (Alt + 左 / Alt + 右)
-    // 使用 Alt 而不是 Ctrl，是為了保留 Ctrl+左右鍵 用於文字編輯時的「跳詞」功能
-    if (e.altKey && !e.ctrlKey && !e.shiftKey) {
-      if (['ArrowLeft', 'ArrowRight'].includes(e.key)) {
-        if (document.getElementById('page2').classList.contains('active')) {
-          e.preventDefault();
-          const direction = e.key === 'ArrowRight' ? 'next' : 'prev';
-          navigateToStudent(direction);
-          
-          // 增加一點 UX：顯示切換到了誰
-          const select = document.getElementById('student-select');
-          if (select && select.value) {
-             if (typeof showToast === 'function') showToast(`已切換至：${select.value}`, 'info');
-          }
-        }
-      }
-    }
-
-    // 3. 切換分頁 (Alt + 1 到 7)
-    if (e.altKey && !e.ctrlKey && !e.shiftKey) {
-      const key = e.key;
-      if (['1', '2', '3', '4', '5', '6', '7'].includes(key)) {
-        e.preventDefault();
-        showPage('page' + key);
-        // 對應頁面名稱
-        const pageNames = {
-            '1': '基本設定', '2': '批改頁', '3': '評語庫', 
-            '4': '學生總覽', '5': '分析', '6': 'AI 生成庫', '7': 'AI 回饋'
-        };
-        if (typeof showToast === 'function') showToast(`已切換至：${pageNames[key]}`, 'info');
-      }
-    }
-  });
-}
 
 // [v11.1] 設定選單開關
 function toggleSettingsMenu() {
@@ -5392,6 +5435,7 @@ document.addEventListener('click', (e) => {
 
 /* ===== [Phase 3] 批改頁升級：Checklist 渲染與快速新增 ===== */
 
+/* [v12.0] 批改頁渲染 (潔淨版：只保留分類與新增按鈕) */
 function buildChecklist() {
   const dataContainer = document.getElementById('critique-data');
   const checklistContainer = document.getElementById('checklist-container');
@@ -5419,7 +5463,7 @@ function buildChecklist() {
     currentCategories[category].push(el);
   });
   
-  // 3. 排序 (自定義順序)
+  // 3. 排序
   const sortedCategoryNames = Object.keys(currentCategories).sort((a, b) => {
     const indexA = CATEGORY_ORDER.indexOf(a);
     const indexB = CATEGORY_ORDER.indexOf(b);
@@ -5429,17 +5473,17 @@ function buildChecklist() {
     return a.localeCompare(b);
   });
 
-  // 4. 渲染
   if (hasItems) {
       checklistContainer.style.display = 'grid'; 
       checklistContainer.className = ''; 
 
+      // 渲染分類
       for (const categoryName of sortedCategoryNames) {
         const categoryDetails = document.createElement('details');
         categoryDetails.className = 'category-group';
         categoryDetails.open = true;
         
-        // 🔥 新增：標題旁的 [+] 按鈕 (防止冒泡，點擊只開 Modal)
+        // 標題 + 新增按鈕
         const summary = document.createElement('summary');
         summary.innerHTML = `
             <div style="display:flex; align-items:center; gap:10px; width:100%;">
@@ -5466,7 +5510,6 @@ function buildChecklist() {
 
           const headerDiv = document.createElement('div');
           headerDiv.className = 'check-item-header';
-          // Label padding 調整已在 CSS 做咗
           headerDiv.innerHTML = `<input type="checkbox" id="${id}"><label for="${id}">${title}</label>`;
           itemDiv.appendChild(headerDiv);
 
@@ -5474,7 +5517,7 @@ function buildChecklist() {
 
           const editableCommentDiv = document.createElement('div');
           editableCommentDiv.className = 'editable-comment';
-          editableCommentDiv.innerHTML = `<textarea id="text-${id}" placeholder="此處顯示學生版預覽（已細化例子）…"></textarea>`;
+          editableCommentDiv.innerHTML = `<textarea id="text-${id}" placeholder="此處顯示學生版預覽…"></textarea>`;
           itemDiv.appendChild(editableCommentDiv);
 
           itemsContainer.appendChild(itemDiv);
@@ -5483,11 +5526,8 @@ function buildChecklist() {
           if (checkedStates[id]) {
             const checkbox = headerDiv.querySelector(`#${id}`);
             checkbox.checked = true;
-            // 這裡不需再 handleCheckboxChange，因為那是點擊觸發的，這裡只是渲染
-            // 但我們要確保 UI 顯示正確 (展開)
             if (hasOptions) itemDiv.querySelector('.interactive-module').style.display = 'block';
             itemDiv.querySelector('.editable-comment').style.display = 'block';
-            
             const textarea = itemDiv.querySelector(`#text-${id}`);
             if (textarea && editedTexts[id]) textarea.value = editedTexts[id];
           }
@@ -5497,11 +5537,9 @@ function buildChecklist() {
         checklistContainer.appendChild(categoryDetails);
       }
   } else {
-    // Rescue Card 代碼 (保持不變)
+    // Rescue Card
     checklistContainer.style.display = 'block';
-    checklistContainer.innerHTML = `<div class="rescue-card">... (保留你原有的 Rescue Card 內容) ...</div>`;
-    // 為免代碼太長，這裡省略 Rescue Card HTML，請保留你原本那段
-    // 如果你 copy 唔到，我可以再貼一次
+    checklistContainer.innerHTML = `<div class="rescue-card">...</div>`;
   }
 }
 
@@ -11011,6 +11049,26 @@ async function openForgotModal() {
         if(link) link.textContent = originalText;
     }
 }
+
+
+/* [v12.1] Back To Top 邏輯 */
+const backToTopBtn = document.getElementById("back-to-top-btn");
+
+window.addEventListener('scroll', () => {
+  if (!backToTopBtn) return;
+  const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+  
+  if (scrollTop > 300) {
+    backToTopBtn.style.display = "block";
+  } else {
+    backToTopBtn.style.display = "none";
+  }
+});
+
+function scrollToTop() {
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
 </script> <!-- 呢個係原本全個檔案唯一的結尾，保留佢 -->
 
 
