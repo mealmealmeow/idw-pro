@@ -599,17 +599,18 @@
 }
 
 /* ===== [v11.1] 設定選單樣式 (Settings Popover) ===== */
+/* [v11.8] Setting 選單 Z-Index 修復 (確保在最頂) */
 .settings-menu-popover {
     position: absolute;
     top: 45px;
     right: 0;
     background: #fff;
     border-radius: 12px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
     border: 1px solid rgba(0,0,0,0.05);
     width: 200px;
     padding: 12px;
-    z-index: 3000;
+    z-index: 99999 !important; /* 🔥 贏晒所有野 */
     color: #555;
     animation: fadeInMenu 0.2s ease-out;
 }
@@ -718,22 +719,27 @@
     font-weight: normal; /* 唔使太粗 */
   }
 
-  /* 4. 子導航：橫滑膠囊 (保留 v11.0 邏輯，微調樣式) */
-  .sub-nav-island {
-    position: static;
-    transform: none;
-    width: 100%;
-    border-radius: 0;
-    box-shadow: inset 0 -1px 0 #f0f0f0; /* 輕微內陰影 */
-    background: #fbfbfb;
-    border: none;
-    padding: 10px 15px;
-    overflow-x: auto;
-    justify-content: flex-start;
-    animation: none;
-    gap: 10px;
-  }
+/* [v11.8] 懸浮導航島 (絕對定位，防止推郁主頁) */
+.sub-nav-island {
+  position: absolute; /* 🔥 關鍵：懸浮，不佔空間 */
+  top: 100%; /* 緊貼 Nav bar 底部 */
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 10px;
   
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(0,0,0,0.05);
+  box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+  
+  padding: 6px 8px;
+  border-radius: 99px;
+  display: flex;
+  gap: 5px;
+  z-index: 2000; /* 比 Content 高，比 Header 低 */
+  white-space: nowrap;
+}
+
   .sub-nav-btn {
     border: 1px solid #e5e7eb;
     background: #fff;
@@ -5172,35 +5178,38 @@ document.addEventListener('click', (e) => {
 
 
 
-// [Pro-v9.5 Step 2] 構建評語清單 (包含空狀態救援)
+// [v11.8] 批改頁渲染 (Hot List + Instant Add 回歸)
 function buildChecklist() {
   const dataContainer = document.getElementById('critique-data');
   const checklistContainer = document.getElementById('checklist-container');
 
-  // 1. 備份當前勾選狀態 (防止重繪時丟失)
+  // 1. 狀態備份
   const checkedStates = {};
   const editedTexts = {};
   document.querySelectorAll('#checklist-container input[type="checkbox"]').forEach(cb => {
     checkedStates[cb.id] = cb.checked;
     if (cb.checked) {
-      const textarea = document.getElementById(`text-${cb.id}`);
-      if (textarea) editedTexts[cb.id] = textarea.value;
+      const ta = document.getElementById(`text-${cb.id}`);
+      if (ta) editedTexts[cb.id] = ta.value;
     }
   });
 
   checklistContainer.innerHTML = '';
   const currentCategories = {};
+  const allCritiquesMap = {}; 
   let hasItems = false;
 
-  // 2. 分類處理
+  // 2. 分類與映射
   dataContainer.querySelectorAll('div[data-id]').forEach(el => {
     hasItems = true;
     const category = el.dataset.category || '未分類';
+    const id = el.dataset.id;
+    
     if (!currentCategories[category]) currentCategories[category] = [];
     currentCategories[category].push(el);
+    allCritiquesMap[id] = el; 
   });
   
-  // 3. 排序範疇
   const sortedCategoryNames = Object.keys(currentCategories).sort((a, b) => {
     const indexA = CATEGORY_ORDER.indexOf(a);
     const indexB = CATEGORY_ORDER.indexOf(b);
@@ -5210,17 +5219,84 @@ function buildChecklist() {
     return a.localeCompare(b);
   });
 
-  // 4. 渲染列表 (如果有評語)
   if (hasItems) {
-      // 恢復網格佈局 (如果之前被改過)
       checklistContainer.style.display = 'grid'; 
-      checklistContainer.className = ''; // 清除特殊 class
+      checklistContainer.className = ''; 
 
+      // 🔥 [復刻] 常用評語 (Hot List)
+      // (假設 getTopCritiques 函數已存在，若無請看 Step 4)
+      if (typeof getTopCritiques === 'function') {
+          const topIds = getTopCritiques(5);
+          const hotListItems = topIds.map(id => allCritiquesMap[id]).filter(Boolean);
+
+          if (hotListItems.length > 0) {
+              const hotDetails = document.createElement('details');
+              hotDetails.className = 'category-group';
+              hotDetails.open = true;
+              hotDetails.style.border = "2px solid #F2C037"; 
+              hotDetails.style.background = "#fffdf5";
+
+              hotDetails.innerHTML = `
+                <summary style="background: linear-gradient(90deg, #fffdf5, #fff8e1);">
+                    <div style="display:flex; align-items:center; gap:10px; width:100%;">
+                        <h3>🔥 常用評語</h3>
+                    </div>
+                </summary>`;
+              
+              const hotContainer = document.createElement('div');
+              hotContainer.className = 'category-content';
+              
+              hotListItems.forEach(el => {
+                  const originalId = el.dataset.id;
+                  const hotId = `hot_${originalId}`;
+                  const title = el.querySelector('h4').textContent;
+                  const type = el.dataset.type;
+                  
+                  const itemDiv = document.createElement('div');
+                  itemDiv.className = `check-item ${type === 'problem' ? 'is-problem' : 'is-excellent'}`;
+                  itemDiv.innerHTML = `
+                    <div class="check-item-header">
+                        <input type="checkbox" id="${hotId}" ${checkedStates[originalId] ? 'checked' : ''}>
+                        <label for="${hotId}">${title}</label>
+                    </div>`;
+                    
+                  // 同步點擊邏輯
+                  itemDiv.addEventListener('click', (e) => {
+                      e.preventDefault();
+                      const originalCb = document.getElementById(originalId);
+                      if(originalCb) {
+                          originalCb.checked = !originalCb.checked;
+                          handleCheckboxChange(originalCb);
+                          itemDiv.querySelector('input').checked = originalCb.checked;
+                          if(originalCb.checked && typeof incrementCritiqueUsage === 'function') incrementCritiqueUsage(originalId);
+                      }
+                  });
+                  hotContainer.appendChild(itemDiv);
+              });
+              hotDetails.appendChild(hotContainer);
+              checklistContainer.appendChild(hotDetails);
+          }
+      }
+
+      // 渲染正常分類
       for (const categoryName of sortedCategoryNames) {
         const categoryDetails = document.createElement('details');
         categoryDetails.className = 'category-group';
-        categoryDetails.open = true; // 預設展開
-        categoryDetails.innerHTML = `<summary><h3>${categoryName}</h3></summary>`;
+        categoryDetails.open = true;
+        
+        // 🔥 [復刻] 標題旁的 [+ 新增] 按鈕
+        const summary = document.createElement('summary');
+        summary.innerHTML = `
+            <div style="display:flex; align-items:center; gap:10px; width:100%;">
+                <h3>${escapeHtml(categoryName)}</h3>
+                <button class="light-btn" style="padding: 2px 8px; font-size: 0.8rem; border-radius: 99px;" 
+                        onclick="event.preventDefault(); openInstantAdd('${escapeHtmlAttr(categoryName)}')">
+                    + 新增
+                </button>
+            </div>
+        `;
+        categoryDetails.appendChild(summary);
+
         const itemsContainer = document.createElement('div');
         itemsContainer.className = 'category-content';
 
@@ -5242,16 +5318,16 @@ function buildChecklist() {
 
           const editableCommentDiv = document.createElement('div');
           editableCommentDiv.className = 'editable-comment';
-          editableCommentDiv.innerHTML = `<textarea id="text-${id}" placeholder="此處顯示學生版預覽（已細化例子）…"></textarea>`;
+          editableCommentDiv.innerHTML = `<textarea id="text-${id}" placeholder="此處顯示學生版預覽…"></textarea>`;
           itemDiv.appendChild(editableCommentDiv);
 
           itemsContainer.appendChild(itemDiv);
 
-          // 恢復勾選狀態
-          const checkbox = headerDiv.querySelector(`#${id}`);
           if (checkedStates[id]) {
+            const checkbox = headerDiv.querySelector(`#${id}`);
             checkbox.checked = true;
-            handleCheckboxChange(checkbox, false);
+            if (hasOptions) itemDiv.querySelector('.interactive-module').style.display = 'block';
+            itemDiv.querySelector('.editable-comment').style.display = 'block';
             const textarea = itemDiv.querySelector(`#text-${id}`);
             if (textarea && editedTexts[id]) textarea.value = editedTexts[id];
           }
@@ -5260,40 +5336,31 @@ function buildChecklist() {
         categoryDetails.appendChild(itemsContainer);
         checklistContainer.appendChild(categoryDetails);
       }
-  } 
-  else {
-    // 🔥 [核心改動] 空狀態救援卡片 (Rescue Card)
-    checklistContainer.style.display = 'block'; // 卡片要佔滿寬度
-    checklistContainer.innerHTML = `
-      <div class="rescue-card">
-        <div class="rescue-title">🌱 評語庫準備就緒</div>
-        <p class="rescue-desc">這份作業尚未設定評語。請選擇一種方式開始：</p>
-        
-        <div class="rescue-grid">
-          <!-- 選項 1: 預設罐頭 -->
-          <div class="rescue-btn" onclick="quickLoadPresets()">
-            <div class="rescue-icon">📦</div>
-            <div class="rescue-label">載入預設</div>
-            <div class="rescue-sub">記敘、抒情...</div>
-          </div>
-
-          <!-- 選項 2: 匯入檔案 -->
-          <label class="rescue-btn" for="import-critique-excel">
-            <div class="rescue-icon">📂</div>
-            <div class="rescue-label">匯入 Excel</div>
-            <div class="rescue-sub">從舊檔導入</div>
-          </label>
-
-          <!-- 選項 3: AI 生成 -->
-          <div class="rescue-btn" onclick="showPage('page6')">
-            <div class="rescue-icon">🤖</div>
-            <div class="rescue-label">AI 生成</div>
-            <div class="rescue-sub">量身打造</div>
-          </div>
-        </div>
-      </div>
-    `;
+  } else {
+    // Rescue Card
+    checklistContainer.style.display = 'block';
+    checklistContainer.innerHTML = `<div class="rescue-card">...</div>`;
   }
+}
+
+
+/* [v11.8] Hot List 輔助函數 */
+const HOT_LIST_KEY = 'idw_hot_list_data';
+
+function incrementCritiqueUsage(critiqueId) {
+    let data = {};
+    try { data = JSON.parse(localStorage.getItem(HOT_LIST_KEY) || '{}'); } catch (e) {}
+    data[critiqueId] = (data[critiqueId] || 0) + 1;
+    localStorage.setItem(HOT_LIST_KEY, JSON.stringify(data));
+}
+
+function getTopCritiques(limit = 5) {
+    let data = {};
+    try { data = JSON.parse(localStorage.getItem(HOT_LIST_KEY) || '{}'); } catch (e) {}
+    return Object.entries(data)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, limit)
+        .map(([id]) => id);
 }
 
 // [Pro-v9.5] 快速載入預設 (Rescue Action)
