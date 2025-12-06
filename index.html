@@ -598,77 +598,156 @@
   box-shadow: 0 4px 10px rgba(90, 143, 123, 0.3);
 }
 
+/* ===== [v11.1] 設定選單樣式 (Settings Popover) ===== */
+.settings-menu-popover {
+    position: absolute;
+    top: 45px;
+    right: 0;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    border: 1px solid rgba(0,0,0,0.05);
+    width: 200px;
+    padding: 12px;
+    z-index: 3000;
+    color: #555;
+    animation: fadeInMenu 0.2s ease-out;
+}
+
+.settings-group label {
+    font-size: 0.8rem;
+    color: #999;
+    margin-bottom: 8px;
+    display: block;
+}
+
+.font-controls-row {
+    display: flex;
+    gap: 5px;
+    justify-content: space-between;
+}
+
+.font-controls-row button {
+    flex: 1;
+    padding: 6px 0;
+    border: 1px solid #eee;
+    background: #f9f9f9;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: #555;
+}
+.font-controls-row button:hover { background: #eee; }
+
+.settings-divider { height: 1px; background: #eee; margin: 10px 0; }
+
+.text-btn {
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    border: none;
+    padding: 8px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    color: #5b5044;
+    border-radius: 6px;
+}
+.text-btn:hover { background: #f3f4f6; }
+
+
 /* ========================================= */
-/* === Mobile RWD (頂部橫向 Tabs) === */
+/* === [v11.1] Mobile RWD (極簡 App 風格) === */
 /* ========================================= */
 @media (max-width: 768px) {
-  /* 1. 容器變為固定頂部 */
-  .page-nav-wrapper {
-    position: sticky; /* 黏住頂部 */
-    top: 0;
-    z-index: 2000; /* 高過內容 */
-    border-bottom: 1px solid #eee;
-  }
-
-  /* 2. 主導航：橫向捲動 (Facebook Style) */
-  .main-nav {
-    justify-content: flex-start; /* 靠左開始 */
-    overflow-x: auto; /* 允許橫滑 */
-    gap: 10px;
-    padding: 0 15px;
-    height: 55px;
-    /* 隱藏 Scrollbar */
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-  }
-  .main-nav::-webkit-scrollbar { display: none; }
-
-  .nav-btn {
-    flex-shrink: 0; /* 防止縮細 */
-    padding: 6px 12px;
-    font-size: 0.95rem;
-    background: #f9f9f9;
-    border: 1px solid #eee;
+  
+  /* 1. Header 瘦身 */
+  header {
+    padding: 0.8rem 1rem !important; /* 減少上下 Padding */
+    min-height: auto;
   }
   
-  .nav-btn.active {
-    background: var(--accent-color-soft);
-    border-color: var(--accent-color-soft);
+  h1 {
+    font-size: 1.4rem !important; /* 標題縮細 */
+    margin-bottom: 2px !important;
+  }
+  
+  /* 隱藏/縮細非必要元素 */
+  .auth-container { 
+    padding: 2px 6px !important;
+    font-size: 0.8rem !important;
+  }
+  #auth-status { font-size: 0.75rem !important; }
+  
+  /* 2. 導航容器：固定頂部 */
+  .page-nav-wrapper {
+    position: sticky;
+    top: 0;
+    z-index: 2000;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+    background: #fff;
   }
 
-  /* 3. 懸浮島變為「第二層 Toolbar」 */
+  /* 3. 主導航：App 風格 (Icon 上 字 下) */
+  .main-nav {
+    justify-content: space-around; /* 平均分佈 */
+    padding: 0;
+    height: auto;
+    background: #fff;
+    gap: 0;
+  }
+
+  .nav-btn {
+    flex: 1; /* 每個按鈕佔同樣闊度 */
+    flex-direction: column; /* 垂直排列 */
+    gap: 2px;
+    padding: 8px 0;
+    background: transparent !important;
+    border: none !important; /* 去框 */
+    border-bottom: 2px solid transparent !important; /* 預留底線位 */
+    border-radius: 0;
+    font-size: 0.75rem; /* 字細啲 */
+    color: #9ca3af;
+  }
+  
+  .nav-icon { font-size: 1.4rem; margin-bottom: 2px; }
+
+  .nav-btn.active {
+    color: var(--accent-color);
+    background: transparent !important;
+    border-bottom-color: var(--accent-color) !important; /* 幼底線 */
+    font-weight: normal; /* 唔使太粗 */
+  }
+
+  /* 4. 子導航：橫滑膠囊 (保留 v11.0 邏輯，微調樣式) */
   .sub-nav-island {
-    position: static; /* 手機版不懸浮，變成正常文檔流 */
+    position: static;
     transform: none;
     width: 100%;
     border-radius: 0;
-    box-shadow: none;
-    background: #fafafa;
-    border-bottom: 1px solid #eee;
+    box-shadow: inset 0 -1px 0 #f0f0f0; /* 輕微內陰影 */
+    background: #fbfbfb;
+    border: none;
     padding: 10px 15px;
-    overflow-x: auto; /* 允許橫滑 */
+    overflow-x: auto;
     justify-content: flex-start;
     animation: none;
+    gap: 10px;
   }
   
-  .sub-nav-group {
-    width: 100%;
-    justify-content: flex-start; /* 靠左 */
-  }
-
   .sub-nav-btn {
-    flex-shrink: 0;
-    border: 1px solid #e0e0e0;
+    border: 1px solid #e5e7eb;
     background: #fff;
+    padding: 6px 14px;
+    font-size: 0.85rem;
+    flex-shrink: 0;
   }
   
   .sub-nav-btn.active {
     background: var(--accent-color);
+    color: #fff;
     border-color: var(--accent-color);
+    box-shadow: none;
   }
-  
-  /* 隱藏漢堡 */
-  .mobile-menu-btn { display: none !important; }
 }
 
 
@@ -2785,15 +2864,31 @@ scroll-margin-top: 180px; /* 手機版 Header 疊起來比較高 */
 
         </div>
         
-        <!-- 右邊區域：字體控制 (保持在右上角) -->
-        <div class="font-controls" style="align-self: flex-start;">
-            <button class="font-control-btn" onclick="showHotkeyHelp()" title="鍵盤快捷鍵">⌨️</button> 
-            <!-- 放在 <header> 裡面的 .font-controls div 入面 -->
+        <!-- [v11.1] Header 右側：設定選單 (收納了字體控制) -->
+<div class="header-actions" style="position: relative;">
+    
+    <!-- 設定按鈕 (齒輪) -->
+    <button class="font-control-btn" onclick="toggleSettingsMenu()" style="width: 36px; height: 36px; border-radius: 50%; font-size: 1.1rem; border: none; background: rgba(255,255,255,0.2);">
+        ⚙️
+    </button>
 
-          <button class="font-control-btn" onclick="adjustFontSize('decrease')" title="縮小字體">A-</button>
-          <button class="font-control-btn" onclick="adjustFontSize('reset')" title="重設字體大小">重設</button>
-          <button class="font-control-btn" onclick="adjustFontSize('increase')" title="放大字體">A+</button>
+    <!-- 設定下拉選單 (預設隱藏) -->
+    <div id="settings-dropdown" class="settings-menu-popover" style="display: none;">
+        <div class="settings-group">
+            <label>字體大小</label>
+            <div class="font-controls-row">
+                <button onclick="adjustFontSize('decrease')" title="縮小">A-</button>
+                <button onclick="adjustFontSize('reset')" title="重設">⟳</button>
+                <button onclick="adjustFontSize('increase')" title="放大">A+</button>
+            </div>
         </div>
+        <div class="settings-divider"></div>
+        <div class="settings-group">
+            <button class="text-btn" onclick="showHotkeyHelp()">⌨️ 鍵盤快捷鍵</button>
+        </div>
+    </div>
+
+</div>
       </header>
      <!-- [v10.3] 全新雙層導航結構 -->
 <!-- [v11.0] 懸浮導航結構 (Floating Island) -->
@@ -5055,6 +5150,28 @@ function initHotkeys() {
     }
   });
 }
+
+// [v11.1] 設定選單開關
+function toggleSettingsMenu() {
+    const menu = document.getElementById('settings-dropdown');
+    if (menu) {
+        menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+    }
+}
+
+// 點擊空白處關閉選單
+document.addEventListener('click', (e) => {
+    const menu = document.getElementById('settings-dropdown');
+    const btn = document.querySelector('.font-control-btn'); // 齒輪掣
+    
+    // 如果點擊目標唔係 Menu 本身，又唔係個掣，就關閉
+    if (menu && menu.style.display === 'block' && !menu.contains(e.target) && !btn.contains(e.target)) {
+        menu.style.display = 'none';
+    }
+});
+
+
+
 // [Pro-v9.5 Step 2] 構建評語清單 (包含空狀態救援)
 function buildChecklist() {
   const dataContainer = document.getElementById('critique-data');
